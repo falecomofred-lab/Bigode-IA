@@ -1,0 +1,56 @@
+# ============================================================
+# Cérebro — Venure
+# O que NUNCA vai para o Git
+# ============================================================
+
+# --- Seus dados pessoais ---
+# Login do dono: e-mail, sal e hash da senha
+usuarios.json
+# Conexões ligadas e os tokens de API que você colar nelas
+conexoes.json
+# Configuração da sua máquina: caminhos, porta, pastas liberadas
+config.json
+# Sessões abertas
+sessoes.json
+
+# --- Suas conversas e projetos ---
+conversas/
+projetos/
+memoria/projetos/
+memoria/indice*.json
+memoria/*.jsonl
+
+# --- Modelos de IA (gigantes, baixados separado) ---
+*.gguf
+*.bin
+*.safetensors
+*.crdownload
+*.part
+llamafile*
+llama-server*
+
+# --- Python portátil (vai no pendrive, não no Git) ---
+python/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# --- Gerados em tempo de execução ---
+motor.log
+_motor.bat
+*.log
+web/sw-cache/
+
+# --- Backups e compactados ---
+*.zip
+*.rar
+*.7z
+*backup*
+
+# --- Editor e sistema ---
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.tmp

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cérebro — Venure</title>
+<style>
+:root{--bg:#0A0C11;--sup:#11141B;--sup2:#161A23;--linha:#1D222C;--txt:#ECEFF4;
+      --txt2:#A3ACBB;--fraco:#4B5464;--ac:#2DD4BF;--ac2:#818CF8;--ok:#34D399}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);min-height:100vh;padding:44px 24px;
+     font:15px/1.7 -apple-system,"Segoe UI",system-ui,sans-serif}
+.caixa{max-width:520px;margin:0 auto}
+.topo{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.selo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(140deg,var(--ac),var(--ac2))}
+h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
+.sub{font-size:9.5px;letter-spacing:3px;color:var(--fraco);font-weight:700}
+p.intro{color:var(--txt2);font-size:13.5px;margin:14px 0 26px}
+label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.aj{display:block;font-size:12px;color:var(--fraco);margin-bottom:9px;line-height:1.6}
+input{width:100%;background:var(--sup);border:1px solid var(--linha);border-radius:10px;
+      padding:12px 14px;color:var(--txt);font:14px ui-monospace,Consolas,monospace;outline:none}
+input:focus{border-color:#31445E}
+.fila{display:flex;gap:9px;margin-top:16px}
+button{border:1px solid #2A313E;background:none;color:var(--txt2);padding:11px 20px;
+       border-radius:10px;font:inherit;font-size:13.5px;cursor:pointer}
+button:hover{color:var(--txt)}
+button.forte{background:var(--ac);color:#04140F;border:none;font-weight:600}
+.aviso{margin-top:18px;padding:12px 15px;border-radius:10px;font-size:13px;display:none}
+.aviso.on{display:block}
+.aviso.ok{background:#0D2119;border:1px solid #1F5140;color:var(--ok)}
+.aviso.ruim{background:#1D1215;border:1px solid #5A2A2E;color:#F8A5A5}
+.dicas{margin-top:32px;padding-top:24px;border-top:1px solid var(--linha);
+       font-size:13px;color:var(--txt2);line-height:1.9}
+.dicas b{color:var(--txt)}
+code{background:var(--sup2);padding:2px 7px;border-radius:5px;
+     font:12.5px ui-monospace,Consolas,monospace;color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="caixa">
+  <div class="topo">
+    <div class="selo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="#04140F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 5.5 12 20l8-14.5"/></svg></div>
+    <div><h1>Cérebro</h1><div class="sub">VENURE</div></div>
+  </div>
+
+  <p class="intro">Diga onde o Cérebro está rodando. No mesmo computador do pendrive,
+    deixe como está. Em outro computador da casa, use o endereço da rede.</p>
+
+  <label>Endereço do Cérebro</label>
+  <span class="aj">Aparece na janela preta do Cérebro e em Configurações → Usar no celular</span>
+  <input id="url" placeholder="http://localhost:7000">
+
+  <div class="fila">
+    <button class="forte" id="btSalvar">Salvar e testar</button>
+    <button id="btPadrao">Usar o padrão</button>
+  </div>
+
+  <div class="aviso" id="aviso"></div>
+
+  <div class="dicas">
+    <b>Como usar</b><br>
+    Clique no ícone da Venure ou aperte <code>Ctrl+Shift+C</code> para abrir o painel.<br>
+    Selecione um texto na página e clique com o botão direito para mandar ao Cérebro.<br><br>
+    <b>Para ele agir sozinho nas páginas</b><br>
+    No Cérebro, vá em <code>+ → Conectar uma ferramenta → Navegador Chrome</code> e ligue.<br><br>
+    <b>Se não conectar</b><br>
+    O notebook precisa estar ligado, com o pendrive espetado e o <code>CEREBRO.bat</code> aberto.
+  </div>
+</div>
+<script src="opcoes.js"></script>
+</body>
+</html>

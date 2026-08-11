@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cérebro — Venure · Protótipo</title>
+<style>
+:root{
+  --bg:#080B12; --panel:#0F1521; --panel2:#111827; --card:#141C2B;
+  --line:#1E2A3D; --line2:#2A3A52;
+  --txt:#E8EDF5; --muted:#8492A8; --dim:#5A6880;
+  --accent:#22D3EE; --accent2:#A78BFA; --ok:#10B981; --warn:#F59E0B; --erro:#EF4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);height:100vh;overflow:hidden;display:flex;
+     font:15px/1.6 "Segoe UI",system-ui,-apple-system,sans-serif}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#22304A;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- SIDEBAR ---------- */
+aside{width:242px;background:var(--panel);border-right:1px solid var(--line);
+      display:flex;flex-direction:column;flex-shrink:0}
+.marca{padding:24px 22px 20px;border-bottom:1px solid var(--line)}
+.marca .v{font-size:9.5px;letter-spacing:4px;color:var(--dim);font-weight:700}
+.marca h1{font-size:25px;font-weight:600;letter-spacing:-.5px;margin-top:5px;
+          background:linear-gradient(100deg,var(--accent),var(--accent2));
+          -webkit-background-clip:text;background-clip:text;color:transparent}
+nav{padding:14px 11px;flex:1}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;
+     cursor:pointer;color:var(--muted);font-size:13.5px;margin-bottom:3px;
+     border:1px solid transparent;transition:.12s}
+.nav:hover{background:#151F30;color:var(--txt)}
+.nav.on{background:#152232;border-color:#25405C;color:var(--txt);font-weight:600}
+.nav .i{width:19px;text-align:center;font-size:15px}
+.nav .badge{margin-left:auto;background:#22304A;color:var(--muted);font-size:10px;
+            padding:1px 7px;border-radius:9px;font-weight:600}
+.rodape{padding:14px 22px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);
+     margin-right:7px;vertical-align:middle;box-shadow:0 0 8px var(--ok)}
+.rodape small{display:block;color:var(--dim);font-size:10.5px;margin-top:2px}
+
+/* ---------- MAIN ---------- */
+main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topo{padding:16px 30px;border-bottom:1px solid var(--line);display:flex;
+      justify-content:space-between;align-items:center;flex-shrink:0}
+.topo h2{font-size:16px;font-weight:600}
+.topo p{font-size:12px;color:var(--muted);margin-top:1px}
+.btn{background:none;border:1px solid var(--line2);color:var(--muted);padding:7px 15px;
+     border-radius:8px;cursor:pointer;font-size:12.5px;font-family:inherit;transition:.12s}
+.btn:hover{color:var(--txt);border-color:#3A4E6C}
+.btn.p{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#071018;
+       border:none;font-weight:600}
+.btn.p:hover{opacity:.9}
+.tela{flex:1;overflow-y:auto;display:none}
+.tela.on{display:flex;flex-direction:column}
+
+/* ---------- CONVERSA ---------- */
+.conversa{flex:1;overflow-y:auto;padding:30px}
+.msg{max-width:830px;margin:0 auto 26px;display:flex;gap:14px}
+.av{width:31px;height:31px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;
+    font-size:12px;font-weight:700}
+.msg.eu .av{background:#25344B;color:var(--txt)}
+.msg.ia .av{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#071018}
+.bolha{flex:1;min-width:0}
+.autor{font-size:11.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.corpo{font-size:14.5px}
+.corpo code{background:#1B2637;padding:2px 6px;border-radius:5px;
+            font:12.5px Consolas,monospace;color:#9FD8E8}
+.corpo pre{background:#0A0F1A;border:1px solid var(--line);border-radius:10px;
+           padding:14px;margin:11px 0;overflow-x:auto}
+.corpo pre code{background:none;padding:0;color:#9FB3C8;font-size:12.5px}
+
+.acao{background:#0B111C;border:1px solid var(--line);border-left:2px solid var(--accent);
+      border-radius:8px;padding:9px 13px;margin-bottom:6px;
+      font:12px Consolas,monospace;color:#9FB3C8;display:flex;gap:9px;align-items:center}
+.acao .ok{color:var(--ok);font-weight:700}
+.acao .r{margin-left:auto;color:var(--dim);font-size:11px}
+
+.autorizar{background:#151E2E;border:1px solid var(--warn);border-radius:10px;
+           padding:13px 15px;margin:9px 0}
+.autorizar .t{font-size:12px;color:var(--warn);font-weight:700;margin-bottom:8px;
+              letter-spacing:.3px}
+.autorizar .c{background:#0A0F1A;border-radius:7px;padding:10px 12px;
+              font:12.5px Consolas,monospace;color:#E8EDF5;line-height:1.8}
+.autorizar .b{display:flex;gap:8px;margin-top:11px}
+.bok{background:var(--ok);color:#052A1E;border:none;padding:7px 18px;border-radius:7px;
+     font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.bno{background:none;border:1px solid var(--line2);color:var(--muted);padding:7px 18px;
+     border-radius:7px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.fonte{margin-top:10px;font-size:11px;color:var(--muted)}
+.fonte b{color:var(--accent)}
+
+.barra{padding:18px 30px 24px;border-top:1px solid var(--line);flex-shrink:0}
+.caixa{max-width:830px;margin:0 auto;background:var(--panel2);border:1px solid var(--line);
+       border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:flex-end}
+.caixa:focus-within{border-color:#33506F}
+.caixa textarea{flex:1;background:none;border:none;color:var(--txt);resize:none;
+                font:inherit;outline:none;max-height:180px;height:24px}
+.env{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#071018;
+     width:35px;height:35px;border-radius:9px;cursor:pointer;font-size:16px;font-weight:700;
+     flex-shrink:0}
+.chips{max-width:830px;margin:0 auto 10px;display:flex;gap:7px;flex-wrap:wrap}
+.chip{background:var(--panel2);border:1px solid var(--line);padding:5px 12px;border-radius:16px;
+      font-size:11.5px;color:var(--muted);cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--txt)}
+.dica{max-width:830px;margin:9px auto 0;font-size:11px;color:var(--dim);text-align:center}
+
+/* ---------- CONTEUDO GENERICO ---------- */
+.conteudo{padding:26px 30px;max-width:1000px;width:100%;margin:0 auto}
+.secao{font-size:10.5px;letter-spacing:2.5px;color:var(--dim);margin:0 0 12px;font-weight:700}
+.secao+.secao{margin-top:30px}
+
+/* ---------- CONEXOES ---------- */
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+.cx{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px;
+    transition:.12s}
+.cx.ativo{border-color:#2B4A66}
+.cx:hover{border-color:#3A5878}
+.cxh{display:flex;align-items:flex-start;gap:11px}
+.cxi{width:34px;height:34px;border-radius:10px;background:#1B2740;display:grid;place-items:center;
+     font-size:16px;flex-shrink:0}
+.cx.ativo .cxi{background:linear-gradient(135deg,#1B3B4A,#2A2E52)}
+.cxn{font-size:14px;font-weight:600}
+.cxt{font-size:10.5px;color:var(--dim);letter-spacing:.4px;text-transform:uppercase;
+     font-weight:600;margin-top:1px}
+.sw{margin-left:auto;width:34px;height:19px;border-radius:11px;background:#22304A;
+    position:relative;cursor:pointer;flex-shrink:0;transition:.15s}
+.sw i{position:absolute;width:14px;height:14px;border-radius:50%;background:#6B7B94;
+      top:2.5px;left:2.5px;transition:.15s}
+.sw.on{background:var(--ok)}
+.sw.on i{left:17.5px;background:#fff}
+.sw.pend{background:var(--warn)}
+.cxd{font-size:12px;color:var(--muted);margin-top:11px;line-height:1.55}
+.cxs{font-size:11px;margin-top:9px;display:flex;align-items:center;gap:6px}
+.cxs.ok{color:var(--ok)} .cxs.pend{color:var(--warn)} .cxs.off{color:var(--dim)}
+.cx.nova{border:1px dashed var(--line2);background:transparent;display:grid;place-items:center;
+         min-height:150px;cursor:pointer;color:var(--dim);text-align:center}
+.cx.nova:hover{border-color:var(--accent);color:var(--accent)}
+.cx.nova .pl{font-size:26px;font-weight:300;line-height:1}
+
+/* ---------- MEMORIA ---------- */
+.mcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+       padding:16px 18px;margin-bottom:12px}
+.mcard h4{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:9px}
+.mcard h4 .ed{margin-left:auto;font-size:11.5px;color:var(--accent);cursor:pointer;font-weight:500}
+.mcard p{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.65}
+.busca{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+       padding:9px 13px;color:var(--txt);font:inherit;font-size:13px;outline:none;margin-bottom:11px}
+.busca:focus{border-color:#33506F}
+.pj{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:9px;
+    background:var(--card);border:1px solid var(--line);margin-bottom:5px}
+.pj:hover{border-color:var(--line2)}
+.pji{width:28px;height:28px;border-radius:8px;background:#1B2740;display:grid;place-items:center;
+     font-size:11px;color:var(--accent2)}
+.pjn{font-size:13px;font-weight:600}
+.pjd{font-size:11px;color:var(--dim)}
+.pjm{margin-left:auto;font-size:11px;color:var(--dim)}
+
+/* ---------- AJUSTES ---------- */
+.campo{margin-bottom:16px}
+.campo label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.campo small{display:block;font-size:11.5px;color:var(--dim);margin-bottom:7px}
+.campo input,.campo select{width:100%;background:var(--panel2);border:1px solid var(--line);
+       border-radius:9px;padding:9px 13px;color:var(--txt);font:inherit;font-size:13px;outline:none}
+.campo input:focus,.campo select:focus{border-color:#33506F}
+.dupla{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ---------- MODAL ---------- */
+.overlay{position:fixed;inset:0;background:rgba(4,7,12,.78);display:none;
+         place-items:center;z-index:50;backdrop-filter:blur(3px)}
+.overlay.on{display:grid}
+.modal{background:var(--panel);border:1px solid var(--line2);border-radius:15px;
+       width:520px;max-width:92vw;padding:24px 26px;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:3px}
+.modal .sub{font-size:12.5px;color:var(--muted);margin-bottom:19px}
+.abas{display:flex;gap:6px;margin-bottom:18px;background:var(--panel2);padding:4px;
+      border-radius:10px}
+.aba{flex:1;text-align:center;padding:7px;border-radius:7px;font-size:12.5px;cursor:pointer;
+     color:var(--muted)}
+.aba.on{background:#1E2C42;color:var(--txt);font-weight:600}
+.mfim{display:flex;gap:9px;justify-content:flex-end;margin-top:22px}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="marca">
+    <div class="v">V E N U R E</div>
+    <h1>Cérebro</h1>
+  </div>
+  <nav>
+    <div class="nav on" onclick="ir('conversa',this)"><span class="i">💬</span>Conversa</div>
+    <div class="nav" onclick="ir('conexoes',this)"><span class="i">🔌</span>Conexões<span class="badge">4</span></div>
+    <div class="nav" onclick="ir('memoria',this)"><span class="i">🧠</span>Memória<span class="badge">33</span></div>
+    <div class="nav" onclick="ir('ajustes',this)"><span class="i">⚙️</span>Ajustes</div>
+  </nav>
+  <div class="rodape">
+    <span class="dot"></span>Motor conectado
+    <small>Qwen3-Coder-30B · pendrive D:</small>
+  </div>
+</aside>
+
+<main>
+
+  <!-- ============ CONVERSA ============ -->
+  <div class="tela on" id="t-conversa">
+    <div class="topo">
+      <div><h2>Conversa</h2><p>4 conexões ativas · 33 projetos na memória</p></div>
+      <button class="btn">Nova conversa</button>
+    </div>
+
+    <div class="conversa">
+      <div class="msg eu">
+        <div class="av">F</div>
+        <div class="bolha">
+          <div class="autor">Você</div>
+          <div class="corpo">Cérebro, entra no meu Drive, olha o projeto GolCam e sobe ele pro GitHub num repositório novo e privado.</div>
+        </div>
+      </div>
+
+      <div class="msg ia">
+        <div class="av">C</div>
+        <div class="bolha">
+          <div class="autor">Cérebro</div>
+          <div class="acao"><span class="ok">✓</span> listar_pasta("G:\Meu Drive\projetos\GolCam") <span class="r">18 arquivos</span></div>
+          <div class="acao"><span class="ok">✓</span> ler_arquivo("package.json") <span class="r">0,4 KB</span></div>
+          <div class="acao"><span class="ok">✓</span> ler_arquivo("README.md") <span class="r">1,2 KB</span></div>
+
+          <div class="corpo" style="margin:12px 0">
+            É um projeto Node + Express, 18 arquivos, sem <code>.gitignore</code>.
+            Vou criar um antes de subir — senão vai junto o <code>node_modules</code> e o <code>.env</code>.
+          </div>
+
+          <div class="autorizar">
+            <div class="t">⚠ PRECISA DA SUA AUTORIZAÇÃO — 3 AÇÕES</div>
+            <div class="c">
+              escrever_arquivo(".gitignore")<br>
+              github.criar_repo("golcam", privado: true)<br>
+              github.enviar(18 arquivos → main)
+            </div>
+            <div class="b">
+              <button class="bok">Autorizar</button>
+              <button class="bno">Recusar</button>
+              <button class="bno">Ver detalhes</button>
+            </div>
+          </div>
+
+          <div class="fonte">memória consultada: <b>GolCam</b> · conexões usadas: <b>Arquivos</b>, <b>GitHub</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="barra">
+      <div class="chips">
+        <div class="chip">📁 Ler um projeto do Drive</div>
+        <div class="chip">🐙 Subir para o GitHub</div>
+        <div class="chip">🌐 Pesquisar na web</div>
+        <div class="chip">🧠 O que você sabe sobre X?</div>
+      </div>
+      <div class="caixa">
+        <textarea placeholder="Fale com o Cérebro..."></textarea>
+        <button class="env">↑</button>
+      </div>
+      <div class="dica">Enter envia · Shift+Enter quebra linha · leitura é livre, escrita pede autorização</div>
+    </div>
+  </div>
+
+  <!-- ============ CONEXOES ============ -->
+  <div class="tela" id="t-conexoes">
+    <div class="topo">
+      <div><h2>Conexões</h2><p>O que o Cérebro pode acessar</p></div>
+      <button class="btn p" onclick="modal(true)">+ Nova conexão</button>
+    </div>
+    <div style="overflow-y:auto"><div class="conteudo">
+
+      <div class="secao">A T I V A S</div>
+      <div class="grade">
+
+        <div class="cx ativo">
+          <div class="cxh">
+            <div class="cxi">📁</div>
+            <div><div class="cxn">Arquivos</div><div class="cxt">Local · sem token</div></div>
+            <div class="sw on" onclick="sw(this)"><i></i></div>
+          </div>
+          <div class="cxd">G:\Meu Drive\projetos<br>D:\Cerebro</div>
+          <div class="cxs ok">● listar · ler · escrever · mover</div>
+        </div>
+
+        <div class="cx ativo">
+          <div class="cxh">
+            <div class="cxi">🐙</div>
+            <div><div class="cxn">GitHub</div><div class="cxt">API · token pessoal</div></div>
+            <div class="sw on" onclick="sw(this)"><i></i></div>
+          </div>
+          <div class="cxd">frederico-rep · 12 repositórios</div>
+          <div class="cxs ok">● repos · código · commit · issues</div>
+        </div>
+
+        <div class="cx ativo">
+          <div class="cxh">
+            <div class="cxi">🌐</div>
+            <div><div class="cxn">Web</div><div class="cxt">Busca · gratuito</div></div>
+            <div class="sw on" onclick="sw(this)"><i></i></div>
+          </div>
+          <div class="cxd">Pesquisa e leitura de páginas</div>
+          <div class="cxs ok">● buscar · abrir · extrair</div>
+        </div>
+
+        <div class="cx ativo">
+          <div class="cxh">
+            <div class="cxi">✳️</div>
+            <div><div class="cxn">Claude</div><div class="cxt">MCP · ponte</div></div>
+            <div class="sw on" onclick="sw(this)"><i></i></div>
+          </div>
+          <div class="cxd">O Claude manda tarefas para o Cérebro executar aqui</div>
+          <div class="cxs ok">● servidor ativo em :7100</div>
+        </div>
+      </div>
+
+      <div class="secao">P E N D E N T E S</div>
+      <div class="grade">
+        <div class="cx">
+          <div class="cxh">
+            <div class="cxi">🎨</div>
+            <div><div class="cxn">Canva</div><div class="cxt">MCP · nuvem</div></div>
+            <div class="sw pend" onclick="sw(this)"><i></i></div>
+          </div>
+          <div class="cxd">Criar apresentações e artes</div>
+          <div class="cxs pend">● clique para autorizar no navegador</div>
+        </div>
+
+        <div class="cx">
+          <div class="cxh">
+            <div class="cxi">📊</div>
+            <div><div class="cxn">Google Sheets</div><div class="cxt">MCP · nuvem</div></div>
+            <div class="sw" onclick="sw(this)"><i></i></div>
+          </div>
+          <div class="cxd">Ler e escrever planilhas</div>
+          <div class="cxs off">● desligado</div>
+        </div>
+
+        <div class="cx nova" onclick="modal(true)">
+          <div><div class="pl">+</div><div style="font-size:12.5px;margin-top:5px">Adicionar MCP ou API</div></div>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+
+  <!-- ============ MEMORIA ============ -->
+  <div class="tela" id="t-memoria">
+    <div class="topo">
+      <div><h2>Memória</h2><p>Última sincronização: hoje, 16:42</p></div>
+      <button class="btn p">↻ Sincronizar com o Drive</button>
+    </div>
+    <div style="overflow-y:auto"><div class="conteudo">
+
+      <div class="secao">Q U E M   E L E   É</div>
+      <div class="mcard">
+        <h4>🎯 Identidade <span class="ed">editar</span></h4>
+        <p>Você é o Cérebro, a inteligência central da Venure. Fale como um sócio técnico
+        de confiança: direto, claro e objetivo. Nunca invente nome de arquivo, cliente ou número.
+        Sem bajulação.</p>
+      </div>
+      <div class="mcard">
+        <h4>🧭 Como o Fred trabalha <span class="ed">editar</span></h4>
+        <p>Código completo e pronto para uso, nunca trechos soltos. Sempre dizer em qual arquivo vai.
+        Se um arquivo muda, devolver ele inteiro. Preservar a estrutura existente. Entre várias
+        soluções, a mais simples e estável.</p>
+      </div>
+
+      <div class="secao">P R O J E T O S   ·   3 3   I N D E X A D O S</div>
+      <input class="busca" placeholder="Buscar projeto...">
+      <div class="pj"><div class="pji">◎</div><div><div class="pjn">Projeto Soul</div><div class="pjd">Python · 42 arquivos</div></div><div class="pjm">ontem</div></div>
+      <div class="pj"><div class="pji">◎</div><div><div class="pjn">GolCam</div><div class="pjd">JavaScript · 18 arquivos</div></div><div class="pjm">3 dias</div></div>
+      <div class="pj"><div class="pji">◎</div><div><div class="pjn">Seclar</div><div class="pjd">PHP · 31 arquivos</div></div><div class="pjm">1 semana</div></div>
+      <div class="pj"><div class="pji">◎</div><div><div class="pjn">VRTXLAB</div><div class="pjd">TypeScript · 67 arquivos</div></div><div class="pjm">2 semanas</div></div>
+      <div class="pj"><div class="pji">◎</div><div><div class="pjn">carteira2026</div><div class="pjd">Python · 12 arquivos</div></div><div class="pjm">1 mês</div></div>
+      <div style="text-align:center;padding:14px;color:var(--dim);font-size:12.5px">+ 28 projetos</div>
+
+    </div></div>
+  </div>
+
+  <!-- ============ AJUSTES ============ -->
+  <div class="tela" id="t-ajustes">
+    <div class="topo">
+      <div><h2>Ajustes</h2><p>Motor, comportamento e segurança</p></div>
+      <button class="btn p">Salvar</button>
+    </div>
+    <div style="overflow-y:auto"><div class="conteudo" style="max-width:660px">
+
+      <div class="secao">M O T O R</div>
+      <div class="campo">
+        <label>Modelo</label>
+        <small>Arquivo .gguf detectado no pendrive</small>
+        <select><option>Qwen3-Coder-30B-A3B-Instruct-Q4_1.gguf  (18,7 GB)</option></select>
+      </div>
+      <div class="dupla">
+        <div class="campo"><label>Temperatura</label><small>0,2 código · 0,7 criativo</small><input value="0.3"></div>
+        <div class="campo"><label>Contexto</label><small>tokens de memória</small><input value="8192"></div>
+      </div>
+
+      <div class="secao">S E G U R A N Ç A</div>
+      <div class="campo">
+        <label>Nível de autorização</label>
+        <small>Quando o Cérebro deve pedir sua permissão</small>
+        <select>
+          <option>Toda ação que altere algo (recomendado)</option>
+          <option>Só ações destrutivas (apagar, publicar)</option>
+          <option>Nunca perguntar — modo autônomo</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label>Pastas liberadas</label>
+        <small>Fora dessas, ele não escreve nada</small>
+        <input value="G:\Meu Drive\projetos ; D:\Cerebro">
+      </div>
+
+      <div class="secao">P O N T E   C O M   O   C L A U D E</div>
+      <div class="campo">
+        <label>Endereço do servidor MCP</label>
+        <small>Cole isto nas configurações do Claude para ele acessar o Cérebro</small>
+        <input value="http://localhost:7100/mcp" readonly>
+      </div>
+
+    </div></div>
+  </div>
+
+</main>
+
+<!-- ============ MODAL ============ -->
+<div class="overlay" id="ov" onclick="if(event.target===this)modal(false)">
+  <div class="modal">
+    <h3>Nova conexão</h3>
+    <div class="sub">Dê ao Cérebro acesso a mais uma ferramenta</div>
+
+    <div class="abas">
+      <div class="aba on" onclick="aba(this)">Servidor MCP</div>
+      <div class="aba" onclick="aba(this)">API</div>
+      <div class="aba" onclick="aba(this)">Pasta local</div>
+    </div>
+
+    <div class="campo">
+      <label>Nome</label>
+      <input placeholder="Canva">
+    </div>
+    <div class="campo">
+      <label>Comando ou endereço</label>
+      <small>Ex: npx -y @canva/mcp  ·  ou  https://mcp.canva.com/sse</small>
+      <input placeholder="npx -y @exemplo/mcp-server">
+    </div>
+    <div class="campo">
+      <label>Chave / token <span style="color:var(--dim);font-weight:400">(opcional)</span></label>
+      <input type="password" placeholder="••••••••••••">
+    </div>
+
+    <div class="mfim">
+      <button class="btn" onclick="modal(false)">Cancelar</button>
+      <button class="btn p">Testar e conectar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function ir(id, el){
+  document.querySelectorAll('.tela').forEach(t=>t.classList.remove('on'));
+  document.getElementById('t-'+id).classList.add('on');
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('on'));
+  el.classList.add('on');
+}
+function sw(el){ el.classList.remove('pend'); el.classList.toggle('on'); }
+function modal(v){ document.getElementById('ov').classList.toggle('on', v); }
+function aba(el){
+  el.parentNode.querySelectorAll('.aba').forEach(a=>a.classList.remove('on'));
+  el.classList.add('on');
+}
+</script>
+</body>
+</html>

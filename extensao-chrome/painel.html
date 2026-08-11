@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+:root{--bg:#0A0C11;--sup:#11141B;--linha:#1D222C;--txt:#ECEFF4;--txt2:#A3ACBB;
+      --fraco:#4B5464;--ac:#2DD4BF;--ac2:#818CF8;--erro:#F87171}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);display:flex;flex-direction:column;
+     font:14px/1.6 -apple-system,"Segoe UI",system-ui,sans-serif;overflow:hidden}
+iframe{flex:1;border:none;width:100%;background:var(--bg)}
+.erro{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;
+      padding:30px 24px;text-align:center;gap:14px}
+.erro.on{display:flex}
+.selo{width:52px;height:52px;border-radius:16px;
+      background:linear-gradient(140deg,var(--ac),var(--ac2));display:grid;place-items:center}
+.erro h2{font-size:17px;font-weight:600}
+.erro p{color:var(--txt2);font-size:13px;max-width:280px;line-height:1.7}
+.erro code{background:var(--sup);border:1px solid var(--linha);padding:3px 8px;
+           border-radius:6px;font:12.5px ui-monospace,Consolas,monospace;color:var(--ac)}
+.bt{border:1px solid #2A313E;background:none;color:var(--txt2);padding:9px 18px;
+    border-radius:9px;font:inherit;font-size:13px;cursor:pointer}
+.bt:hover{color:var(--txt)}
+.bt.forte{background:var(--ac);color:#04140F;border:none;font-weight:600}
+.fila{display:flex;gap:8px;margin-top:4px}
+</style>
+</head>
+<body>
+  <iframe id="quadro" allow="microphone; clipboard-write"></iframe>
+  <div class="erro" id="erro">
+    <div class="selo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+      stroke="#04140F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 5.5 12 20l8-14.5"/></svg></div>
+    <h2>Cérebro desligado</h2>
+    <p>Ligue o notebook com o pendrive e abra o <b>CEREBRO.bat</b>.<br><br>
+       Tentando em <code id="alvo">—</code></p>
+    <p id="detalhe" style="color:var(--erro);font-size:12px;max-width:300px"></p>
+    <div class="fila">
+      <button class="bt forte" id="btTentar">Tentar de novo</button>
+      <button class="bt" id="btOpcoes">Mudar endereço</button>
+    </div>
+  </div>
+<script src="painel.js"></script>
+</body>
+</html>
