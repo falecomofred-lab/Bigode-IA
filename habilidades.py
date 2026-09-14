@@ -97,17 +97,53 @@ def abrir(ident):
     return cabeca + corpo[:14000]
 
 
-def resumo_para_prompt():
-    """Lista curta que entra no prompt do sistema."""
+def _casa(habilidade, pergunta):
+    """A pergunta encosta nos assuntos desta habilidade?"""
+    alvo = (pergunta or "").lower()
+    if not alvo:
+        return True                     # sem pergunta, mostra tudo
+    palavras = [p.strip().lower() for p in (habilidade.get("quando") or "").split(",")]
+    palavras = [p for p in palavras if len(p) >= 3]
+    if not palavras:
+        return True                     # sem gatilho declarado, sempre entra
+    return any(p in alvo for p in palavras)
+
+
+def resumo_para_prompt(pergunta=""):
+    """Lista curta que entra no prompt do sistema.
+
+    MEDIDO em 24/08: esta lista custava 524 tokens em TODA mensagem -- nove
+    manuais, cada um com nome mais a lista inteira de assuntos que o aciona.
+    A 68 tokens/s de leitura, sao ~8 segundos por pergunta gastos oferecendo
+    oito manuais que nao tem nada a ver com o que foi perguntado.
+
+    Agora a lista e filtrada pelo assunto da pergunta, do mesmo jeito que o
+    catalogo de ferramentas. Os manuais que casam vao COM os assuntos (que e
+    o que ajuda o modelo a decidir); os demais viram so uma linha de nomes,
+    para ele saber que existem e poder pedir se precisar.
+
+    Sem pergunta (aquecimento, telas de ajuste) a lista completa volta -- e o
+    comportamento antigo, e nesses casos ninguem esta esperando resposta.
+    """
     ativas = [h for h in listar() if h["ativa"]]
     if not ativas:
         return ""
+
+    combinam = [h for h in ativas if _casa(h, pergunta)]
+    resto = [h for h in ativas if h not in combinam]
+
     linhas = ["# HABILIDADES DISPONIVEIS", "",
               "Voce tem manuais especializados. Quando o pedido do Fred cair em um",
               "destes assuntos, chame usar_habilidade ANTES de responder:", ""]
-    for h in ativas:
+    for h in combinam:
         gatilhos = (" (assuntos: %s)" % h["quando"]) if h["quando"] else ""
         linhas.append('- %s: "%s"%s' % (h["id"], h["nome"], gatilhos))
+
+    if resto:
+        linhas.append("")
+        linhas.append("Tambem existem, se o assunto virar para elas: "
+                      + ", ".join(h["id"] for h in resto) + ".")
+
     linhas.append("")
     linhas.append("Nao invente habilidade que nao esteja nesta lista.")
     return "\n".join(linhas)

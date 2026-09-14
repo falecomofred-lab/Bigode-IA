@@ -1,0 +1,4 @@
+# Memória semântica persistente local
+chromadb>=1.5,<2
+# Hub, download versionado e Inference Providers; o modo local continua funcionando sem token.
+huggingface_hub>=0.30,<2

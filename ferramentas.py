@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-FERRAMENTAS - as maos do Cerebro
+FERRAMENTAS - as maos do Bigode
 
 Cada ferramenta e uma funcao simples que recebe argumentos e devolve texto.
 Ferramentas marcadas com escrita=True exigem autorizacao do usuario antes de rodar.
@@ -52,16 +52,148 @@ def _pastas_liberadas():
     saida = []
     for item in lista:
         try:
-            saida.append(Path(item).resolve())
+            texto = str(item)
+            saida.append(Path(texto).resolve())
+            if os.name != "nt":
+                traduzido = re.sub(r"^[Gg]:[\\/](?:Meu Drive|My Drive)[\\/]",
+                                   "/content/drive/MyDrive/", texto).replace("\\", "/")
+                if traduzido != texto:
+                    saida.append(Path(traduzido).resolve())
         except Exception:
             pass
     saida.append(BASE)
     return saida
 
 
+def arrumar_caminho(caminho):
+    """Conserta um caminho quase certo antes de julgar se e permitido.
+
+    Conversa real de 24/08:
+
+        Fred: "abra o Lucas Garage, dentro do drive, pasta projetos"
+        Bigode: "a pasta D:\\G\\Meu Drive\\projetos\\lucas_garage esta fora
+                 dos locais permitidos... mova o projeto"
+
+    Repare no `D:\\G\\`. O modelo escreveu o caminho sem os dois-pontos do
+    disco. `Path(...).resolve()` tratou como RELATIVO e grudou na pasta onde
+    o Bigode roda. Virou um caminho que nunca existiu, foi barrado, e a
+    mensagem mandou o Fred mover a pasta -- conselho errado, sobre um
+    problema que nao era dele.
+
+    Modelo pequeno erra caminho o tempo todo: esquece o dois-pontos, troca
+    barra, usa o nome com espaco no lugar do nome da pasta. Barrar sem
+    tentar consertar joga fora minutos de trabalho por causa de um caractere.
+
+    Aqui tentamos, em ordem: o caminho como veio; a versao com o
+    dois-pontos de volta; e o mesmo nome procurado dentro de cada pasta
+    liberada. O primeiro que EXISTIR vence.
+    """
+    bruto = str(caminho or "").strip().strip('"').strip("'")
+    if not bruto:
+        return bruto
+
+    candidatos = [bruto]
+
+    # ═══ O MESMO PROJETO, DOIS ENDERECOS ═══════════════════════════════
+    #
+    # 09/09, no Colab. O Fred pediu para criar um jogo de damas e entrou
+    # num laco de cinco mensagens:
+    #
+    #     Bigode: "a pasta G:\Meu Drive\projetos/jogo-damas esta fora das
+    #              pastas liberadas"
+    #     Fred:   "G:\Meu Drive\projetos\jogo-damas esse eh o correto,
+    #              atencao!!!"
+    #     Bigode: (a mesma recusa, de novo)
+    #
+    # Os dois estavam certos. No computador do Fred o Drive e `G:`. No
+    # Colab, o mesmo Drive fica montado em /content/drive/MyDrive. As
+    # skills, o jeito_de_trabalhar.md e a cabeca do Fred falam `G:` --
+    # e do lado de la esse caminho simplesmente nao existe.
+    #
+    # Exigir que ele aprenda dois enderecos para a mesma pasta seria
+    # transferir para o Fred um problema que e nosso. Traduzimos aqui.
+    trocas = [
+        (r"^[Gg]:[\\/](?:Meu Drive|My Drive)[\\/]", "/content/drive/MyDrive/"),
+        (r"^[Gg]:[\\/]", "/content/drive/MyDrive/"),
+        (r"^[Dd]:[\\/]Cerebro[\\/]", "/content/bigode/"),
+        (r"^[Dd]:[\\/]", "/content/trabalho/"),
+    ] if os.name != "nt" else [
+        # O caminho contrario tambem acontece: o diario escrito no Colab
+        # guarda caminhos /content/..., e o Fred le no Windows.
+        (r"^/content/drive/MyDrive/", "G:\\Meu Drive\\"),
+        (r"^/content/bigode/", "D:\\Cerebro\\"),
+    ]
+    for padrao, destino in trocas:
+        if re.match(padrao, bruto):
+            candidatos.append(re.sub(padrao, destino, bruto))
+            # A tradução é a intenção explícita do usuário. Ela deve ser
+            # preservada mesmo antes de a pasta final existir, pois é assim
+            # que projetos novos são criados no Drive montado.
+            if os.name != "nt":
+                return candidatos[-1]
+            break
+
+    # "G\Meu Drive\..." ou "G/Meu Drive/..." -> "G:\Meu Drive\..."
+    #
+    # So no Windows. Em Linux (Colab) nao ha letra de unidade, e "/c/algo"
+    # e um caminho legitimo -- transformar em "C:\algo" criaria um caminho
+    # que nunca existe.
+    if os.name == "nt":
+        achado = re.match(r"^[\\/]?([A-Za-z])[\\/](.+)$", bruto)
+        if achado and ":" not in bruto[:3]:
+            candidatos.append("%s:\\%s" % (achado.group(1).upper(),
+                                          achado.group(2)))
+
+    # Nome solto, ou caminho relativo: procura dentro de cada pasta liberada.
+    #
+    # A separacao usa a barra do sistema. Antes era sempre "\", e em Linux
+    # isso transformava "/content/drive/x" num NOME DE ARQUIVO com barras
+    # invertidas dentro -- que nunca existe. Funcionava por acidente, porque
+    # o laco abaixo desfazia a troca; agora e por desenho.
+    cauda = bruto.replace("\\", "/").lstrip("/") if os.name != "nt" \
+        else bruto.replace("/", "\\").lstrip("\\")
+    for raiz in _pastas_liberadas():
+        candidatos.append(str(raiz / cauda))
+        # O modelo costuma repetir um pedaco que ja esta na raiz, tipo
+        # "projetos/lucas_garage" quando a raiz JA e .../projetos. Tentamos
+        # tirando um nivel de cada vez, do comeco.
+        partes = [x for x in cauda.replace("\\", "/").split("/") if x]
+        for corte in range(1, len(partes)):
+            candidatos.append(str(raiz.joinpath(*partes[corte:])))
+
+    for c in candidatos:
+        try:
+            if Path(c).exists():
+                return c
+        except Exception:
+            continue
+
+    # ═══ E QUANDO O ALVO AINDA NAO EXISTE? ══════════════════════════════
+    #
+    # Criar pasta, criar projeto, escrever arquivo novo: o caminho pedido
+    # NAO existe ainda -- e nao pode existir, esse e o ponto.
+    #
+    # A busca acima, que exige `exists()`, devolvia o caminho cru nesses
+    # casos. No Colab isso significava devolver "G:\Meu Drive\..." intacto,
+    # que a cerca barrava. Foi o laco de 09/09: cinco mensagens tentando
+    # criar `jogo-damas`, com o Fred repetindo o caminho certo e o Bigode
+    # recusando o certo.
+    #
+    # Aqui a regra vira: basta a PASTA DE CIMA existir. Se o lugar onde vai
+    # nascer e real e liberado, o caminho serve.
+    for c in candidatos:
+        try:
+            pai = Path(c).parent
+            if pai.exists() and pai.is_dir():
+                return c
+        except Exception:
+            continue
+    return bruto
+
+
 def _permitido(caminho):
     try:
-        alvo = Path(caminho).resolve()
+        alvo = Path(arrumar_caminho(caminho)).resolve()
     except Exception:
         return False
     for raiz in _pastas_liberadas():
@@ -71,6 +203,30 @@ def _permitido(caminho):
         except ValueError:
             continue
     return False
+
+
+def _negado(caminho):
+    """A recusa tem de dizer onde ELE PODE ir, nao mandar voce mudar de vida.
+
+    A mensagem antiga sugeria "mova o projeto para uma pasta aceita". Isso e
+    conselho errado: a pasta certa ja estava liberada; quem errou foi o
+    caminho digitado.
+    """
+    libs = [str(r) for r in _pastas_liberadas()]
+    return ("Nao encontrei '%s' e ele nao esta nas pastas liberadas.\n\n"
+            "Voce PODE entrar em:\n%s\n\n"
+            "Tente de novo com o caminho completo a partir de uma dessas, "
+            "ou chame listar_pasta na pasta de cima para ver os nomes reais."
+            % (caminho, "\n".join("  - " + l for l in libs) or "  (nenhuma)"))
+
+
+def _sensivel(caminho):
+    """Arquivos de credencial nunca entram no contexto do modelo."""
+    nome = Path(caminho).name.lower()
+    sufixos = (".env", ".pem", ".key", ".pfx", ".p12")
+    return (nome in {"config.json", "conexoes.json", "usuarios.json"}
+            or nome.startswith(".env") or nome.endswith(sufixos)
+            or "secret" in nome or "token" in nome)
 
 
 def _corta(texto, limite=LIMITE_TEXTO):
@@ -166,8 +322,9 @@ def _dica_parecidos(caminho, verbo="encontrei"):
 # ==========================================================================
 
 def listar_pasta(caminho="", **_):
+    caminho = arrumar_caminho(caminho)
     if not _permitido(caminho):
-        return "NEGADO: '%s' esta fora das pastas liberadas." % caminho
+        return _negado(caminho)
     pasta = Path(caminho)
     if not pasta.exists():
         return _dica_parecidos(caminho)
@@ -198,6 +355,8 @@ def listar_pasta(caminho="", **_):
 
 
 def ler_arquivo(caminho="", **_):
+    if _sensivel(caminho):
+        return "NEGADO: arquivo de configuração ou credencial protegido."
     if not _permitido(caminho):
         return "NEGADO: '%s' esta fora das pastas liberadas." % caminho
     arquivo = Path(caminho)
@@ -212,10 +371,9 @@ def ler_arquivo(caminho="", **_):
 
 
 def buscar(termo="", pasta="", **_):
-    raiz = Path(pasta) if pasta else None
-    if raiz is None or not _permitido(raiz):
-        libs = _pastas_liberadas()
-        raiz = libs[0] if libs else BASE
+    raiz = Path(pasta) if pasta else (_pastas_liberadas()[0] if _pastas_liberadas() else BASE)
+    if pasta and not _permitido(raiz):
+        return "NEGADO: a pasta solicitada esta fora das pastas liberadas."
     if not raiz.exists():
         return "Pasta nao encontrada: %s" % raiz
 
@@ -228,7 +386,7 @@ def buscar(termo="", pasta="", **_):
             continue
         if not arquivo.is_file():
             continue
-        if arquivo.suffix.lower() in {".gguf", ".exe", ".zip", ".png", ".jpg",
+        if _sensivel(arquivo) or arquivo.suffix.lower() in {".gguf", ".exe", ".zip", ".png", ".jpg",
                                       ".mp4", ".pdf", ".bin", ".dll"}:
             continue
         vistos += 1
@@ -252,6 +410,8 @@ def buscar(termo="", pasta="", **_):
 
 
 def escrever_arquivo(caminho="", conteudo="", **_):
+    if _sensivel(caminho):
+        return "NEGADO: arquivo de configuração ou credencial protegido."
     if not _permitido(caminho):
         return "NEGADO: '%s' esta fora das pastas liberadas." % caminho
     arquivo = Path(caminho)
@@ -336,7 +496,7 @@ def criar_pasta(caminho="", confirmado=False, **_):
     if Path(caminho).exists():
         return "Ja existe: %s (nada a fazer)" % caminho
 
-    # Criar pasta parecida com uma que ja existe e como o Cerebro estraga o
+    # Criar pasta parecida com uma que ja existe e como o Bigode estraga o
     # Drive do Fred: nasce 'sabor_e_prosa_v2' ao lado de 'sabor_prosa_emporio_v2'
     # e ninguem mais sabe qual e a boa. So passa com confirmado=true.
     if not confirmado:
@@ -357,6 +517,8 @@ def criar_pasta(caminho="", confirmado=False, **_):
 
 
 def mover(origem="", destino="", **_):
+    if _sensivel(origem) or _sensivel(destino):
+        return "NEGADO: arquivo de configuração ou credencial protegido."
     if not (_permitido(origem) and _permitido(destino)):
         return "NEGADO: origem ou destino fora das pastas liberadas."
     try:
@@ -368,6 +530,8 @@ def mover(origem="", destino="", **_):
 
 
 def apagar(caminho="", **_):
+    if _sensivel(caminho):
+        return "NEGADO: arquivo de configuração ou credencial protegido."
     if not _permitido(caminho):
         return "NEGADO: '%s' esta fora das pastas liberadas." % caminho
     alvo = Path(caminho)
@@ -382,7 +546,9 @@ def apagar(caminho="", **_):
 
 
 def rodar_comando(comando="", pasta="", **_):
-    diretorio = pasta if (pasta and _permitido(pasta)) else str(BASE)
+    if pasta and not _permitido(pasta):
+        return "NEGADO: a pasta de trabalho esta fora das pastas liberadas."
+    diretorio = pasta if pasta else str(BASE)
     try:
         resultado = subprocess.run(
             comando, shell=True, cwd=diretorio, capture_output=True,
@@ -410,7 +576,7 @@ def _github(caminho_api, metodo="GET", corpo=None):
     url = "https://api.github.com" + caminho_api
     cabecalhos = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "Cerebro-Venure",
+        "User-Agent": "Bigode-Venure",
         "Authorization": "Bearer " + token,
     }
     corpo_bytes = json.dumps(corpo).encode("utf-8") if corpo is not None else None
@@ -475,7 +641,7 @@ def github_criar_repo(nome="", privado=True, descricao="", **_):
 def github_commit(repo="", caminho="", conteudo="", mensagem="", **_):
     import base64
     if not mensagem:
-        mensagem = "Atualiza %s via Cerebro" % caminho
+        mensagem = "Atualiza %s via Bigode" % caminho
 
     sha = None
     atual, _erro = _github("/repos/%s/contents/%s" % (repo, caminho))
@@ -507,11 +673,26 @@ def github_issue(repo="", titulo="", corpo="", **_):
 # Web
 # ==========================================================================
 
-def _baixar(url, timeout=25):
-    pedido = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Cerebro/1.0",
+def _baixar(url, timeout=25, dados=None):
+    """Busca uma pagina. Com `dados`, manda por POST.
+
+    O User-Agent de navegador de verdade nao e disfarce: buscadores
+    devolvem pagina diferente (ou nenhuma) para quem se identifica como
+    robo, e a nossa e uma consulta feita por uma pessoa, uma de cada vez.
+    """
+    corpo = None
+    cabecalhos = {
+        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/126.0.0.0 Safari/537.36"),
+        "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
         "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-    })
+    }
+    if dados is not None:
+        corpo = urllib.parse.urlencode(dados).encode("utf-8")
+        cabecalhos["Content-Type"] = "application/x-www-form-urlencoded"
+
+    pedido = urllib.request.Request(url, data=corpo, headers=cabecalhos)
     with urllib.request.urlopen(pedido, timeout=timeout) as resposta:
         bruto = resposta.read()
     return bruto.decode("utf-8", "ignore")
@@ -530,31 +711,166 @@ def _html_para_texto(html):
     return texto.strip()
 
 
+def _limpar_link(link):
+    """O DuckDuckGo embrulha o destino real dentro de uma URL de redirecionamento."""
+    if "uddg=" in link:
+        try:
+            link = urllib.parse.unquote(link.split("uddg=")[1].split("&")[0])
+        except Exception:
+            pass
+    if link.startswith("//"):
+        link = "https:" + link
+    return link
+
+
+# Tres formas de ler a mesma pagina de resultados. Elas existem porque o
+# DuckDuckGo muda o HTML de tempos em tempos, e quando muda, uma expressao
+# sozinha para de achar QUALQUER COISA -- e o Bigode dizia "Sem resultados
+# para 'cannabis no brasil'", que soa como "pesquisei e nao ha nada". Era
+# falso: ele pesquisou e nao soube ler a resposta.
+_PADROES_BUSCA = (
+    # layout classico do /html/
+    r'(?is)<a[^>]+class="result__a"[^>]+href="(.*?)".*?>(.*?)</a>.*?'
+    r'class="result__snippet".*?>(.*?)</a>',
+    # mesma coisa, mas com os atributos na ordem inversa
+    r'(?is)<a[^>]+href="(.*?)"[^>]+class="result__a".*?>(.*?)</a>.*?'
+    r'class="result__snippet".*?>(.*?)</a>',
+    # layout do /lite/: tabela simples, sem classe no link
+    r'(?is)<a[^>]+class="result-link"[^>]+href="(.*?)".*?>(.*?)</a>.*?'
+    r'class="result-snippet".*?>(.*?)</td>',
+)
+
+
+def _wikipedia(consulta, quantos=4):
+    """Fundo de poco da busca: a Wikipedia em portugues.
+
+    ═══ POR QUE ISTO EXISTE ═══════════════════════════════════════════════
+
+    09/09/2026. O Fred perguntou "quem foi Corisco no cangaco". O Bigode
+    tinha acabado de afirmar, com toda a confianca, que Corisco era um
+    canabinoide extraido da Corynanthe yohimbe -- invencao completa. A
+    resposta certa dependia de uma busca, e a busca respondeu:
+
+        "a pagina de resultados veio num formato que nao sei ler"
+
+    O DuckDuckGo mudou o HTML de novo. Ja tinha mudado dias antes. Vai
+    mudar outra vez.
+
+    Raspar HTML de buscador e uma corrida que nunca se ganha: o formato e
+    deles, muda quando eles querem, e nao ha aviso. A Wikipedia tem uma API
+    publica, estavel ha anos, que devolve JSON -- e cobre exatamente o tipo
+    de pergunta em que um modelo de 7B mais inventa: quem foi alguem, o que
+    e alguma coisa, quando aconteceu.
+
+    Nao substitui o buscador para noticia, preco ou site de empresa. Mas
+    garante que "quem foi Corisco" nunca mais fique sem resposta.
+    """
+    api = ("https://pt.wikipedia.org/w/api.php?action=query&list=search"
+           "&srsearch=%s&srlimit=%d&format=json&utf8=1"
+           % (urllib.parse.quote(consulta), quantos))
+    dados = json.loads(_baixar(api, timeout=20))
+    achados = (dados.get("query") or {}).get("search") or []
+    if not achados:
+        return []
+
+    itens = []
+    for a in achados:
+        titulo = a.get("title", "")
+        # O `snippet` vem com <span> de destaque; vira texto limpo.
+        trecho = _html_para_texto(a.get("snippet", "")).strip()
+        endereco = ("https://pt.wikipedia.org/wiki/"
+                    + urllib.parse.quote(titulo.replace(" ", "_")))
+        itens.append((endereco, titulo, trecho))
+    return itens
+
+
 def web_buscar(consulta="", **_):
+    consulta = (consulta or "").strip()
+    if not consulta:
+        return "Preciso saber o que pesquisar."
+
+    # POST em vez de GET: o /html/ do DuckDuckGo passou a recusar consulta
+    # na URL em 09/09. O formulario deles sempre foi POST -- estavamos
+    # usando o atalho que agora fechou.
+    tentativas = [
+        ("https://html.duckduckgo.com/html/", {"q": consulta}),
+        ("https://lite.duckduckgo.com/lite/", {"q": consulta}),
+        ("https://www.mojeek.com/search?q=" + urllib.parse.quote(consulta), None),
+    ]
+
+    ultimo_erro = ""
+    for base, corpo in tentativas:
+        try:
+            html = _baixar(base, dados=corpo)
+        except Exception as erro:
+            ultimo_erro = str(erro)
+            continue
+
+        itens = []
+        for padrao in _PADROES_BUSCA:
+            itens = re.findall(padrao, html)
+            if itens:
+                break
+
+        if not itens:
+            # Ultimo recurso: qualquer link externo com texto, na ordem em
+            # que aparece. Perde o resumo, mas devolve fonte -- que e o que
+            # o selo de evidencia precisa.
+            crus = re.findall(r'(?is)<a[^>]+href="(https?://[^"]+|/l/\?[^"]+)"[^>]*>(.*?)</a>', html)
+            vistos, itens = set(), []
+            for link, titulo in crus:
+                limpo = _limpar_link(link)
+                texto = _html_para_texto(titulo).strip()
+                if (not texto or len(texto) < 12 or "duckduckgo" in limpo
+                        or limpo in vistos):
+                    continue
+                vistos.add(limpo)
+                itens.append((link, titulo, ""))
+                if len(itens) >= 8:
+                    break
+
+        if not itens:
+            ultimo_erro = "a página de resultados veio num formato que não sei ler"
+            continue
+
+        linhas = ["Resultados para '%s':" % consulta, ""]
+        for link, titulo, trecho in itens[:8]:
+            linhas.append("- " + _html_para_texto(titulo))
+            linhas.append("  " + _limpar_link(link))
+            if trecho:
+                linhas.append("  " + _html_para_texto(trecho)[:200])
+            linhas.append("")
+        return _corta("\n".join(linhas))
+
+    # Nenhum buscador respondeu. Antes de desistir, a Wikipedia -- que tem
+    # API de verdade e nao muda de formato a cada semana.
     try:
-        url = "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote(consulta)
-        html = _baixar(url)
+        itens = _wikipedia(consulta)
     except Exception as erro:
-        return "Nao consegui pesquisar: %s" % erro
+        itens = []
+        ultimo_erro = "%s; e a Wikipedia tambem falhou (%s)" % (ultimo_erro, erro)
 
-    itens = re.findall(
-        r'(?is)<a[^>]+class="result__a"[^>]+href="(.*?)".*?>(.*?)</a>.*?'
-        r'class="result__snippet".*?>(.*?)</a>', html)
-    if not itens:
-        return "Sem resultados para '%s'." % consulta
+    if itens:
+        linhas = ["Resultados para '%s' (Wikipedia em portugues):" % consulta,
+                  ""]
+        for link, titulo, trecho in itens:
+            linhas.append("- " + titulo)
+            linhas.append("  " + link)
+            if trecho:
+                linhas.append("  " + trecho[:250])
+            linhas.append("")
+        linhas.append("(Os buscadores nao responderam agora; isto veio da "
+                      "Wikipedia. Para ir alem, peca para eu abrir um destes "
+                      "enderecos com web_ler.)")
+        return _corta("\n".join(linhas))
 
-    linhas = ["Resultados para '%s':" % consulta, ""]
-    for link, titulo, trecho in itens[:8]:
-        if "uddg=" in link:
-            try:
-                link = urllib.parse.unquote(link.split("uddg=")[1].split("&")[0])
-            except Exception:
-                pass
-        linhas.append("- " + _html_para_texto(titulo))
-        linhas.append("  " + link)
-        linhas.append("  " + _html_para_texto(trecho)[:200])
-        linhas.append("")
-    return _corta("\n".join(linhas))
+    # Nem a Wikipedia. Dizer o motivo, e nao "sem resultados": a diferenca
+    # entre "nao existe" e "nao consegui" muda completamente o que o Fred faz.
+    return ("Nao consegui pesquisar '%s' agora. Motivo: %s.\n"
+            "Isto e uma falha da busca, NAO quer dizer que o assunto nao "
+            "exista -- e NAO me autoriza a responder de memoria. Se voce "
+            "tiver o endereco de um site, posso abrir com web_ler ou pelo "
+            "navegador." % (consulta, ultimo_erro or "desconhecido"))
 
 
 def web_ler(url="", **_):
@@ -566,6 +882,38 @@ def web_ler(url="", **_):
         return "Nao consegui abrir %s: %s" % (url, erro)
 
 
+# --------------------------------------------------------------------------
+# calculo seguro: somente aritmetica, sem executar codigo arbitrario
+# --------------------------------------------------------------------------
+def calcular(expressao="", **_):
+    import ast
+    import operator as op
+    permitidos = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+                  ast.Div: op.truediv, ast.Pow: op.pow, ast.Mod: op.mod,
+                  ast.USub: op.neg, ast.UAdd: op.pos}
+    texto = str(expressao or "").strip().replace(",", ".")
+    if not texto:
+        return "Preciso da expressão ou dos números para calcular."
+    try:
+        arvore = ast.parse(texto, mode="eval")
+        def visitar(no):
+            if isinstance(no, ast.Expression): return visitar(no.body)
+            if isinstance(no, ast.Constant) and isinstance(no.value, (int, float)):
+                return no.value
+            if isinstance(no, ast.BinOp) and type(no.op) in permitidos:
+                a, b = visitar(no.left), visitar(no.right)
+                if isinstance(no.op, ast.Pow) and abs(b) > 100: raise ValueError("expoente grande")
+                return permitidos[type(no.op)](a, b)
+            if isinstance(no, ast.UnaryOp) and type(no.op) in permitidos:
+                return permitidos[type(no.op)](visitar(no.operand))
+            raise ValueError("use apenas números e + - * / % ** ( )")
+        resultado = visitar(arvore)
+        return "Resultado: %s" % (int(resultado) if isinstance(resultado, float) and resultado.is_integer() else resultado)
+    except ZeroDivisionError:
+        return "Não é possível dividir por zero."
+    except Exception as erro:
+        return "Não consegui calcular: %s" % erro
+
 # ==========================================================================
 # Utilidades: data/hora, clima e dados publicos do Brasil
 # Todas gratuitas e sem chave de acesso.
@@ -573,7 +921,7 @@ def web_ler(url="", **_):
 
 def _json_api(url, timeout=15):
     pedido = urllib.request.Request(url, headers={
-        "User-Agent": "Cerebro-Venure/1.0", "Accept": "application/json"})
+        "User-Agent": "Bigode-Venure/1.0", "Accept": "application/json"})
     with urllib.request.urlopen(pedido, timeout=timeout) as resposta:
         return json.loads(resposta.read().decode("utf-8", "ignore"))
 
@@ -739,10 +1087,39 @@ def memoria(consulta="", **_):
 # Registro
 # ==========================================================================
 
+def ligada_navegador():
+    """A conexao do Chrome esta ligada nas Conexoes? (usada pelo cerebro.py
+    para decidir se le a pagina antes de falar com o modelo)."""
+    item = _conexoes().get("navegador")
+    if isinstance(item, dict):
+        return bool(item.get("ativa", True))
+    return True
+
+
 def _no_navegador(**_):
     """Executada pela extensao do Chrome. O cerebro.py intercepta antes daqui."""
-    return ("A extensao do Chrome nao esta conectada. Abra o painel do Cerebro no "
+    return ("A extensao do Chrome nao esta conectada. Abra o painel do Bigode no "
             "navegador para eu poder agir nas paginas.")
+
+
+def _desenhar(descricao="", formato="", nome="", modelo="", negativo="",
+              passos=4, guidance=3.5, semente=0, pasta_saida="", **_):
+    """Passa o pedido para o ComfyUI, que roda num processo separado.
+
+    O `import` fica AQUI DENTRO, e nao no topo do arquivo, de proposito: o
+    `imagens.py` e opcional. Quem roda o Bigode no pendrive nao tem ComfyUI
+    nenhum, e um import no topo derrubaria o carregamento do ferramentas.py
+    inteiro por causa de uma funcao que aquela maquina nunca vai usar.
+    """
+    try:
+        import imagens
+    except Exception as erro:
+        return ("O modulo de desenho nao carregou (%s). Rode o "
+                "sincronizar-bigode.ps1 e a celula 10 do Colab." % erro)
+    return imagens.gerar_imagem(
+        descricao=descricao, formato=formato, nome=nome, modelo=modelo,
+        negativo=negativo, passos=passos, guidance=guidance, semente=semente,
+        pasta_saida=pasta_saida)
 
 
 def usar_habilidade(nome="", **_):
@@ -784,6 +1161,13 @@ def criar_projeto(nome="", descricao="", stack="", **_):
         return "Erro ao criar: %s" % erro
 
 
+# ===================== NOVA FERRAMENTA: VAULT =====================
+def buscar_no_chroma(consulta: str, colecao: str = "", limite: int = 5) -> str:
+    """Busca trechos semanticamente similares nas coleções ChromaDB."""
+    import chroma_memoria
+    return chroma_memoria.buscar_no_chroma(consulta, colecao, limite)
+
+
 CATALOGO = {
     "usar_habilidade": {"fn": usar_habilidade, "escrita": False, "args": "nome",
                         "desc": "Carrega um manual especializado do Fred antes de executar."},
@@ -793,6 +1177,9 @@ CATALOGO = {
     "criar_projeto":    {"fn": criar_projeto, "escrita": True,
                          "args": "nome, descricao, stack",
                          "desc": "Cria a pasta de um projeto novo e devolve o caminho base."},
+    "buscar_no_chroma": {"fn": buscar_no_chroma, "escrita": False,
+                         "args": "consulta, colecao, limite",
+                         "desc": "Busca trechos semanticamente similares no ChromaDB por coleção."},
 
     # leitura - livres
     "listar_pasta":   {"fn": listar_pasta,   "escrita": False, "args": "caminho",
@@ -802,7 +1189,7 @@ CATALOGO = {
     "buscar":         {"fn": buscar,         "escrita": False, "args": "termo, pasta",
                        "desc": "Procura um texto dentro dos arquivos de uma pasta."},
     "memoria":        {"fn": memoria,        "escrita": False, "args": "consulta",
-                       "desc": "Consulta o que o Cerebro sabe dos projetos do Fred."},
+                       "desc": "Consulta o que o Bigode sabe dos projetos do Fred."},
     "github_repos":   {"fn": github_repos,   "escrita": False, "args": "",
                        "desc": "Lista os repositorios do GitHub."},
     "github_ler":     {"fn": github_ler,     "escrita": False, "args": "repo, caminho",
@@ -812,11 +1199,25 @@ CATALOGO = {
     "web_ler":        {"fn": web_ler,        "escrita": False, "args": "url",
                        "desc": "Abre uma pagina e devolve o texto."},
 
+    # desenho - executado pelo ComfyUI, num processo separado
+    #
+    # `escrita: True` porque ela CRIA arquivo no disco do Fred. Toda
+    # ferramenta que escreve passa pela autorizacao -- desenhar nao e
+    # excecao, mesmo parecendo inofensivo.
+    "gerar_imagem":   {"fn": _desenhar,       "escrita": True,
+                       "args": "descricao, formato, nome",
+                       "desc": "Cria uma imagem a partir de uma descricao e "
+                               "salva em PNG de alta resolucao, sem marca "
+                               "d'agua. Formatos: quadrado, retrato, "
+                               "paisagem, story, capa. Descreva com "
+                               "riqueza de detalhe - luz, angulo, estilo, "
+                               "cores - que o resultado melhora muito."},
+
     # navegador - executadas pela extensao do Chrome
     "navegador_ver":      {"fn": _no_navegador, "escrita": False, "args": "",
                            "desc": "Le a pagina aberta no Chrome e lista os elementos "
                                    "clicaveis numerados. Use SEMPRE antes de clicar."},
-    "navegador_ir":       {"fn": _no_navegador, "escrita": False, "args": "url",
+    "navegador_ir":       {"fn": _no_navegador, "escrita": True, "args": "url",
                            "desc": "Abre um endereco na aba atual do Chrome."},
     "navegador_clicar":   {"fn": _no_navegador, "escrita": True, "args": "numero",
                            "desc": "Clica no elemento com aquele numero da lista."},
@@ -830,6 +1231,8 @@ CATALOGO = {
                            "desc": "Espera a pagina carregar antes de continuar."},
 
     # utilidades - dados reais, gratuitas e sem chave
+    "calcular":       {"fn": calcular,       "escrita": False, "args": "expressao",
+                       "desc": "Calcula uma expressão aritmética com segurança."},
     "agora":          {"fn": agora,          "escrita": False, "args": "",
                        "desc": "Data e hora reais. Use antes de calcular prazo ou dizer que dia e hoje."},
     "clima":          {"fn": clima,          "escrita": False, "args": "cidade",
@@ -875,6 +1278,9 @@ PARAMETROS = {
     "criar_projeto":     {"nome": "Nome da pasta do projeto",
                           "descricao": "O que o projeto faz",
                           "stack": "Tecnologias, ex: Node + Express + SQLite"},
+    "buscar_no_chroma":  {"consulta": "Pergunta ou palavras-chave para busca semântica",
+                          "colecao": "Nome da coleção/domínio ou 'todas'",
+                          "limite": "Quantidade máxima de trechos relevantes"},
     "listar_pasta":      {"caminho": "Caminho completo da pasta"},
     "ler_arquivo":       {"caminho": "Caminho completo do arquivo"},
     "buscar":            {"termo": "Texto a procurar", "pasta": "Pasta onde procurar"},
@@ -883,6 +1289,15 @@ PARAMETROS = {
     "github_ler":        {"repo": "usuario/repositorio", "caminho": "Caminho no repositorio"},
     "web_buscar":        {"consulta": "O que pesquisar"},
     "web_ler":           {"url": "Endereco da pagina"},
+    "gerar_imagem":      {"descricao": "O que desenhar, em detalhe: assunto, luz, angulo, estilo, cores",
+                          "formato": "quadrado, retrato, paisagem, story ou capa",
+                          "nome": "Nome do arquivo (opcional)",
+                          "modelo": "Nome do GGUF de difusao (opcional)",
+                          "negativo": "O que evitar (opcional)",
+                          "passos": "1 a 20; FLUX schnell usa 4",
+                          "guidance": "Orientacao; normalmente 3.5",
+                          "semente": "Numero para repetir o resultado (opcional)",
+                          "pasta_saida": "Pasta do projeto liberada (opcional)"},
     "navegador_ver":     {},
     "navegador_ir":      {"url": "Endereco completo"},
     "navegador_clicar":  {"numero": "Numero do elemento na lista"},
@@ -890,6 +1305,7 @@ PARAMETROS = {
     "navegador_teclar":  {"tecla": "Enter, Tab, Escape, ArrowDown"},
     "navegador_rolar":   {"direcao": "baixo, cima, topo ou fim"},
     "navegador_esperar": {"segundos": "Quantos segundos esperar"},
+    "calcular":          {"expressao": "Expressão aritmética, ex: (1200 * 0.15) + 80"},
     "agora":             {},
     "clima":             {"cidade": "Nome da cidade, ex: Belo Horizonte"},
     "cep":               {"cep": "CEP com 8 digitos"},
@@ -918,9 +1334,11 @@ OBRIGATORIOS = {
     "usar_habilidade": ["nome"],
     "apresentar_plano": ["objetivo", "passos"],
     "criar_projeto": ["nome"],
+    "buscar_no_chroma": ["consulta"],
     "listar_pasta": ["caminho"], "ler_arquivo": ["caminho"], "buscar": ["termo"],
     "raio_x": ["caminho"],
     "memoria": ["consulta"], "github_ler": ["repo"], "web_buscar": ["consulta"],
+    "gerar_imagem": ["descricao"],
     "navegador_ir": ["url"], "navegador_clicar": ["numero"],
     "navegador_escrever": ["numero", "texto"], "navegador_teclar": ["tecla"],
     "web_ler": ["url"], "clima": ["cidade"], "cep": ["cep"], "cnpj": ["cnpj"],
@@ -937,20 +1355,27 @@ GRUPOS = {
     "navegador":  ("navegador_ver", "navegador_ir", "navegador_clicar",
                    "navegador_escrever", "navegador_teclar", "navegador_rolar",
                    "navegador_esperar"),
-    "utilidades": ("agora", "clima", "cep", "cnpj", "feriados", "cotacao"),
+    "utilidades": ("calcular", "agora", "cep", "cnpj", "feriados", "cotacao"),
     "web":        ("web_buscar", "web_ler"),
     "terminal":   ("rodar_comando",),
+    "desenho":    ("gerar_imagem",),
 }
 
 GATILHOS_GRUPO = {
     "github":     ("github", "repositorio", "repositório", "repo", "commit",
                    "issue", "pull request", "versionar", "publicar o codigo",
                    "publicar o código"),
+    # "tela" e "aba" entraram em 24/08: o Fred perguntou "o que tem na minha
+    # tela" e o grupo do navegador ficou de fora do catalogo, porque nenhuma
+    # dessas palavras estava aqui. Ele nao usa a palavra "navegador" quando
+    # esta olhando para uma pagina -- usa "tela".
     "navegador":  ("navegador", "chrome", "site", "página", "pagina", "url",
                    "http", "clicar", "clique", "login", "logar", "formulario",
                    "formulário", "preencher", "acessar o", "entrar no",
-                   "pythonanywhere", "comprar", "cadastrar no"),
-    "utilidades": ("hoje", "data", "hora", "dia", "prazo", "vencimento",
+                   "pythonanywhere", "comprar", "cadastrar no",
+                   "tela", "aba", "guia aberta", "estou vendo", "esta aberto",
+                   "está aberto", "enxergar"),
+    "utilidades": ("calcule", "calcular", "cálculo", "calculo", "quanto dá", "quanto da", "hoje", "data", "hora", "dia", "prazo", "vencimento",
                    "feriado", "cep", "cnpj", "empresa", "cotacao", "cotação",
                    "dolar", "dólar", "euro", "clima", "tempo", "previsao",
                    "previsão", "temperatura"),
@@ -959,10 +1384,21 @@ GATILHOS_GRUPO = {
                    "site oficial"),
     "terminal":   ("comando", "terminal", "instalar", "npm", "pip", "executar o",
                    "rodar o", "build", "teste"),
+    # Palavras de quem PEDE arte, nao de quem fala sobre arte. "imagem"
+    # sozinho nao entra: "me mostre a imagem do arquivo" nao e pedido de
+    # desenho. Por isso os gatilhos vem colados no verbo.
+    "desenho":    ("desenhe", "desenha", "desenhar", "gere uma imagem",
+                   "gerar imagem", "gera uma imagem", "crie uma imagem",
+                   "criar imagem", "cria uma imagem", "faca uma imagem",
+                   "faça uma imagem", "ilustra", "ilustre", "ilustracao",
+                   "ilustração", "criativo", "criativos", "arte para",
+                   "banner", "thumbnail", "capa para", "poster", "pôster",
+                   "anuncio", "anúncio", "logo para", "wallpaper",
+                   "papel de parede", "foto de", "renderiza", "mockup"),
 }
 
 
-def para_pergunta(texto):
+def para_pergunta(texto, garantir=()):
     """Devolve so as ferramentas que fazem sentido para o pedido.
 
     Mandar as 32 ferramentas em toda mensagem custa ~3.500 tokens, que o modelo
@@ -976,6 +1412,14 @@ def para_pergunta(texto):
     for grupo, gatilhos in GATILHOS_GRUPO.items():
         if not any(g in baixo for g in gatilhos):
             grupos_fora.add(grupo)
+
+    # Grupos que o cerebro.py sabe que vao ser precisos, mesmo sem gatilho na
+    # frase. Caso real: "na barra de busca escreva cannabis" -- o Bigode ja
+    # tinha lido a pagina e sabia que era acao de navegador, mas a frase nao
+    # tem nenhuma palavra da lista de gatilhos. Sem isto o catalogo chegaria
+    # SEM navegador_escrever, e ele nao teria como executar o que acabou de
+    # ser mandado fazer.
+    grupos_fora -= set(garantir or ())
 
     descartar = set()
     for grupo in grupos_fora:
@@ -1020,8 +1464,25 @@ def ativas():
             return bool(item.get("ativa", padrao))
         return padrao
 
+    # A busca semântica só entra se a pasta persistente já tiver dados.
+    # Não importamos ChromaDB aqui: em máquinas portáteis essa importação
+    # pode levar dezenas de segundos ou travar por incompatibilidade NumPy.
+    chroma_tem_conteudo = False
+    try:
+        import json as _json
+        cfg = _json.loads((Path(__file__).resolve().parent / "config.json").read_text(encoding="utf-8-sig"))
+        bruto = Path(str(cfg.get("chroma_path", "./chroma_db")))
+        pasta = bruto if bruto.is_absolute() else Path(__file__).resolve().parent / bruto
+        chroma_tem_conteudo = pasta.exists() and any(
+            p.is_file() and p.stat().st_size > 0 for p in pasta.rglob("*")
+        )
+    except Exception:
+        chroma_tem_conteudo = False
+
     saida = {}
     for nome, dados in CATALOGO.items():
+        if nome == "buscar_no_chroma" and not chroma_tem_conteudo:
+            continue
         if nome.startswith("github") and not ligada("github"):
             continue
         if nome.startswith("web_") and not ligada("web"):
@@ -1037,6 +1498,21 @@ def ativas():
             continue
         if nome == "rodar_comando" and not ligada("terminal", False):
             continue
+        # Desenho: so entra no catalogo se o ComfyUI estiver de pe.
+        #
+        # Mesma logica do `buscar_no_chroma` acima. Oferecer uma ferramenta
+        # que so pode responder "o desenhista nao esta ligado" gasta tokens
+        # do prompt e ensina o modelo a tentar o que nao existe. No pendrive,
+        # onde nao ha ComfyUI, ela simplesmente nao aparece.
+        if nome == "gerar_imagem":
+            if not ligada("desenho", True):
+                continue
+            try:
+                import imagens
+                if not imagens.no_ar():
+                    continue
+            except Exception:
+                continue
         saida[nome] = dados
     return saida
 

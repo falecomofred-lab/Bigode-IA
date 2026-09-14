@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-INDEXAR - alimenta a memoria do Cerebro
+INDEXAR - alimenta a memoria do Bigode
 
 Le a pasta de projetos (Google Drive) e, opcionalmente, seus repositorios do
 GitHub, e gera um arquivo .md por projeto dentro de memoria/projetos/.
@@ -23,7 +23,20 @@ IGNORAR_PASTAS = {
     ".git", ".venv", "venv", "env", "node_modules", "__pycache__", ".idea",
     ".vscode", "dist", "build", ".next", "vendor", ".cache", "site-packages",
     ".pytest_cache", "coverage", ".claude",
+    # Pastas internas do proprio Bigode. Estavam sendo contadas como
+    # "projetos do Fred" e apareciam na lista junto com carteira2026 e
+    # lucas_garage -- o que polui a busca e engana quem le.
+    "python", "chroma_db", "auditoria", "conversas", "habilidades",
+    "agentes", "memoria", "web", "extensao-chrome", "modelos",
 }
+
+# Nomes que COMECAM assim nao sao projeto, sao descarte ou backup.
+#
+# 25/08: dos 68 "projetos" indexados, 15 eram pastas `_antes-*` -- backups
+# que o proprio script de envio cria a CADA envio para o pendrive. Ou seja:
+# quanto mais eu trabalhava, mais lixo entrava na memoria do Bigode. Ele
+# chegou a oferecer `_antes-20260823-1526` como projeto.
+IGNORAR_PREFIXO = ("_antes-", "_lixeira-", "_quarentena-", "_backup", "~")
 IGNORAR_EXT = {
     ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".mp4", ".mov",
     ".mp3", ".wav", ".zip", ".rar", ".7z", ".exe", ".dll", ".gguf", ".bin",
@@ -139,6 +152,8 @@ def indexar_drive(config):
     for pasta in sorted(raiz.iterdir()):
         if not pasta.is_dir() or pasta.name in IGNORAR_PASTAS:
             continue
+        if pasta.name.lower().startswith(IGNORAR_PREFIXO):
+            continue
         conteudo = indexar_projeto(pasta)
         if not conteudo:
             continue
@@ -152,7 +167,7 @@ def indexar_drive(config):
 def api_github(url, token):
     cabecalhos = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "Cerebro-Venure",
+        "User-Agent": "Bigode-Venure",
     }
     if token:
         cabecalhos["Authorization"] = "Bearer " + token
@@ -220,7 +235,7 @@ def main():
     DESTINO.mkdir(parents=True, exist_ok=True)
 
     print("=" * 58)
-    print("  INDEXANDO A MEMORIA DO CEREBRO")
+    print("  INDEXANDO A MEMORIA DO BIGODE IA")
     print("=" * 58)
 
     print("\n[1] Google Drive")

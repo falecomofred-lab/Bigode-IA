@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cérebro — Venure · Protótipo</title>
+<title>Bigode — Venure · Protótipo</title>
 <style>
 :root{
   --bg:#080B12; --panel:#0F1521; --panel2:#111827; --card:#141C2B;
@@ -187,7 +187,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
 <aside>
   <div class="marca">
     <div class="v">V E N U R E</div>
-    <h1>Cérebro</h1>
+    <h1>Bigode</h1>
   </div>
   <nav>
     <div class="nav on" onclick="ir('conversa',this)"><span class="i">💬</span>Conversa</div>
@@ -215,14 +215,14 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
         <div class="av">F</div>
         <div class="bolha">
           <div class="autor">Você</div>
-          <div class="corpo">Cérebro, entra no meu Drive, olha o projeto GolCam e sobe ele pro GitHub num repositório novo e privado.</div>
+          <div class="corpo">Bigode, entra no meu Drive, olha o projeto GolCam e sobe ele pro GitHub num repositório novo e privado.</div>
         </div>
       </div>
 
       <div class="msg ia">
         <div class="av">C</div>
         <div class="bolha">
-          <div class="autor">Cérebro</div>
+          <div class="autor">Bigode</div>
           <div class="acao"><span class="ok">✓</span> listar_pasta("G:\Meu Drive\projetos\GolCam") <span class="r">18 arquivos</span></div>
           <div class="acao"><span class="ok">✓</span> ler_arquivo("package.json") <span class="r">0,4 KB</span></div>
           <div class="acao"><span class="ok">✓</span> ler_arquivo("README.md") <span class="r">1,2 KB</span></div>
@@ -259,7 +259,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
         <div class="chip">🧠 O que você sabe sobre X?</div>
       </div>
       <div class="caixa">
-        <textarea placeholder="Fale com o Cérebro..."></textarea>
+        <textarea placeholder="Fale com o Bigode..."></textarea>
         <button class="env">↑</button>
       </div>
       <div class="dica">Enter envia · Shift+Enter quebra linha · leitura é livre, escrita pede autorização</div>
@@ -269,7 +269,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
   <!-- ============ CONEXOES ============ -->
   <div class="tela" id="t-conexoes">
     <div class="topo">
-      <div><h2>Conexões</h2><p>O que o Cérebro pode acessar</p></div>
+      <div><h2>Conexões</h2><p>O que o Bigode pode acessar</p></div>
       <button class="btn p" onclick="modal(true)">+ Nova conexão</button>
     </div>
     <div style="overflow-y:auto"><div class="conteudo">
@@ -313,7 +313,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
             <div><div class="cxn">Claude</div><div class="cxt">MCP · ponte</div></div>
             <div class="sw on" onclick="sw(this)"><i></i></div>
           </div>
-          <div class="cxd">O Claude manda tarefas para o Cérebro executar aqui</div>
+          <div class="cxd">O Claude manda tarefas para o Bigode executar aqui</div>
           <div class="cxs ok">● servidor ativo em :7100</div>
         </div>
       </div>
@@ -359,7 +359,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
       <div class="secao">Q U E M   E L E   É</div>
       <div class="mcard">
         <h4>🎯 Identidade <span class="ed">editar</span></h4>
-        <p>Você é o Cérebro, a inteligência central da Venure. Fale como um sócio técnico
+        <p>Você é o Bigode, a inteligência central da Venure. Fale como um sócio técnico
         de confiança: direto, claro e objetivo. Nunca invente nome de arquivo, cliente ou número.
         Sem bajulação.</p>
       </div>
@@ -404,7 +404,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
       <div class="secao">S E G U R A N Ç A</div>
       <div class="campo">
         <label>Nível de autorização</label>
-        <small>Quando o Cérebro deve pedir sua permissão</small>
+        <small>Quando o Bigode deve pedir sua permissão</small>
         <select>
           <option>Toda ação que altere algo (recomendado)</option>
           <option>Só ações destrutivas (apagar, publicar)</option>
@@ -420,7 +420,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
       <div class="secao">P O N T E   C O M   O   C L A U D E</div>
       <div class="campo">
         <label>Endereço do servidor MCP</label>
-        <small>Cole isto nas configurações do Claude para ele acessar o Cérebro</small>
+        <small>Cole isto nas configurações do Claude para ele acessar o Bigode</small>
         <input value="http://localhost:7100/mcp" readonly>
       </div>
 
@@ -433,7 +433,7 @@ main{flex:1;display:flex;flex-direction:column;min-width:0}
 <div class="overlay" id="ov" onclick="if(event.target===this)modal(false)">
   <div class="modal">
     <h3>Nova conexão</h3>
-    <div class="sub">Dê ao Cérebro acesso a mais uma ferramenta</div>
+    <div class="sub">Dê ao Bigode acesso a mais uma ferramenta</div>
 
     <div class="abas">
       <div class="aba on" onclick="aba(this)">Servidor MCP</div>

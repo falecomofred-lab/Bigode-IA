@@ -1,56 +1,67 @@
-# ============================================================
-# Cérebro — Venure
-# O que NUNCA vai para o Git
-# ============================================================
+# O QUE NUNCA SOBE PARA O GITHUB
+#
+# Este repositorio e PUBLICO: github.com/falecomofred-lab/Bigode-IA
+# Qualquer pessoa le tudo o que estiver aqui dentro.
+#
+# ATE 13/09 ESTE ARQUIVO NAO CUMPRIA O QUE O README PROMETIA
+#     O README dizia que ficavam de fora o usuarios.json, o config.json,
+#     as conversas/ e os projetos/. Mas a lista aqui tinha so o
+#     conexoes.json -- os outros quatro estavam desprotegidos.
+#
+#     O commit existente e antigo e nao os pegou, entao nada vazou. Mas
+#     um `git add .` hoje publicaria, de uma vez:
+#
+#       . o usuarios.json, com o seu e-mail e o hash da sua senha
+#       . o config.json, com a chave da extensao e a chave do motor
+#       . a memoria/projetos/, com ~40 fichas de projeto de cliente --
+#         inclusive o carteira2026, que tem CPF e telefone de gente real
+#       . as conversas/, com tudo o que voce ja conversou
+#
+#     Promessa em README nao protege arquivo. Regra em .gitignore, sim.
 
-# --- Seus dados pessoais ---
-# Login do dono: e-mail, sal e hash da senha
-usuarios.json
-# Conexões ligadas e os tokens de API que você colar nelas
+# ---------- segredos ----------
 conexoes.json
-# Configuração da sua máquina: caminhos, porta, pastas liberadas
 config.json
-# Sessões abertas
-sessoes.json
+config.local.json
+usuarios.json
+modal.json
+motor_remoto.txt
+motor.chave
+.env
+*.env
+*.key
+*.pem
+*_token*
+*secret*
 
-# --- Suas conversas e projetos ---
+# ---------- o que e seu, nao do projeto ----------
 conversas/
+Historico/
 projetos/
-memoria/projetos/
-memoria/indice*.json
-memoria/*.jsonl
+auditoria/
+chroma_db/
+producao/
+Criativos/
+memoria/projetos/          # fichas de cliente -- veja o cabecalho
 
-# --- Modelos de IA (gigantes, baixados separado) ---
+# ---------- pesado demais para o Git ----------
 *.gguf
-*.bin
 *.safetensors
-*.crdownload
-*.part
-llamafile*
-llama-server*
+*.bin
+*.ckpt
+*.pt
+python/                    # o Python portatil do pendrive
+ComfyUI/
 
-# --- Python portátil (vai no pendrive, não no Git) ---
-python/
-venv/
-.venv/
+# ---------- lixo de execucao ----------
 __pycache__/
-*.py[cod]
-
-# --- Gerados em tempo de execução ---
-motor.log
-_motor.bat
+*.pyc
+.pytest_cache/
+.venv/
+venv/
 *.log
-web/sw-cache/
-
-# --- Backups e compactados ---
-*.zip
-*.rar
-*.7z
-*backup*
-
-# --- Editor e sistema ---
-.vscode/
-.idea/
-Thumbs.db
+*.db
+*.sqlite
+*.crdownload
+_lixo-*/
 desktop.ini
-*.tmp

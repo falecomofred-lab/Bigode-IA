@@ -3,25 +3,138 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>Cérebro — Venure</title>
+<title>Bigode IA — Venure</title>
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icone.svg">
-<link rel="icon" href="/icone.svg">
+<!-- O ?v= existe para o Chrome buscar de novo: ele guarda o icone da aba com
+     unha e dente, e trocar o arquivo sozinho nao adianta. Mexeu no icone?
+     Aumente o numero. -->
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png?v=3">
 <meta name="theme-color" content="#0A0C11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cérebro">
+<meta name="apple-mobile-web-app-title" content="Bigode">
+<!-- O sistema visual que o Bigode divide com a Pipi: vidro liquido, a
+     marca respirando e a chancela. Vem ANTES do <style> daqui de baixo
+     de proposito -- o que vier depois ganha, entao esta tela continua
+     podendo discordar em qualquer ponto. -->
+<link rel="stylesheet" href="/venure.css">
 <style>
 :root{
+  /* A cor do Bigode. O venure.css tem o mesmo padrao, mas escrever aqui
+     deixa claro de onde sai o verde -- e o --ac-rgb e obrigatorio: o
+     vidro e o halo montam rgba() a partir dele. */
+  --ac:#9DC08B;
+  --ac-rgb:157,192,139;
   --bg:#0A0C11; --sup:#11141B; --sup2:#161A23; --linha:#1D222C; --linha2:#2A313E;
   --txt:#ECEFF4; --txt2:#A3ACBB; --mudo:#6E7889; --fraco:#4B5464;
-  --ac:#2DD4BF; --ac2:#818CF8; --ok:#34D399; --alerta:#FBBF24; --erro:#F87171;
+  --ac:#9DC08B; --ac2:#F2EAD8; --ok:#34D399; --alerta:#FBBF24; --erro:#F87171;
+
+  /* ── VIDRO ─────────────────────────────────────────────────────────
+     Superfícies deixam de ser blocos opacos e passam a ser vidro sobre
+     um fundo com profundidade. A regra que segue: o vidro fica no
+     CONTORNO da tela — cabeçalho, painéis, caixa de texto, etiquetas.
+     Nunca atrás do texto que você está lendo, porque texto sobre vidro
+     desfocado cansa a vista em cinco minutos e a conversa é onde os
+     olhos ficam. */
+  --vidro:rgba(22,26,35,.62);
+  --vidro2:rgba(29,34,44,.55);
+  --vidro-borda:rgba(157,192,139,.14);
+  --vidro-luz:rgba(255,255,255,.05);
+  --neon:#5EEAD4;
+  --desfoque:blur(16px) saturate(1.25);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--txt);overflow:hidden;display:flex;
-     flex-direction:column;font:15px/1.72 -apple-system,"Segoe UI",Inter,system-ui,sans-serif;
-     -webkit-font-smoothing:antialiased}
+     font:15px/1.72 -apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+     -webkit-font-smoothing:antialiased;position:relative}
+
+/* ── O FUNDO POR TRÁS DO VIDRO ──────────────────────────────────────────
+   Vidro sem nada atrás é só cinza. Precisa de algo para desfocar. São duas
+   camadas, ambas presas ao fundo e sem capturar clique:
+
+   1. dois halos de cor, imóveis — dão a profundidade
+   2. uma malha fina de linhas, 40px, que sugere circuito sem virar
+      papel de parede quadriculado
+
+   Tudo estático. Fundo animado atrás de texto é a diferença entre uma
+   ferramenta e uma vitrine — e esta é uma ferramenta de trabalho, usada
+   por horas. */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(58vw 48vw at 12% -8%,  rgba(94,234,212,.10), transparent 62%),
+    radial-gradient(52vw 44vw at 92% 108%, rgba(157,192,139,.09), transparent 60%),
+    radial-gradient(40vw 40vw at 78% 12%,  rgba(120,140,255,.05), transparent 65%)}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  opacity:.4;
+  background-image:
+    linear-gradient(rgba(157,192,139,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(157,192,139,.045) 1px, transparent 1px);
+  background-size:40px 40px;
+  /* apaga nas bordas para a malha não brigar com o conteúdo no meio */
+  mask-image:radial-gradient(115% 95% at 50% 0%, #000 20%, transparent 78%);
+  -webkit-mask-image:radial-gradient(115% 95% at 50% 0%, #000 20%, transparent 78%)}
+/* Tudo que é conteúdo fica acima das duas camadas. */
+body>*{position:relative;z-index:1}
+/* A conversa e tudo que a acompanha vive nesta coluna, ao lado da barra. */
+.tronco{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+
+/* ============ BARRA LATERAL ============ */
+.lateral{width:252px;flex-shrink:0;background:#0D1016;border-right:1px solid var(--linha);
+         display:flex;flex-direction:column;height:100%;transition:width .2s ease}
+.lcab{height:56px;flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 14px}
+.lcab .marca{flex:1;min-width:0}
+.lrolo{flex:1;overflow-y:auto;padding:6px 10px 14px;overscroll-behavior:contain}
+.lrolo::-webkit-scrollbar{width:8px}
+.lrolo::-webkit-scrollbar-thumb{border-color:#0D1016}
+
+.lnovo{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;
+       border-radius:10px;background:var(--sup2);border:1px solid var(--linha2);
+       font-size:13.5px;font-weight:600;color:var(--txt);transition:.15s;margin-bottom:12px}
+.lnovo:hover{border-color:var(--ac);color:var(--ac)}
+.lnovo svg{color:var(--ac)}
+
+.lit{display:flex;align-items:center;gap:11px;width:100%;padding:8px 11px;border-radius:9px;
+     font-size:13.5px;color:var(--txt2);transition:.13s;text-align:left}
+.lit:hover{background:var(--sup);color:var(--txt)}
+.lit.on{background:var(--sup2);color:var(--txt);font-weight:500}
+.lit svg{color:var(--mudo);flex-shrink:0}
+.lit:hover svg,.lit.on svg{color:var(--ac)}
+.lit .num{margin-left:auto;font-size:11px;color:var(--fraco);
+          font-variant-numeric:tabular-nums}
+
+.lgrupo{font-size:10px;letter-spacing:1.6px;color:var(--fraco);font-weight:700;
+        padding:0 11px;margin:18px 0 7px}
+.lrec{display:flex;align-items:center;gap:6px;width:100%;padding:7px 8px 7px 11px;
+      border-radius:8px;font-size:13px;color:var(--txt2);transition:.13s;
+      text-align:left;cursor:pointer}
+.lrec:hover{background:var(--sup);color:var(--txt)}
+.lrec.on{background:var(--sup2);color:var(--txt)}
+.lrec-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* O lápis só aparece no item sob o cursor: a lista fica limpa, e a ação
+   está lá quando você procura por ela. */
+.lrec-e{flex-shrink:0;color:var(--fraco);opacity:0;padding:3px;border-radius:5px;
+        transition:.13s}
+.lrec:hover .lrec-e{opacity:1}
+.lrec-e:hover{color:var(--ac);background:var(--sup2)}
+.lvazio{font-size:12px;color:var(--fraco);padding:6px 11px;line-height:1.5}
+.lpe{flex-shrink:0;border-top:1px solid var(--linha);padding:9px 10px}
+
+/* botao que abre a barra no celular; some no desktop */
+.lbotao{display:none}
+.laterveu{display:none}
+@media(max-width:900px){
+  .lateral{position:fixed;top:0;left:0;bottom:0;z-index:62;transform:translateX(-100%);
+           transition:transform .24s cubic-bezier(.32,.72,0,1);box-shadow:0 0 40px rgba(0,0,0,.5)}
+  .lateral.on{transform:none}
+  .lbotao{display:grid}
+  .laterveu{display:block;position:fixed;inset:0;background:rgba(6,9,14,.55);opacity:0;
+            pointer-events:none;transition:.22s;z-index:61}
+  .laterveu.on{opacity:1;pointer-events:auto}
+}
 ::-webkit-scrollbar{width:10px}
 ::-webkit-scrollbar-thumb{background:#1E2531;border-radius:6px;border:3px solid var(--bg)}
 button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
@@ -36,10 +149,12 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
        padding:0 20px;border-bottom:1px solid var(--linha)}
 .marca{display:flex;align-items:center;gap:10px}
 .selo{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;
-      background:linear-gradient(140deg,var(--ac),var(--ac2))}
+      background:linear-gradient(140deg,var(--ac2),var(--ac));overflow:hidden}
 .marca b{font-size:15.5px;font-weight:600;letter-spacing:-.2px}
 .marca i{font-size:9px;letter-spacing:2.2px;color:var(--fraco);font-weight:700;
          font-style:normal;margin-left:3px}
+.tituloTopo{font-size:13.5px;color:var(--txt2);white-space:nowrap;overflow:hidden;
+            text-overflow:ellipsis;min-width:0}
 .dir{margin-left:auto;display:flex;align-items:center;gap:7px}
 .chip{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;
       background:var(--sup);border:1px solid var(--linha);border-radius:16px;
@@ -51,6 +166,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .pulso.on{background:var(--ok);animation:none;box-shadow:0 0 0 3px rgba(52,211,153,.13)}
 .pulso.off{background:var(--erro);animation:none}
 @keyframes bater{0%,100%{opacity:1}50%{opacity:.3}}
+  border:1px solid rgba(244,114,182,.28);border-radius:16px;padding:16px;box-shadow:0 18px 45px rgba(236,72,153,.12)}
 .bico{width:33px;height:33px;border-radius:9px;display:grid;place-items:center;
       color:var(--mudo);transition:.15s}
 .bico:hover{background:var(--sup2);color:var(--txt)}
@@ -60,7 +176,16 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .faixa{max-width:730px;margin:0 auto}
 .inicio{text-align:center;padding:9vh 0 0;animation:sobe .45s ease both}
 .vmark{width:56px;height:56px;border-radius:18px;margin:0 auto 14px;display:grid;
-       place-items:center;background:linear-gradient(140deg,var(--ac),var(--ac2))}
+       place-items:center;background:linear-gradient(140deg,var(--ac2),var(--ac))}
+/* O gato na tela de boas-vindas. Altura em vh para nunca empurrar o
+   compositor para fora em tela baixa — num notebook 13" ele encolhe sozinho. */
+.gato{display:block;margin:0 auto 14px;height:clamp(120px,26vh,230px);width:auto;
+      object-fit:contain;filter:drop-shadow(0 14px 30px rgba(0,0,0,.45))}
+@media(max-width:620px){.gato{height:clamp(100px,18vh,150px)}}
+/* A marca é uma foto, não um desenho: precisa preencher o selo redondo sem
+   distorcer. object-fit:cover recorta o excedente em vez de esticar. */
+.selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
+  border-radius:inherit;display:block}
 .vnome{font-size:11.5px;letter-spacing:7px;font-weight:700;color:var(--txt2);
        padding-left:7px;margin-bottom:20px}
 .inicio h2{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:7px}
@@ -110,25 +235,30 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .abt:hover{background:var(--sup2);color:var(--txt)}
 .abt.feito{color:var(--ok)}
 
-.trabalho{border:1px solid var(--linha);border-radius:12px;background:var(--sup);
-          margin:12px 0;overflow:hidden;animation:sobe .25s ease both}
-.trabalho .th{display:flex;align-items:center;gap:9px;padding:10px 14px;
-              font-size:12.5px;color:var(--txt2);cursor:pointer}
-.trabalho .th:hover{background:var(--sup2)}
-.trabalho .th .cnt{margin-left:auto;font-size:11.5px;color:var(--fraco)}
-.trabalho .th .seta{transition:.2s;color:var(--fraco)}
-.trabalho.aberto .th .seta{transform:rotate(90deg)}
-.trabalho .tp{display:none;border-top:1px solid var(--linha);padding:4px 0}
-.trabalho.aberto .tp{display:block}
-.passo{display:flex;gap:10px;align-items:flex-start;padding:9px 14px;font-size:12.5px;
-       color:var(--txt2);animation:sobe .2s ease both}
-.passo .mk{width:15px;height:15px;color:var(--alerta);margin-top:3px}
-.passo.ok .mk{color:var(--ok)}
+/* ── O QUE ELE ESTA FAZENDO ────────────────────────────────────────
+   Antes isto era um cartao com borda, fundo, cabecalho e contador
+   "3/5". Chamava mais atencao que a propria resposta.
+
+   Agora e uma lista solta, discreta, encostada numa linha vertical
+   fina -- o trabalho fica visivel para conferir, mas em segundo
+   plano. Quem manda na tela e o texto da resposta.               */
+.trabalho{margin:10px 0 12px;padding-left:15px;position:relative;
+          animation:sobe .25s ease both}
+.trabalho::before{content:"";position:absolute;left:3px;top:6px;bottom:6px;
+                  width:1.5px;background:var(--linha2);border-radius:2px}
+.trabalho .th{display:none}          /* sem cabecalho, sem contador */
+.trabalho .tp{display:block}
+.passo{display:flex;gap:9px;align-items:flex-start;padding:4px 0;font-size:12.5px;
+       color:var(--mudo);animation:sobe .2s ease both;line-height:1.5}
+.passo .mk{width:13px;height:13px;color:var(--fraco);margin-top:3px;flex-shrink:0}
+.passo.ok .mk{color:var(--ac)}
 .passo .txt{min-width:0;flex:1}
-.passo .tit{color:var(--txt);font-size:13px}
-.passo .sub{font:11.5px ui-monospace,Consolas,monospace;color:var(--fraco);margin-top:2px;
+.passo .tit{color:var(--txt2);font-size:12.5px}
+.passo.ok .tit{color:var(--mudo)}
+.passo .sub{font:11px ui-monospace,Consolas,monospace;color:var(--fraco);margin-top:1px;
             overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.passo .tempo{color:var(--fraco);font-size:11px;flex-shrink:0;margin-top:2px}
+.passo .tempo{color:var(--fraco);font-size:10.5px;flex-shrink:0;margin-top:3px;
+              font-variant-numeric:tabular-nums}
 .passo .prev{margin-top:8px;background:var(--bg);border:1px solid var(--linha);
              border-radius:8px;padding:9px 11px;font:11.5px ui-monospace,Consolas,monospace;
              color:var(--txt2);max-height:150px;overflow:auto;white-space:pre-wrap;display:none}
@@ -203,13 +333,35 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .tag{display:flex;align-items:center;gap:6px;height:25px;padding:0 10px;background:var(--sup);
      border:1px solid var(--linha);border-radius:13px;font-size:11.5px;color:var(--mudo)}
 .tag .luz{width:5px;height:5px;border-radius:50%;background:var(--ok)}
+/* Conexão que não está respondendo: luz apagada e etiqueta discreta. Melhor
+   dizer "não está lá" do que mostrar verde para tudo e você descobrir na
+   hora em que falha. */
+.tag.apagada{opacity:.45}
+.tag.apagada .luz{background:var(--fraco)}
 .tag.proj{border-color:#2E5560;color:var(--ac)}
 .tag .fechar{color:var(--fraco);margin-left:2px}
 .tag .fechar:hover{color:var(--erro)}
+/* Interruptor: a etiqueta virou botão. Precisa parecer clicável antes de o
+   dedo chegar nela, senão continua sendo enfeite. Desligada fica escura e
+   com a luz morta -- e a diferença entre ligada e desligada tem de ser
+   visível de relance, porque é ela que decide quanto você vai esperar. */
+.tag.interruptor{cursor:pointer;transition:.15s;font-family:inherit}
+.tag.interruptor:hover{border-color:var(--ac);color:var(--txt);
+     box-shadow:0 0 0 3px rgba(94,234,212,.07)}
+.tag.interruptor.off{opacity:.4;background:transparent;border-style:dashed}
+.tag.interruptor.off .luz{background:var(--fraco);box-shadow:none}
+.tag.interruptor:not(.off) .luz{box-shadow:0 0 6px var(--ok)}
+.tag.interruptor:active{transform:scale(.96)}
+/* A caixa tem ~54px de altura, mas o campo de texto dentro dela começa com
+   28px. Clicar no resto — a faixa acima e abaixo do texto — não fazia nada,
+   e era isso que te fazia digitar sem cursor: a caixa parecia clicável
+   inteira e não era. cursor:text avisa; o clique é levado ao texto no JS. */
 .compor{max-width:730px;margin:0 auto;background:var(--sup);border:1px solid var(--linha);
         border-radius:18px;padding:9px 10px 9px 9px;display:flex;gap:8px;align-items:flex-end;
-        transition:.18s}
-.compor:focus-within{border-color:#31445E}
+        transition:.18s;cursor:text}
+.compor:focus-within{border-color:#31445E;background:#141821}
+/* Área mínima de clique confortável, mesmo com uma linha só de texto. */
+.compor textarea{min-height:38px;padding-top:8px}
 .compor textarea{flex:1;background:none;border:none;color:var(--txt);resize:none;outline:none;
                  max-height:220px;height:28px;font-size:15px;line-height:1.65;padding:4px 2px}
 .compor textarea::placeholder{color:var(--fraco)}
@@ -231,40 +383,101 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .env:disabled{opacity:.25;cursor:default}
 .env.parar{background:var(--erro);color:#2A0A0C}
 .env.parar:disabled{opacity:1;cursor:pointer}
-.medidor{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;
-         color:var(--fraco);margin-top:2px}
-.medidor .pt3{width:5px;height:5px;border-radius:50%;background:var(--ac);
-              animation:pisca 1.1s ease-in-out infinite}
-@keyframes pisca{0%,100%{opacity:.25}50%{opacity:1}}
-
-/* ---- linha viva: o que o Cerebro esta fazendo agora ---- */
+/* ---- linha viva: o que o Bigode esta fazendo agora ---- */
 .vivabox{margin-top:6px}
-.viva{display:flex;align-items:center;gap:10px;margin-top:2px;font-size:13.5px;
-      color:var(--txt2);min-height:24px}
-.viva .vmarca{width:20px;height:20px;border-radius:7px;flex-shrink:0;display:grid;
-      place-items:center;background:linear-gradient(140deg,var(--ac),var(--ac2));
-      animation:vbate 1.5s cubic-bezier(.4,0,.6,1) infinite}
-.viva .vmarca svg{animation:vgira 2.6s linear infinite}
-@keyframes vbate{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(48,209,141,.35)}
-                 50%{transform:scale(1.13);box-shadow:0 0 0 7px rgba(48,209,141,0)}}
+/* Uma linha calma: um ponto que respira e o texto do que ele faz.
+   Sem a marca girando e sem brilho correndo no texto -- os dois
+   competiam com a leitura e faziam a espera parecer mais longa. */
+.viva{display:flex;align-items:center;gap:10px;margin-top:4px;font-size:13px;
+      color:var(--mudo);min-height:22px}
+/* A MARCA VOLTOU A RESPIRAR                                 (13/09)
+   Antes: um ponto de 7px pulsando a cada 1,4s. Honesto, mas mudo -- e
+   7px nao mostram rosto nenhum, por isso a foto ficava escondida.
+   Agora: o selo de 18px com a marca dentro, inflando devagar com um
+   halo em volta. A animacao mora no venure.css (.pensando), porque a
+   Pipi usa a mesma.
+   O ritmo e 2,6s: respiracao humana em repouso. Mais rapido vira
+   ansiedade e faz a espera parecer mais longa do que e. */
+.viva .vmarca{width:18px;height:18px;border-radius:50%;flex-shrink:0;
+      background:var(--ac);margin-left:0;overflow:hidden;
+      animation:venure-respira 2.6s cubic-bezier(.4,0,.5,1) infinite;
+      will-change:transform}
+.viva .vmarca img{display:block;width:100%;height:100%;
+      object-fit:cover;border-radius:50%}
+@keyframes vpulso{0%,100%{opacity:1;transform:scale(1)}
+                  50%{opacity:.35;transform:scale(.82)}}
 @keyframes vgira{to{transform:rotate(360deg)}}
-/* texto com brilho correndo, igual ao "pensando" do Claude */
-.viva .vtxt{background:linear-gradient(90deg,var(--fraco) 20%,var(--txt) 45%,
-            var(--fraco) 70%);background-size:220% 100%;
-            -webkit-background-clip:text;background-clip:text;color:transparent;
-            animation:vbrilho 2.1s linear infinite;font-weight:500}
-@keyframes vbrilho{to{background-position:-220% 0}}
-.viva .vseg{margin-left:auto;font-size:11px;color:var(--fraco);
+.viva .vtxt{color:var(--mudo);font-weight:400}
+.viva .vseg{margin-left:auto;font-size:10.5px;color:var(--fraco);
             font-variant-numeric:tabular-nums;flex-shrink:0}
-/* o selo do topo acompanha: pulsa enquanto ele trabalha */
-body.trabalhando .selo{animation:vbate 1.5s cubic-bezier(.4,0,.6,1) infinite}
-body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
+
 @media (prefers-reduced-motion:reduce){
-  .viva .vmarca,.viva .vmarca svg,.viva .vtxt,
-  body.trabalhando .selo,body.trabalhando .selo svg{animation:none}
+  .viva .vmarca,.viva .vtxt,
+  body.trabalhando .selo{animation:none}
   .viva .vtxt{color:var(--txt2);-webkit-text-fill-color:var(--txt2)}
 }
+/* ===================== FAIXA DO NAVEGADOR =========================
+   "O Bigode esta usando o seu Chrome."
+
+   POR QUE UMA FAIXA FIXA, E NAO SO A LINHA DE STATUS
+       A linha viva conta o passo atual e desce junto com a conversa --
+       quando o Bigode age por dois minutos, ela sai da vista e voce
+       perde a nocao de que ele ainda esta mexendo no SEU navegador.
+
+       Isso e diferente de ele ler um arquivo. Ali dentro tem a sua
+       sessao, os seus sites logados. Enquanto ele age, isso precisa
+       ficar visivel o tempo todo, com um botao de parar ao alcance.
+
+   Ela some sozinha quando o turno acaba.                      (13/09) */
+.faixa-nav{position:fixed;top:0;left:0;right:0;z-index:90;
+  display:flex;align-items:center;gap:11px;
+  padding:9px 15px;font-size:12.5px;
+  background:var(--ac);color:#fff;
+  box-shadow:0 2px 14px rgba(0,0,0,.28);
+  transform:translateY(-100%);transition:transform .22s ease}
+.faixa-nav.on{transform:translateY(0)}
+body.com-faixa{padding-top:38px}
+
+.faixa-nav .fponto{width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:#fff;animation:vpulso 1.4s cubic-bezier(.4,0,.6,1) infinite}
+.faixa-nav .ftitulo{font-weight:600;flex-shrink:0}
+/* O passo e o unico que pode encolher: e o mais longo e o menos grave. */
+.faixa-nav .fpasso{opacity:.88;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;min-width:0}
+.faixa-nav .fsite{opacity:.72;flex-shrink:0;font-variant-numeric:tabular-nums}
+.faixa-nav .fparar{margin-left:auto;flex-shrink:0;
+  background:rgba(255,255,255,.17);color:#fff;border:0;
+  padding:5px 13px;border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit}
+.faixa-nav .fparar:hover{background:rgba(255,255,255,.3)}
+
+@media (max-width:620px){
+  .faixa-nav .fsite{display:none}      /* o passo importa mais que o site */
+}
+@media (prefers-reduced-motion:reduce){
+  .faixa-nav{transition:none}
+  .faixa-nav .fponto{animation:none}
+}
+
 .nota{max-width:730px;margin:9px auto 0;font-size:11.5px;color:var(--fraco);text-align:center}
+
+/* rodape fino da casa */
+.rodape{max-width:730px;margin:10px auto 0;text-align:center;font-size:10.5px;
+        letter-spacing:1.6px;color:#3C4453;font-weight:600;text-transform:uppercase;
+        user-select:none}
+.rodape span{color:#2B323E;margin:0 5px}
+
+/* botao "voltar para o fim": so aparece quando voce subiu e ele ainda escreve */
+.descer{position:absolute;left:50%;top:-40px;transform:translate(-50%,6px);
+        display:flex;align-items:center;gap:8px;padding:8px 15px;border-radius:20px;
+        background:var(--sup2);border:1px solid var(--linha2);color:var(--txt2);
+        font-size:12.5px;z-index:12;opacity:0;pointer-events:none;transition:.2s;
+        box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.descer.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+.descer:hover{color:var(--txt);border-color:var(--ac)}
+.descer svg{color:var(--ac)}
+/* a base precisa ser referencia para o botao flutuar logo acima dela */
+.base{position:relative}
 .ouvindo{max-width:730px;margin:0 auto 8px;display:flex;align-items:center;gap:10px;
          font-size:12.5px;color:var(--txt2)}
 .ouvindo .onda{display:flex;gap:3px;align-items:flex-end;height:15px}
@@ -297,10 +510,85 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
         background:var(--sup);border-left:1px solid var(--linha);transform:translateX(100%);
         transition:transform .26s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column}
 .gaveta.on{transform:none}
+  background:radial-gradient(70vw 60vh at 50% 0%,rgba(236,72,153,.16),transparent 65%),
+             linear-gradient(145deg,#100a12,#241022);z-index:63}
 .gcab{padding:18px 20px;border-bottom:1px solid var(--linha);display:flex;align-items:center}
 .gcab h3{font-size:16.5px;font-weight:600}
 .gcab button{margin-left:auto}
 .gcorpo{flex:1;overflow-y:auto;padding:20px}
+/* ══════════════════════════════════════════════════════════════════════
+   VIDRO — aplicado por último, por cima do que já existe
+
+   Fica num bloco só, no fim, e não reescreve nenhuma regra anterior. Se
+   um dia isto atrapalhar, apaga-se este trecho inteiro e a tela volta ao
+   que era, sem procurar pedaço espalhado.
+
+   Onde NÃO entra, e por quê:
+   · atrás das mensagens — texto sobre desfoque cansa em minutos, e é onde
+     os olhos ficam a maior parte do tempo
+   · em elemento que rola — desfoque repintado a cada quadro derruba a
+     fluidez em máquina sem placa de vídeo, e esta é uma delas
+   ══════════════════════════════════════════════════════════════════════ */
+
+header{
+  background:var(--vidro);
+  -webkit-backdrop-filter:var(--desfoque); backdrop-filter:var(--desfoque);
+  border-bottom:1px solid var(--vidro-borda);
+  box-shadow:inset 0 1px 0 var(--vidro-luz)}
+/* Fio de luz correndo sob o cabeçalho: some nas pontas, mais forte no meio.
+   É o detalhe que dá o ar cibernético sem precisar animar nada. */
+header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(94,234,212,.5) 30%,
+             rgba(157,192,139,.5) 70%,transparent);
+  opacity:.55;pointer-events:none}
+
+.lateral{
+  background:rgba(13,16,22,.66);
+  -webkit-backdrop-filter:var(--desfoque); backdrop-filter:var(--desfoque);
+  border-right:1px solid var(--vidro-borda)}
+
+/* A caixa de escrever é o alvo principal: é onde a mão fica. */
+.compor{
+  background:var(--vidro)!important;
+  -webkit-backdrop-filter:var(--desfoque); backdrop-filter:var(--desfoque);
+  border:1px solid var(--vidro-borda)!important;
+  box-shadow:inset 0 1px 0 var(--vidro-luz), 0 10px 34px rgba(0,0,0,.36)}
+.compor:focus-within{
+  border-color:rgba(94,234,212,.34)!important;
+  box-shadow:inset 0 1px 0 var(--vidro-luz),
+             0 0 0 3px rgba(94,234,212,.09),
+             0 12px 40px rgba(0,0,0,.42)}
+
+/* Etiquetas e interruptores da barra de contexto. */
+.tag{background:var(--vidro2);
+  -webkit-backdrop-filter:blur(9px); backdrop-filter:blur(9px);
+  border-color:var(--vidro-borda)}
+.tag.interruptor:not(.off){box-shadow:inset 0 1px 0 var(--vidro-luz)}
+.tag.interruptor:not(.off) .luz{background:var(--neon);box-shadow:0 0 7px var(--neon)}
+.tag.interruptor:hover{border-color:rgba(94,234,212,.4);
+  box-shadow:0 0 0 3px rgba(94,234,212,.08)}
+
+/* Painéis (Conexões, Projetos, Configurações) flutuam sobre o fundo. */
+.painel.on>*{position:relative}
+#pn-conexoes,#pn-projetos,#pn-skills,#pn-artefatos{position:relative}
+
+/* Máquina fraca ou usuário que pediu menos movimento: sem desfoque.
+   backdrop-filter é caro; em CPU sem placa ele custa quadros — e quadro
+   perdido numa ferramenta de trabalho é pior que enfeite ausente. */
+@media (prefers-reduced-motion:reduce){
+  header,.lateral,.compor,.tag{
+    -webkit-backdrop-filter:none!important; backdrop-filter:none!important}
+  body::after{display:none}
+}
+/* Navegador sem suporte a backdrop-filter: fecha o fundo para o texto não
+   ficar ilegível sobre transparência sem desfoque. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  header{background:var(--sup)}
+  .lateral{background:#0D1016}
+  .compor{background:var(--sup)!important}
+  .tag{background:var(--sup2)}
+}
+
 .painel{display:none}.painel.on{display:block;animation:sobe .2s ease both}
 .et{font-size:10px;letter-spacing:1.8px;color:var(--fraco);font-weight:700;margin:24px 0 11px}
 .et:first-child{margin-top:0}
@@ -408,6 +696,27 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
        z-index:70;opacity:0;transition:.26s;pointer-events:none;display:flex;align-items:center;
        gap:9px}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+/* Cada aviso com a cor do que aconteceu: verde deu certo, vermelho falhou,
+   amarelo pede atenção. Antes todos vinham iguais, com o mesmo certinho
+   verde — inclusive os erros. */
+.toast.erro{border-color:rgba(248,113,113,.45);color:#F8A5A5}
+.toast.alerta{border-color:rgba(251,191,36,.45);color:#F5CE73}
+.toast.bom{border-color:rgba(52,211,153,.40);color:#7EE2BC}
+
+/* A hora da conversa na lista lateral: some quando o mouse chega, para dar
+   lugar ao lápis de renomear. */
+.lrec-q{flex-shrink:0;font-size:10.5px;color:var(--fraco);transition:.15s}
+.lrec:hover .lrec-q{opacity:0;width:0;overflow:hidden}
+
+/* Trocar de conversa sem piscar. */
+.faixa.entrando{animation:sobe .28s ease both}
+
+/* Enquanto o arquivo anexado está sendo lido. */
+.lendo-arq{display:inline-flex;align-items:center;gap:7px;font-size:12px;
+           color:var(--txt2)}
+.lendo-arq i{width:12px;height:12px;border:2px solid var(--linha2);
+             border-top-color:var(--ac);border-radius:50%;display:block;
+             animation:girar .8s linear infinite}
 @media(max-width:820px){
   .rolo{padding:22px 14px 6px}.base{padding:6px 14px 14px}header{padding:0 14px}
   .loja{grid-template-columns:1fr}.par{grid-template-columns:1fr}
@@ -456,52 +765,196 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
 .qr .passo-m{font-size:12.5px;color:var(--txt2);text-align:left;line-height:1.7;
              margin-top:10px}
 .qr .passo-m b{color:var(--txt)}
+
+  max-width:1180px;margin:0 auto;padding:18px 34px 44px;
+  background:transparent;border:0;box-shadow:none;border-radius:0
+}
+  width:clamp(190px,22vw,330px);height:auto;aspect-ratio:auto;
+  object-fit:contain;border:0;border-radius:0;background:transparent;
+  animation:none !important;box-shadow:none !important;
+  filter:drop-shadow(0 0 18px rgba(111,239,255,.45)) drop-shadow(0 16px 30px rgba(0,0,0,.45)) saturate(1.12)
+}
+@media(max-width:900px){
+}
+  animation:none !important;
+  box-shadow:none !important;
+  border:0 !important;
+  border-radius:0 !important;
+}
+
+/* GUIA PARA LEIGOS — camada de usabilidade sem alterar os fluxos existentes */
+.guia-leigo{margin:12px 14px 4px;padding:12px 13px;border:1px solid rgba(94,234,212,.22);border-radius:13px;background:linear-gradient(135deg,rgba(94,234,212,.08),rgba(157,192,139,.04));font-size:12px;line-height:1.5;color:var(--txt2)}
+.guia-leigo b{display:block;color:var(--txt);font-size:12.5px;margin-bottom:4px}
+.guia-leigo small{display:block;color:var(--fraco);margin-top:5px}
+.guia-leigo .passos{display:grid;gap:3px;margin-top:7px}
+.guia-leigo .passo{display:flex;gap:7px;align-items:flex-start}
+.guia-leigo .num{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;background:var(--ac);color:#04140F;font-size:10px;font-weight:800;flex-shrink:0}
+.ajuda-rapida{display:flex;align-items:center;gap:8px;max-width:730px;margin:0 auto 8px;color:var(--mudo);font-size:12px}
+.ajuda-rapida strong{color:var(--txt2)}
+.ajuda-rapida .estado-rapido{margin-left:auto;padding:4px 8px;border-radius:10px;background:var(--sup2);border:1px solid var(--linha);font-size:11px}
+
+
+/* ================================================================
+   A base continua compatível com desktop; este bloco concentra os ajustes
+   para celular e evita alterar os fluxos JavaScript existentes.
+   ================================================================ */
+html,body{min-height:100%;height:100dvh}
+body{-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button,a,input,select,textarea{touch-action:manipulation}
+button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
+  -webkit-tap-highlight-color:transparent
+}
+@media(max-width:620px){
+  body{font-size:15px}
+  .tronco{height:100dvh;min-height:0}
+  header{height:calc(54px + env(safe-area-inset-top));min-height:54px;padding-top:env(safe-area-inset-top)}
+  .lbotao{width:42px;height:42px;display:grid;place-items:center}
+  .bico,.red,.mic,.env{width:44px;height:44px;min-width:44px;min-height:44px}
+  .tituloTopo{font-size:13px}
+  .chip{height:36px;min-height:36px;max-width:132px;padding:0 10px}
+  .rolo{min-height:0;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+  .faixa{width:100%;max-width:none}
+  .md{font-size:15px;line-height:1.68}
+  .md pre{font-size:12px}
+  .md table{display:block;overflow-x:auto;white-space:nowrap}
+  .base{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .ctx{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;scrollbar-width:none}
+  .ctx::-webkit-scrollbar{display:none}
+  .tag{height:32px;min-height:32px;white-space:nowrap;flex-shrink:0;padding:0 11px}
+  .compor{width:100%;min-height:54px;align-items:flex-end;gap:5px;padding:6px;border-radius:20px}
+  .compor textarea{min-height:40px;height:40px;max-height:150px;padding:7px 4px;font-size:16px;line-height:1.45}
+  .compor .red,.compor .mic,.compor .env{width:42px;height:42px;min-width:42px;min-height:42px;border-radius:13px}
+  .ajuda-rapida{gap:6px;margin-bottom:7px;white-space:nowrap;overflow:hidden}
+  .ajuda-rapida>span:not(.estado-rapido){overflow:hidden;text-overflow:ellipsis}
+  .ajuda-rapida .estado-rapido{flex-shrink:0}
+  .menu{position:fixed;bottom:max(74px,calc(64px + env(safe-area-inset-bottom)));top:auto!important;left:10px!important;right:10px;width:auto;max-height:60dvh;overflow:auto;border-radius:16px}
+  .mi{min-height:52px;padding:11px 13px}
+  .gaveta{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border:0}
+  .gaveta .gcab{min-height:58px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
+  .gaveta .gcorpo{padding:14px max(12px,env(safe-area-inset-right)) max(28px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));-webkit-overflow-scrolling:touch}
+  .campo{margin-bottom:18px}
+  .campo input,.campo select,.campo textarea{min-height:46px;font-size:16px;padding:11px 12px}
+  .campo textarea{min-height:118px}
+  .bt{min-height:46px;padding:10px 16px;font-size:14px}
+  .fila{flex-wrap:wrap}
+  .fila>.bt{flex:1 1 140px}
+  .loja{grid-template-columns:1fr}
+  .par{grid-template-columns:1fr}
+  .conn,.mod,.obra,.plano,.pedido{border-radius:14px}
+  .nota,.rodape{font-size:10px}
+  .rodape{margin-top:7px}
+}
+@media(max-width:380px){
+  .marca b{font-size:14px}
+  .chip{max-width:112px;padding:0 8px}
+  .chip span{font-size:10.5px}
+  .compor .red,.compor .mic{display:none}
+  .compor .env{margin-left:2px}
+  .inicio{padding-top:3vh}
+  .gato{height:clamp(92px,17vh,130px)}
+}
+@media(min-width:621px){
+}
+@media(prefers-reduced-motion:reduce){
+  .gaveta,.lateral,.menu,.painel.on{transition:none!important}
+}
+
 </style>
 </head>
 <body>
 
-<header>
-  <div class="marca">
-    <div class="selo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-      stroke="#04140F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 5.5 12 20l8-14.5"/></svg></div>
-    <b>Cérebro</b><i>VENURE</i>
+<div class="laterveu" id="laterveu" onclick="fecharLateral()"></div>
+
+<aside class="lateral" id="lateral">
+  <div class="lcab">
+    <div class="marca">
+      <div class="selo"><img src="/img/marca.png" alt="" onerror="this.remove()"></div>
+      <b>Bigode</b><i>IA</i>
+    </div>
   </div>
+
+  <div class="lrolo">
+    <button class="lnovo" onclick="novaConversa();fecharLateral()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nova conversa</button>
+
+    <div class="guia-leigo">
+      <b>Como usar o Bigode</b>
+      <div class="passos"><div class="passo"><span class="num">1</span><span>Escolha um motor no canto superior direito.</span></div>
+      <div class="passo"><span class="num">2</span><span>Escreva o que você precisa na caixa abaixo.</span></div>
+      <div class="passo"><span class="num">3</span><span>Acompanhe o ponto pulsando enquanto ele trabalha.</span></div></div>
+      <small>Conexões e configurações ficam no final deste menu.</small>
+    </div>
+
+    <div id="navLateral"></div>
+<div class="lgrupo">CONVERSAS RECENTES</div>
+    <div id="listaRecentes"><div class="lvazio">Carregando…</div></div>
+    <button class="lit" style="margin-top:4px" onclick="irPara('historico')">
+      <span style="width:16px"></span>
+      <span style="font-size:12.5px;color:var(--fraco)">Ver todas as conversas</span></button>
+  </div>
+
+  <div class="lpe">
+    <button class="lit" onclick="irPara('ajustes')" id="litAjustes">
+      <span id="iconeAjustes"></span>Configurações</button>
+  </div>
+</aside>
+
+<div class="tronco">
+
+<header>
+  <button class="bico lbotao" onclick="abrirLateral()" title="Abrir o menu" aria-label="Abrir o menu">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="tituloTopo" id="tituloTopo">Nova conversa</div>
+  <!-- O "+" que existia aqui saiu: "Nova conversa" já está na barra lateral,
+       em letras, e o "+" do compositor faz outra coisa (anexar, projeto,
+       manuais). Dois "+" na mesma tela fazendo coisas diferentes era o que
+       mais confundia. -->
   <div class="dir">
-    <button class="chip" onclick="abrirPainel('ajustes')">
+    <button class="chip" onclick="irPara('ajustes')">
       <span class="pulso" id="pulso"></span><span id="modNome">iniciando…</span></button>
-    <button class="bico" onclick="novaConversa()" title="Nova conversa">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
   </div>
 </header>
 
 <div class="rolo" id="rolo"><div class="faixa" id="faixa"></div></div>
 
 <div class="base">
+  <button class="descer" id="btDescer" onclick="rolar(true)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+    Continuar acompanhando</button>
   <div class="aviso-off" id="avisoOff">
     <span id="iconeOff"></span>
-    <span>Sem conexão com o notebook. Verifique se ele está ligado, com o pendrive
-      espetado e no mesmo Wi-Fi.</span>
+    <span>Não estou conseguindo falar com o seu computador. Confira se ele está
+      ligado e na mesma rede Wi-Fi.</span>
   </div>
+  <div class="ajuda-rapida" id="ajudaRapida"><span>●</span><strong id="ajudaEstado">Preparando o Bigode…</strong><span>Você pode escrever normalmente.</span><span class="estado-rapido" id="estadoRapido">verificando</span></div>
   <div class="ctx" id="ctx"></div>
   <div class="compor">
-    <button class="red" id="btMais" onclick="abrirMenu(event)" title="Mais">
+    <button class="red" id="btMais" onclick="abrirMenu(event)" title="Anexar arquivo, projeto ou manual" aria-label="Anexar arquivo, projeto ou manual">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-    <textarea id="entrada" rows="1" placeholder="O que você precisa que eu faça?"></textarea>
-    <button class="mic" id="btMic" onclick="alternarVoz()" title="Falar (Ctrl+Espaço)">
+    <textarea id="entrada" rows="1" placeholder="Escreva o que você precisa…" aria-label="Sua mensagem"></textarea>
+    <button class="mic" id="btMic" onclick="alternarVoz()" title="Falar em vez de digitar (Ctrl+Espaço)" aria-label="Falar em vez de digitar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="2" width="6" height="12" rx="3"/>
         <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></button>
-    <button class="env" id="btEnviar" onclick="enviar()">
+    <button class="env" id="btEnviar" onclick="enviar()" title="Enviar" aria-label="Enviar mensagem">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
   </div>
-  <div class="nota" id="nota">Enter envia · Shift+Enter quebra linha</div>
+  <!-- Esta linha não é decoração: é por onde a tela avisa que o motor está
+       desligado ou ligando. Sem ela o usuário fica esperando sem saber. -->
+  <div class="nota" id="nota">Enter para enviar · Shift+Enter para pular linha</div>
+  <div class="rodape">venure.com.br <span>·</span> tecnologia própria</div>
 </div>
+
+</div><!-- /tronco -->
 
 <div class="menu" id="menu"></div>
 <input type="file" id="arquivoInput" style="display:none">
@@ -516,28 +969,31 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
   <div class="gcorpo">
 
     <div class="painel" id="pn-conexoes">
-      <div class="et">JÁ CONECTADO</div>
+      <div class="et">O QUE JÁ ESTÁ LIGADO</div>
       <div class="expl" id="resumoCusto" style="margin-bottom:12px"></div>
       <div id="listaConn"></div>
-      <div class="et">DISPONÍVEIS PARA CONECTAR</div>
+      <div class="et">PODE LIGAR TAMBÉM</div>
       <div class="loja" id="loja"></div>
-      <div class="et">OUTRA FERRAMENTA</div>
+      <div class="et">ADICIONAR UM PROGRAMA OU SERVIÇO</div>
       <div class="conn">
         <div class="campo"><label>Nome</label><input id="fNome" placeholder="Notion"></div>
         <div class="par">
-          <div class="campo"><label>Tipo</label>
-            <select id="fTipo"><option value="mcp">Servidor MCP</option>
-              <option value="api">API</option><option value="local">Pasta local</option></select></div>
+          <div class="campo"><label>Como ele se conecta</label>
+            <select id="fTipo"><option value="mcp">Programa no computador</option>
+              <option value="api">Serviço na internet</option>
+              <option value="local">Pasta local</option></select></div>
           <div class="campo"><label>Logo</label>
-            <select id="fIcone"><option value="mcp">MCP</option><option value="api">API</option>
+            <select id="fIcone"><option value="mcp">Programa</option><option value="api">Serviço</option>
               <option value="canva">Canva</option><option value="github">GitHub</option>
               <option value="drive">Drive</option><option value="plug">Genérico</option></select></div>
         </div>
-        <div class="campo"><label>Endereço ou comando</label>
-          <span class="aj">npx -y @exemplo/mcp · ou https://mcp.exemplo.com/sse</span>
+        <div class="campo"><label>Onde encontrar</label>
+          <span class="aj">O endereço do serviço, ou o comando que abre o
+            programa. Quem oferece a ferramenta informa isso.</span>
           <input id="fEndereco"></div>
         <div class="campo"><label>Chave de acesso</label>
-          <span class="aj">Fica guardada só no pendrive. Nunca volta para a tela.</span>
+          <span class="aj">Fica guardada só no seu computador. Depois de salvar,
+            não aparece mais aqui.</span>
           <input id="fToken" type="password" placeholder="••••••••••"></div>
         <button class="bt forte larga" onclick="salvarNovo()">Conectar</button>
       </div>
@@ -553,21 +1009,21 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
           <span class="aj">Onde ficam os arquivos deste projeto</span>
           <input id="pDir" placeholder="G:\Meu Drive\projetos\crm-imobiliaria"></div>
         <div class="campo"><label>Instruções</label>
-          <span class="aj">O que ele precisa lembrar sempre neste projeto</span>
+          <span class="aj">O que ele deve lembrar toda vez que trabalhar aqui</span>
           <textarea id="pInst" placeholder="Você é o desenvolvedor responsável. Use Node + Express."></textarea></div>
         <button class="bt forte larga" onclick="salvarProjeto()">Criar projeto</button>
       </div>
     </div>
 
     <div class="painel" id="pn-habilidades">
-      <div class="et">MANUAIS QUE ELE CONSULTA</div>
+      <div class="et">SEUS MANUAIS</div>
       <div id="listaHab"></div>
-      <div class="et">CRIAR UM MANUAL</div>
+      <div class="et">ESCREVER UM MANUAL NOVO</div>
       <div class="conn">
         <div class="campo"><label>Nome</label>
           <input id="hNome" placeholder="Contrato de locação"></div>
         <div class="campo"><label>Quando usar</label>
-          <span class="aj">Palavras que acionam este manual, separadas por vírgula</span>
+          <span class="aj">Quando você falar essas palavras, ele abre este manual</span>
           <input id="hQuando" placeholder="contrato, locação, aluguel, imobiliária"></div>
         <div class="campo"><label>Instruções</label>
           <span class="aj">Escreva como se explicasse para um funcionário novo</span>
@@ -587,6 +1043,113 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
       <div class="fila"><button class="bt forte" onclick="salvarHabilidade()">Salvar</button>
         <button class="bt" onclick="abrirPainel('habilidades')">Voltar</button>
         <button class="bt" onclick="apagarHabilidade()" style="margin-left:auto">Apagar</button></div>
+    </div>
+
+    <div class="painel" id="pn-especialistas">
+      <div class="expl" style="margin-top:0">Um Especialista é o Bigode com
+        instruções, documentos de base e um <b>nível de rigor</b> próprios.
+        O rigor não é estilo: ele muda o que o Bigode aceita responder.</div>
+
+      <div class="et">EM USO AGORA</div>
+      <div id="espAtivo"></div>
+
+      <div class="et">SEUS ESPECIALISTAS</div>
+      <div id="listaEsp"></div>
+
+      <div class="et">USAR UM MODELO PRONTO</div>
+      <div class="loja" id="espProntos"></div>
+
+      <div class="et">CRIAR DO ZERO</div>
+      <div class="conn">
+        <div class="campo"><label>Nome</label>
+          <input id="eNome" placeholder="Consultor Trabalhista"></div>
+        <div class="campo"><label>Para que serve</label>
+          <input id="eDesc" placeholder="Dúvidas de CLT e rescisão"></div>
+        <div class="campo"><label>O quanto ele precisa provar</label>
+          <span class="aj" id="eRigorAj">O que ele precisa provar antes de afirmar</span>
+          <select id="eRigor" onchange="explicarRigor()">
+            <option value="fonte">Exige fonte — não afirma nada sem consultar</option>
+            <option value="arquivo">Exige ler o arquivo — não fala de código sem abrir</option>
+            <option value="livre">Livre — conversa e cria, sem precisar provar</option>
+          </select></div>
+        <div class="campo"><label>Instruções</label>
+          <span class="aj">Como ele deve pensar e responder neste assunto</span>
+          <textarea id="eInst" style="min-height:130px"
+            placeholder="Você orienta sobre CLT. Cite sempre o artigo da lei…"></textarea></div>
+        <div class="campo"><label>Pasta de trabalho</label>
+          <span class="aj">Opcional. Onde ele procura arquivo por padrão.</span>
+          <input id="ePasta" placeholder="G:\Meu Drive\projetos\rh"></div>
+        <div class="campo"><label>Documentos de base</label>
+          <span class="aj">Um por linha. Ele lê antes de responder.</span>
+          <textarea id="eDocs" style="min-height:70px"
+            placeholder="G:\Meu Drive\normas\CLT.md"></textarea></div>
+        <div class="campo">
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer">
+            <input type="checkbox" id="eNav" style="width:auto">
+            Pode usar o navegador Chrome</label>
+          <span class="aj">Abre página, clica e preenche como uma pessoa.
+            Enviar formulário e comprar continuam pedindo sua autorização.</span></div>
+        <button class="bt forte larga" onclick="salvarEsp()">Criar especialista</button>
+      </div>
+    </div>
+
+    <div class="painel" id="pn-artefatos">
+      <div class="expl" style="margin-top:0">Tudo que o Bigode criou ou alterou nos
+        seus arquivos. Não é o que existe na pasta — é o que <b>ele</b> fez, com a
+        pergunta que originou cada coisa.</div>
+      <div class="et">ARQUIVOS QUE ELE MEXEU</div>
+      <div id="listaArtefatos"><div class="vazio2">Carregando…</div></div>
+    </div>
+
+    <div class="painel" id="pn-programados">
+      <div class="aviso-risco" id="avisoMotor" style="display:none;margin-top:0">
+        O motor está desligado. Tarefas programadas não rodam com ele desligado —
+        ficam registradas como não executadas e tentam de novo na próxima vez.
+      </div>
+      <div class="et">SUAS TAREFAS</div>
+      <div id="listaProg"><div class="vazio2">Carregando…</div></div>
+
+      <div class="et">CRIAR UMA TAREFA</div>
+      <div class="conn">
+        <div class="campo"><label>Nome</label>
+          <input id="tgNome" placeholder="Resumo do dia"></div>
+        <div class="campo"><label>O que ele deve fazer</label>
+          <span class="aj">Escreva como escreveria na conversa</span>
+          <textarea id="tgPergunta" style="min-height:90px"
+            placeholder="Leia a pasta do Carteira 2026 e me diga o que mudou desde ontem."></textarea></div>
+        <div class="campo"><label>Quando</label>
+          <select id="tgTipo" onchange="pintarQuando()">
+            <option value="diario">Todo dia</option>
+            <option value="semanal">Uma vez por semana</option>
+            <option value="intervalo">De tempos em tempos</option>
+            <option value="uma_vez">Uma vez só</option>
+          </select></div>
+        <div class="par" id="qDiario">
+          <div class="campo"><label>Hora</label><input id="tgHora" type="time" value="07:00"></div>
+          <div class="campo" id="qDia" style="display:none"><label>Dia</label>
+            <select id="tgDia">
+              <option>segunda</option><option>terca</option><option>quarta</option>
+              <option>quinta</option><option>sexta</option><option>sabado</option>
+              <option>domingo</option></select></div>
+        </div>
+        <div class="campo" id="qIntervalo" style="display:none"><label>A cada quantos minutos</label>
+          <span class="aj">Mínimo de 5 minutos</span>
+          <input id="tgMinutos" value="60"></div>
+        <div class="campo" id="qUmaVez" style="display:none"><label>Data e hora</label>
+          <input id="tgDataHora" type="datetime-local"></div>
+        <button class="bt forte larga" onclick="salvarProgramado()">Criar tarefa</button>
+      </div>
+      <div class="expl">Tarefas programadas rodam em <b>modo leitura</b>. Elas leem,
+        analisam e escrevem a resposta aqui — mas não criam, não sobrescrevem e não
+        apagam arquivo nenhum. Você não está na frente da tela na hora em que elas
+        disparam, então essa decisão fica com você, acordado.</div>
+    </div>
+
+    <div class="painel" id="pn-resultado">
+      <div id="tituloResultado" class="et" style="margin-top:0">RESULTADO</div>
+      <div id="listaResultado"></div>
+      <button class="bt larga" style="margin-top:12px"
+        onclick="abrirPainel('programados')">Voltar</button>
     </div>
 
     <div class="painel" id="pn-historico">
@@ -613,49 +1176,51 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
     </div>
 
     <div class="painel" id="pn-ajustes">
-      <div class="et">CÉREBRO EM USO</div>
-      <span class="aj" style="margin-bottom:12px">O maior pensa melhor. O menor
-        responde bem mais rápido. Trocar leva alguns minutos.</span>
+      <div class="et">QUAL IA ESTÁ PENSANDO</div>
+      <span class="aj" style="margin-bottom:12px">Os maiores pensam melhor, mas são
+        bem mais lentos. Escolha o que combina com o seu computador — trocar
+        leva alguns minutos.</span>
       <div class="ligando" id="ligando">
         <div class="lt"><span class="gira" id="ligIcone"></span>
-          <span id="ligNome">Ligando o modelo…</span></div>
+          <span id="ligNome">Ligando…</span></div>
         <div class="barra"><i id="ligBarra"></i></div>
         <div class="lm" id="ligMsg"></div>
       </div>
       <div id="listaModelos"></div>
       <div class="mstat">
         <div><b id="stEstado">—</b><span>situação</span></div>
-        <div><b id="stCarga">—</b><span>para ligar</span></div>
-        <div><b id="stVel">—</b><span>velocidade</span></div>
+        <div><b id="stCarga">—</b><span>tempo para ligar</span></div>
+        <div><b id="stVel">—</b><span>palavras por segundo</span></div>
       </div>
-      <div class="et">DESEMPENHO</div>
+      <div class="et">VELOCIDADE</div>
       <div class="par">
-        <div class="campo"><label>Memória por conversa</label>
-          <span class="aj">menor = mais rápido</span>
+        <div class="campo"><label>Quanto ele lembra da conversa</label>
+          <span class="aj">menos memória = mais rápido</span>
           <select id="inContexto">
             <option value="8192">Normal</option>
             <option value="16384">Grande</option>
             <option value="32768">Enorme</option>
           </select></div>
-        <div class="campo"><label>Núcleos da CPU</label><span class="aj">8 é o ideal aqui</span>
+        <div class="campo"><label>Quanta força do computador usar</label><span class="aj">nesta máquina, 8 é o melhor</span>
           <select id="inThreads"><option value="4">4</option><option value="6">6</option>
             <option value="8">8</option><option value="12">12</option>
             <option value="16">16</option></select></div>
       </div>
-      <div class="campo"><label>Leitura do modelo</label>
+      <div class="campo"><label>Onde a IA está guardada</label>
+        <span class="aj">Deixe no automático se não tiver certeza</span>
         <select id="inMmap">
           <option value="auto">Automático</option>
-          <option value="sim">Otimizado para SSD interno</option>
-          <option value="nao">Otimizado para pendrive</option>
+          <option value="sim">No disco da máquina</option>
+          <option value="nao">Numa pasta de rede (mais lento)</option>
         </select></div>
       <div class="par">
-        <div class="campo"><label>Criatividade</label><span class="aj">0,2 código · 0,7 texto</span>
+        <div class="campo"><label>Quanto ele pode variar</label><span class="aj">baixo = mais previsível · alto = mais criativo</span>
           <input id="inTemp"></div>
-        <div class="campo"><label>Ações por resposta</label><span class="aj">limite de passos</span>
+        <div class="campo"><label>Quantos passos ele pode dar</label><span class="aj">ex.: ler 3 arquivos e responder = 4 passos</span>
           <input id="inPassos"></div>
       </div>
       <div class="et">SEGURANÇA</div>
-      <div class="campo"><label>Antes de alterar arquivos</label>
+      <div class="campo"><label>Antes de mexer nos seus arquivos</label>
         <select id="selNivel" onchange="avisoRisco()">
           <option value="sempre">Me mostrar o plano e esperar aprovação</option>
           <option value="nunca">Fazer sozinho, sem perguntar</option>
@@ -664,11 +1229,25 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
           Sem aprovação ele pode criar, sobrescrever e apagar arquivos por conta própria.
           Use apenas em tarefas que você já validou.
         </div></div>
-      <div class="campo"><label>Pastas que ele pode acessar</label>
-        <span class="aj">Uma por linha. Fora delas ele não entra.</span>
+      <div class="campo"><label>Onde ele pode entrar</label>
+        <span class="aj">Uma pasta por linha. Fora dessas ele não entra, nem se você pedir.</span>
         <textarea id="txPastas" style="min-height:84px"></textarea></div>
+      <div class="et">MEMÓRIA SEMÂNTICA</div>
+      <div class="expl">Cada domínio vira uma coleção ChromaDB separada. Você pode adicionar novas coleções sem alterar o código.</div>
+      <div id="listaDominios"></div>
+      <div class="conn" style="margin-top:10px">
+        <div class="campo"><label>Novo domínio</label><input id="domNome" placeholder="ex.: jurídico"></div>
+        <div class="campo"><label>Pastas do domínio</label><span class="aj">Uma pasta por linha</span><textarea id="domPastas" placeholder="C:\\Projetos\\Juridico"></textarea></div>
+        <div class="campo"><label>Palavras-chave para roteamento</label><span class="aj">Separe por vírgulas</span><input id="domPalavras" placeholder="lei, contrato, jurídico"></div>
+        <button class="bt fraco larga" onclick="adicionarDominio()">Adicionar domínio</button>
+      </div>
+      <div class="fila" style="margin-top:10px;display:flex;gap:8px">
+        <button class="bt forte" style="flex:1" onclick="salvarDominios()">Salvar domínios</button>
+        <button class="bt fraco" style="flex:1" onclick="indexarChroma()">Indexar agora</button>
+      </div>
+      <div class="expl" id="chromaStatus" style="margin-top:10px">ChromaDB ainda não verificado.</div>
       <button class="bt forte larga" onclick="salvarAjustes()">Salvar</button>
-      <div class="et">USAR NO CELULAR</div>
+      <div class="et">ABRIR NO CELULAR</div>
       <div class="qr">
         <div class="url" id="urlRede">—</div>
         <button class="bt larga" onclick="copiarUrl()">Copiar endereço</button>
@@ -676,13 +1255,24 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
           <b>1.</b> Deixe o iPhone no mesmo Wi-Fi do notebook<br>
           <b>2.</b> Abra esse endereço no <b>Safari</b><br>
           <b>3.</b> Toque em <b>Compartilhar</b> ⬆ e em <b>Adicionar à Tela de Início</b><br>
-          <b>4.</b> Pronto: vira um app com o ícone da Venure
+          <b>4.</b> Pronto: vira um aplicativo com a cara do Bigode
         </div>
       </div>
 
-      <div class="et">LIGAR AO CLAUDE</div>
-      <div class="campo"><span class="aj">Cole isto nas conexões MCP do Claude.</span>
-        <input id="inMcp" readonly onclick="this.select()"></div>
+      <div class="et">LIGAR O CHROME</div>
+      <div class="expl" style="margin-top:0">A extensão tem <b>acesso próprio</b>,
+        separado desta tela. Em <code>chrome://extensions</code> → Bigode →
+        <b>Detalhes → Opções</b>, entre com o mesmo e-mail e senha que você usa
+        aqui. Só o crachá da sessão fica guardado no Chrome — a senha, não.</div>
+      <div class="expl" id="estadoExt">Verificando…</div>
+
+      <div class="et">LIGAR NO CLAUDE</div>
+          </div>
+
+            <div class="expl" style="margin:2px 0 0;color:#f9a8d4">Seu estúdio visual, separado do Bigode.</div></div>
+        </div>
+        <div class="et" style="color:#f9a8d4">MOTOR DE IMAGEM</div>
+      </div>
     </div>
 
   </div>
@@ -694,6 +1284,8 @@ body.trabalhando .selo svg{animation:vgira 2.6s linear infinite}
 const $=i=>document.getElementById(i);
 const esc=t=>{const d=document.createElement('div');d.textContent=t??'';return d.innerHTML};
 let historico=[],ocupado=false,CX={},CFG={},PERS={},conversaId=null,projetoAtivo=null,PROJ=[];
+let CHROME_LIGADO=false;   // a extensao do Chrome deu sinal nos ultimos 15s
+let ULTIMAS=[];            // as conversas da barra lateral, para renomear
 let LIGADO=false,ESTADO='parado';
 
 /* ---------- logos e icones ---------- */
@@ -736,20 +1328,36 @@ const IC={ok:'<path d="M20 6 9 17l-5-5"/>',girar:'<path d="M21 12a9 9 0 1 1-6.2-
  seta:'<path d="m9 18 6-6-6-6"/>',
  plano:'<path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"/><path d="M9 11V4a3 3 0 0 1 6 0v7"/><path d="M8 16h8"/>',
  codigo:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
- livro:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'};
+ livro:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+ folha:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>',
+ calendario:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M12 14v3l2 1"/>',
+ raio:'<path d="M13 2 3 14h8l-1 8 10-12h-8Z"/>',
+ barras:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ conversa:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>'};
 const S=(p,w)=>'<svg width="'+(w||16)+'" height="'+(w||16)+'" viewBox="0 0 24 24" fill="none" '+
  'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
-function toast(t){const e=$('toast');e.innerHTML=S(IC.ok,15)+esc(t);e.classList.add('on');
- clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2700);}
+/* toast(texto)            -> deu certo
+   toast(texto,'erro')     -> falhou
+   toast(texto,'alerta')   -> atenção
+   O ícone e a cor seguem o tipo. Erro fica mais tempo na tela: ninguém
+   consegue ler uma explicação de falha em 2,7 segundos. */
+function toast(t,tipo){
+  const e=$('toast');
+  const ic={erro:IC.alerta,alerta:IC.alerta}[tipo]||IC.ok;
+  e.className='toast on '+(tipo||'bom');
+  e.innerHTML=S(ic,15)+esc(t);
+  clearTimeout(e._t);
+  e._t=setTimeout(()=>e.classList.remove('on'),tipo==='erro'?5200:2700);
+}
 
 /* ---------- menu do + ---------- */
 const MENU=[
  ['clipe','Anexar um arquivo','Manda o conteúdo junto com a mensagem',()=>$('arquivoInput').click()],
  ['pasta','Trabalhar em um projeto','Fixa a pasta e as instruções',()=>abrirPainel('projetos')],
  ['livro','Manuais e habilidades','Ensine o jeito Venure de fazer',()=>abrirPainel('habilidades')],
- ['plug2','Conectar uma ferramenta','Drive, GitHub, Canva, MCP, API',()=>abrirPainel('conexoes')],
+ ['plug2','Conectar uma ferramenta','Google Drive, GitHub, Canva e outros',()=>abrirPainel('conexoes')],
  ['sep'],
- ['relogio','Conversas anteriores','Tudo fica salvo no pendrive',()=>abrirPainel('historico')],
+ ['relogio','Conversas anteriores','Tudo fica salvo no seu Drive',()=>abrirPainel('historico')],
  ['pessoa','Jeito de responder','Personalidade e suas instruções',()=>abrirPainel('personalidade')],
  ['engrenagem','Configurações','Modelo, velocidade e segurança',()=>abrirPainel('ajustes')]];
 
@@ -771,17 +1379,30 @@ document.addEventListener('click',e=>{if(!e.target.closest('#menu,#btMais'))fech
 
 $('arquivoInput').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f)return;
-  if(f.size>400000)return toast('Arquivo muito grande (máx. 400 KB de texto)');
-  const t=await f.text(); const c=$('entrada');
-  c.value=(c.value?c.value.trim()+'\n\n':'')+'Arquivo '+f.name+':\n```\n'+t+'\n```\n';
-  c.dispatchEvent(new Event('input')); c.focus();
-  toast(f.name+' anexado'); e.target.value='';
+  if(f.size>400000)
+    return toast('Esse arquivo é grande demais. O limite é 400 KB de texto.','erro');
+
+  // Ler um arquivo grande trava por um instante. Sem este aviso parece que
+  // o clique nao funcionou e a pessoa clica de novo.
+  const nota=$('nota'), antes=nota.textContent;
+  nota.innerHTML='<span class="lendo-arq"><i></i>Lendo '+esc(f.name)+'…</span>';
+  try{
+    const t=await f.text(); const c=$('entrada');
+    c.value=(c.value?c.value.trim()+'\n\n':'')+'Arquivo '+f.name+':\n```\n'+t+'\n```\n';
+    c.dispatchEvent(new Event('input')); c.focus();
+    toast(f.name+' anexado');
+  }catch(err){
+    toast('Não consegui ler esse arquivo.','erro');
+  }
+  nota.textContent=antes; e.target.value='';
 });
 
 /* ---------- painel ---------- */
-const TITULOS={conexoes:'Ferramentas conectadas',projetos:'Projetos',
+const TITULOS={conexoes:'O que está conectado',projetos:'Meus projetos',
  historico:'Conversas anteriores',personalidade:'Jeito de responder',
- ajustes:'Configurações',habilidades:'Manuais e habilidades','editar-hab':'Editar manual'};
+ ajustes:'Configurações',habilidades:'Meus manuais','editar-hab':'Editar manual',
+ artefatos:'Arquivos que ele criou',programados:'Tarefas programadas',
+ resultado:'Resultado da tarefa',especialistas:'Especialistas'};
 function abrirPainel(p){
   document.querySelectorAll('.painel').forEach(x=>x.classList.remove('on'));
   $('pn-'+p).classList.add('on'); $('tituloPainel').textContent=TITULOS[p]||p;
@@ -789,9 +1410,304 @@ function abrirPainel(p){
   if(p==='conexoes')carregarConn(); if(p==='projetos')carregarProjetos();
   if(p==='historico')carregarHistorico(); if(p==='personalidade')carregarPers();
   if(p==='ajustes')carregarAjustes(); if(p==='habilidades')carregarHabilidades();
+  if(p==='artefatos')carregarArtefatos(); if(p==='programados')carregarProgramados();
+  if(p==='especialistas')carregarEspecialistas();
 }
 function fecharPainel(){$('veu').classList.remove('on');$('gaveta').classList.remove('on');}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharPainel();fecharMenu();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){
+  fecharPainel();fecharMenu();fecharLateral();}});
+
+/* ---------- barra lateral ---------- */
+// No desktop ela e fixa e nunca sai. No celular vira gaveta -- por isso o
+// abrir/fechar existe mesmo quando nao se ve botao nenhum.
+function abrirLateral(){$('lateral').classList.add('on');$('laterveu').classList.add('on');}
+function fecharLateral(){$('lateral').classList.remove('on');$('laterveu').classList.remove('on');}
+function irPara(p){abrirPainel(p);fecharLateral();pintarNav(p);}
+
+const NAV=[
+ ['pessoa',    'Especialistas','especialistas'],
+ ['pasta',     'Projetos',     'projetos'],
+ ['folha',     'Artefatos',    'artefatos'],
+ ['livro',     'Skills',       'habilidades'],
+ ['plug2',     'Conexões',     'conexoes'],
+ ['calendario','Programados',  'programados'],
+ ['pessoa',    'Personalizar', 'personalidade']];
+
+let NAV_ATIVO='';
+function pintarNav(ativo){
+  NAV_ATIVO=ativo||'';
+  $('navLateral').innerHTML=NAV.map(([ic,rot,alvo])=>
+    '<button class="lit'+(alvo===NAV_ATIVO?' on':'')+'" data-p="'+alvo+'">'+
+    S(IC[ic],16)+rot+'<span class="num" id="num-'+alvo+'"></span></button>').join('');
+  document.querySelectorAll('#navLateral .lit').forEach(el=>
+    el.onclick=()=>irPara(el.dataset.p));
+  $('iconeAjustes').innerHTML=S(IC.engrenagem,16);
+  contarNav();
+}
+
+// Os numerinhos ao lado de cada item. Se a conta falhar, o item fica sem
+// numero em vez de mostrar zero -- zero e uma afirmacao, e nao sabemos.
+async function contarNav(){
+  const por=async(url,campo,alvo)=>{
+    try{const d=await(await fetch(url)).json();
+      const n=(d[campo]||[]).length; const el=$('num-'+alvo);
+      if(el)el.textContent=n?n:'';}catch(e){}
+  };
+  por('/api/especialistas','especialistas','especialistas');
+  por('/api/projetos','projetos','projetos');
+  por('/api/artefatos','artefatos','artefatos');
+  por('/api/habilidades','habilidades','habilidades');
+  por('/api/programados','tarefas','programados');
+}
+
+/* "hoje, 14:30" em vez de 2026-08-18T14:30:11. A data crua não diz nada
+   para quem só quer achar a conversa de ontem. */
+function quando(iso){
+  if(!iso)return '';
+  const d=new Date(iso); if(isNaN(d))return '';
+  const hoje=new Date(), ontem=new Date(Date.now()-864e5);
+  const mesmoDia=(a,b)=>a.toDateString()===b.toDateString();
+  const hora=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if(mesmoDia(d,hoje)) return hora;
+  if(mesmoDia(d,ontem))return 'ontem';
+  if(Date.now()-d < 6*864e5)
+    return d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+
+async function carregarRecentes(){
+  try{
+    const d=await(await fetch('/api/conversas?busca=')).json();
+    const lista=(d.conversas||[]).slice(0,12);
+    ULTIMAS=lista;
+    $('listaRecentes').innerHTML=lista.length?lista.map(c=>
+      '<div class="lrec'+(c.id===conversaId?' on':'')+'" data-id="'+esc(c.id)+'" title="'+
+      esc(c.titulo)+'"><span class="lrec-t">'+esc(c.titulo)+'</span>'+
+      '<span class="lrec-q">'+esc(quando(c.atualizada))+'</span>'+
+      '<button class="lrec-e" title="Mudar o nome desta conversa" '+
+      'aria-label="Mudar o nome desta conversa">'+S(IC.lapis,13)+'</button></div>').join('')
+      :'<div class="lvazio">Nenhuma conversa ainda. A primeira aparece aqui.</div>';
+    document.querySelectorAll('#listaRecentes .lrec').forEach(el=>{
+      el.onclick=e=>{
+        if(e.target.closest('.lrec-e'))return renomearConversa(el.dataset.id);
+        abrirConversa(el.dataset.id);fecharLateral();};
+    });
+  }catch(e){
+    $('listaRecentes').innerHTML='<div class="lvazio">Não consegui ler as conversas.</div>';
+  }
+}
+
+/* ---------- renomear conversa ---------- */
+async function renomearConversa(id){
+  const atual=(ULTIMAS.find(c=>c.id===id)||{}).titulo||'';
+  const novo=prompt('Novo nome da conversa:', atual);
+  if(novo===null)return;                       // cancelou
+  const r=await(await fetch('/api/conversa/renomear',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id,titulo:novo})})).json();
+  if(!r.ok)return toast(r.erro||'Não consegui renomear');
+  if(id===conversaId)tituloDaConversa(r.titulo);
+  carregarRecentes(); carregarHistorico&&carregarHistorico();
+  toast('Renomeada');
+}
+
+/* ---------- especialistas ---------- */
+let ESP=[], espAtivo=null;
+
+const RIGOR_COR={fonte:'var(--ac)',arquivo:'var(--ac2)',livre:'var(--mudo)'};
+
+function explicarRigor(){
+  const t={fonte:'Ele não afirma data, número, lei nem preço sem ter consultado '+
+                 'uma fonte. Use em fiscal, jurídico, saúde.',
+           arquivo:'Ele não fala do seu código sem abrir o arquivo. Use em '+
+                   'programação e auditoria.',
+           livre:'Sem trava. Use em brainstorm e rascunho — não use para nada '+
+                 'que você vá tratar como fato.'};
+  $('eRigorAj').textContent=t[$('eRigor').value]||'';
+}
+
+async function carregarEspecialistas(){
+  const d=await(await fetch('/api/especialistas')).json();
+  ESP=d.especialistas||[];
+
+  $('espAtivo').innerHTML=espAtivo
+    ? '<div class="conn on"><div class="ch"><div style="min-width:0;flex:1">'+
+      '<div class="li-t">'+esc(espAtivo.nome)+'</div>'+
+      '<div class="li-s">'+esc(espAtivo.rigor_rotulo)+'</div></div>'+
+      '<button class="bt" onclick="usarEsp(null)">Sair</button></div></div>'
+    : '<div class="vazio2">Nenhum. O Bigode responde no modo normal.</div>';
+
+  $('listaEsp').innerHTML=ESP.length?ESP.map(e=>
+    '<div class="conn" data-id="'+esc(e.id)+'"><div class="ch">'+
+    '<div style="min-width:0;flex:1"><div class="li-t">'+esc(e.nome)+'</div>'+
+    '<div class="li-s" style="color:'+(RIGOR_COR[e.rigor]||'')+'">'+
+      esc(e.rigor_rotulo)+(e.navegador?' · navegador':'')+
+      (e.pasta?' · pasta fixa':'')+'</div>'+
+    (e.descricao?'<div class="li-s">'+esc(e.descricao)+'</div>':'')+
+    '</div></div><div class="fila" style="margin-top:11px">'+
+    '<button class="bt forte" data-a="usar">Usar</button>'+
+    '<button class="bt" data-a="apagar" style="margin-left:auto">Apagar</button>'+
+    '</div></div>').join('')
+    :'<div class="vazio2">Nenhum especialista ainda.</div>';
+
+  document.querySelectorAll('#listaEsp [data-a]').forEach(el=>el.onclick=async()=>{
+    const id=el.closest('[data-id]').dataset.id;
+    if(el.dataset.a==='usar')return usarEsp(ESP.find(x=>x.id===id));
+    if(!confirm('Apagar este especialista?'))return;
+    await fetch('/api/especialistas',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({acao:'apagar',id:id})});
+    if(espAtivo&&espAtivo.id===id)usarEsp(null);
+    carregarEspecialistas();contarNav();});
+
+  $('espProntos').innerHTML=(d.prontos||[]).map((p,i)=>
+    '<button class="item" data-i="'+i+'"><div style="min-width:0">'+
+    '<b>'+esc(p.nome)+'</b><i>'+esc(p.descricao)+'</i></div></button>').join('');
+  document.querySelectorAll('#espProntos .item').forEach(el=>el.onclick=()=>{
+    const p=d.prontos[el.dataset.i];
+    $('eNome').value=p.nome; $('eDesc').value=p.descricao;
+    $('eRigor').value=p.rigor; $('eInst').value=p.instrucoes;
+    explicarRigor();
+    $('eNome').scrollIntoView({behavior:'smooth',block:'center'});
+    toast('Modelo pronto — ajuste e crie');});
+  explicarRigor();
+}
+
+function usarEsp(e){
+  espAtivo=e||null;
+  carregarEspecialistas();pintarCtx();
+  toast(e?'Falando com o '+e.nome:'Especialista dispensado');
+  if(e)fecharPainel();
+}
+
+async function salvarEsp(){
+  const nome=$('eNome').value.trim();
+  if(!nome)return toast('Escreva um nome antes de salvar.','alerta');
+  const r=await(await fetch('/api/especialistas',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nome:nome,descricao:$('eDesc').value.trim(),
+      rigor:$('eRigor').value,instrucoes:$('eInst').value,
+      pasta:$('ePasta').value.trim(),navegador:$('eNav').checked,
+      documentos:$('eDocs').value.split('\n').map(s=>s.trim()).filter(Boolean)
+    })})).json();
+  if(!r.ok)return toast(r.erro||'Não consegui criar');
+  ['eNome','eDesc','eInst','ePasta','eDocs'].forEach(i=>$(i).value='');
+  $('eNav').checked=false;
+  carregarEspecialistas();contarNav();toast('Especialista criado');
+}
+
+/* ---------- artefatos ---------- */
+async function carregarArtefatos(){
+  const d=await(await fetch('/api/artefatos')).json();
+  const lista=d.artefatos||[];
+  $('listaArtefatos').innerHTML=lista.length?lista.map(a=>
+    '<div class="linha-item" style="cursor:default"><div style="min-width:0;flex:1">'+
+    '<div class="li-t">'+esc(a.nome)+
+    (a.existe?'':' <span style="color:var(--erro);font-size:11px">· não está mais lá</span>')+
+    (a.vezes>1?' <span style="color:var(--fraco);font-size:11px">· '+a.vezes+'×</span>':'')+
+    '</div>'+
+    '<div class="li-s" title="'+esc(a.caminho)+'">'+esc(a.pasta)+'</div>'+
+    '<div class="li-s" style="color:var(--mudo);margin-top:4px">'+
+      esc((a.quando||'').replace('T',' ').slice(0,16))+
+      (a.kb?' · '+a.kb+' KB':'')+'</div>'+
+    (a.pergunta?'<div class="li-s" style="margin-top:5px;font-style:italic">“'+
+      esc(a.pergunta)+'”</div>':'')+
+    '</div></div>').join('')
+    :'<div class="vazio2">Ele ainda não criou nem alterou nenhum arquivo.<br>'+
+     '<span style="font-size:12px">A lista se enche sozinha conforme ele trabalha.</span></div>';
+}
+
+/* ---------- programados ---------- */
+function pintarQuando(){
+  const t=$('tgTipo').value;
+  $('qDiario').style.display   = (t==='diario'||t==='semanal')?'grid':'none';
+  $('qDia').style.display      = (t==='semanal')?'block':'none';
+  $('qIntervalo').style.display= (t==='intervalo')?'block':'none';
+  $('qUmaVez').style.display   = (t==='uma_vez')?'block':'none';
+}
+
+function quandoLegivel(iso){
+  if(!iso)return 'sem próxima execução';
+  const d=new Date(iso); if(isNaN(d))return iso;
+  const h=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const hoje=new Date(); const amanha=new Date(hoje.getTime()+86400000);
+  const mesmoDia=(a,b)=>a.toDateString()===b.toDateString();
+  if(mesmoDia(d,hoje))return 'hoje às '+h;
+  if(mesmoDia(d,amanha))return 'amanhã às '+h;
+  return String(d.getDate()).padStart(2,'0')+'/'+
+         String(d.getMonth()+1).padStart(2,'0')+' às '+h;
+}
+
+async function carregarProgramados(){
+  const d=await(await fetch('/api/programados')).json();
+  const lista=d.tarefas||[];
+  $('avisoMotor').style.display = (d.motor||!lista.some(t=>t.ativa))?'none':'block';
+  $('listaProg').innerHTML=lista.length?lista.map(t=>{
+    const u=t.ultimo;
+    const situacao = !t.ativa ? '<span style="color:var(--fraco)">pausada</span>'
+      : '<span style="color:var(--ac)">'+esc(quandoLegivel(t.proxima))+'</span>';
+    const ultima = u
+      ? '<div class="li-s" style="margin-top:4px;color:'+(u.ok?'var(--ok)':'var(--erro)')+'">'+
+        (u.ok?'rodou':'não rodou')+' em '+esc((u.quando||'').replace('T',' ').slice(0,16))+
+        (u.ok&&u.segundos?' · '+u.segundos+'s':'')+'</div>'
+      : '<div class="li-s" style="margin-top:4px;color:var(--fraco)">nunca rodou ainda</div>';
+    return '<div class="conn'+(t.ativa?' on':'')+'" data-id="'+esc(t.id)+'">'+
+      '<div class="ch"><div style="min-width:0;flex:1">'+
+      '<div class="li-t">'+esc(t.nome)+'</div>'+
+      '<div class="li-s">'+esc(t.descricao)+' · '+situacao+'</div>'+
+      ultima+'</div>'+
+      '<div class="chave'+(t.ativa?' on':'')+'" data-acao="alternar"><i></i></div></div>'+
+      '<div class="cd">'+esc(t.pergunta)+'</div>'+
+      '<div class="fila" style="margin-top:12px">'+
+      '<button class="bt" data-acao="rodar">Rodar agora</button>'+
+      (t.execucoes?'<button class="bt" data-acao="ver">Ver resultados ('+t.execucoes+')</button>':'')+
+      '<button class="bt" data-acao="apagar" style="margin-left:auto">Apagar</button></div>'+
+      '</div>';}).join('')
+    :'<div class="vazio2">Nenhuma tarefa programada.<br>'+
+     '<span style="font-size:12px">Crie uma abaixo — ele roda sozinho na hora marcada.</span></div>';
+
+  document.querySelectorAll('#listaProg [data-acao]').forEach(el=>{
+    el.onclick=async()=>{
+      const id=el.closest('[data-id]').dataset.id, acao=el.dataset.acao;
+      if(acao==='ver')return verResultados(id);
+      if(acao==='apagar'&&!confirm('Apagar esta tarefa? O histórico dela some junto.'))return;
+      if(acao==='rodar')toast('Começou. Pode levar alguns minutos.');
+      await fetch('/api/programados',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({acao:acao,id:id})});
+      if(acao!=='rodar')carregarProgramados();
+      contarNav();
+    };});
+}
+
+async function salvarProgramado(){
+  const nome=$('tgNome').value.trim(), pergunta=$('tgPergunta').value.trim();
+  if(!pergunta)return toast('Escreva o que ele deve fazer.','alerta');
+  const r=await(await fetch('/api/programados',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nome:nome||'Tarefa',pergunta:pergunta,
+      tipo:$('tgTipo').value,hora:$('tgHora').value,dia_semana:$('tgDia').value,
+      minutos:$('tgMinutos').value,data_hora:$('tgDataHora').value,ativa:true})})).json();
+  if(!r.ok)return toast(r.erro||'Não consegui salvar');
+  ['tgNome','tgPergunta'].forEach(i=>$(i).value='');
+  carregarProgramados();contarNav();
+  toast('Criada · roda '+quandoLegivel(r.proxima));
+}
+
+async function verResultados(id){
+  const d=await(await fetch('/api/programado/historico?id='+encodeURIComponent(id))).json();
+  $('tituloResultado').textContent=(d.nome||'TAREFA').toUpperCase();
+  $('listaResultado').innerHTML=(d.historico||[]).map(h=>
+    '<div class="conn" style="margin-bottom:10px">'+
+    '<div class="li-s" style="color:'+(h.ok?'var(--ok)':'var(--erro)')+'">'+
+    (h.ok?'RODOU':'NÃO RODOU')+' · '+esc((h.quando||'').replace('T',' ').slice(0,16))+
+    (h.segundos?' · '+h.segundos+'s':'')+'</div>'+
+    '<div class="md" style="margin-top:9px;font-size:13.5px">'+md(h.texto||'')+'</div>'+
+    ((h.acoes&&h.acoes.length)?'<div class="li-s" style="margin-top:9px;color:var(--fraco)">'+
+      esc(h.acoes.join(' · '))+'</div>':'')+
+    '</div>').join('')||'<div class="vazio2">Sem resultados ainda.</div>';
+  abrirPainel('resultado');
+}
 
 /* ---------- markdown ---------- */
 function md(txt){
@@ -834,23 +1750,25 @@ document.addEventListener('click',e=>{
 });
 
 /* ---------- tela inicial ---------- */
-const EXEMPLOS=['Ver o que tem na minha pasta de projetos',
- 'Auditar um projeto e me dizer o que está errado',
- 'Criar um sistema novo do zero',
+const EXEMPLOS=['Abra meu projeto e me diga o que tem dentro',
+ 'Leia meu código e aponte os erros',
+ 'Corrija este arquivo e me devolva completo',
  'Meus repositórios no GitHub'];
 function telaInicial(){
-  $('faixa').innerHTML='<div class="inicio"><div class="vmark">'+
-   '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#04140F" '+
-   'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'+
-   '<path d="M4 5.5 12 20l8-14.5"/></svg></div><div class="vnome">VENURE</div>'+
-   '<h2>Em que vamos trabalhar?</h2>'+
+  // Aqui entra o gato de verdade, não o desenho: é a tela que você vê ao
+  // abrir, e é o único lugar com espaço para ele aparecer inteiro.
+  $('faixa').innerHTML='<div class="inicio">'+
+   '<img class="gato" src="/img/bigode.png" alt="" onerror="this.remove()">'+
+   '<div class="vnome">BIGODE IA · VENURE</div>'+
+   '<h2>Como posso ajudar você hoje?</h2>'+
    '<div class="exemplos">'+EXEMPLOS.map((e,i)=>
      '<button class="ex" data-i="'+i+'">'+esc(e)+'</button>').join('')+'</div></div>';
   document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>{
     $('entrada').value=EXEMPLOS[b.dataset.i];$('entrada').focus();
     $('entrada').dispatchEvent(new Event('input'));});
 }
-function novaConversa(){historico=[];conversaId=null;lembrarConversa(null);telaInicial();}
+function novaConversa(){historico=[];conversaId=null;lembrarConversa(null);
+  tituloDaConversa('');telaInicial();carregarRecentes();}
 
 /* ---------- status ---------- */
 async function status(){
@@ -859,20 +1777,25 @@ async function status(){
     $('avisoOff').classList.remove('on');
     const mudou=(ESTADO!==d.estado);
     LIGADO=!!d.pronto; ESTADO=d.estado;
+    if(CHROME_LIGADO!==!!d.extensao){CHROME_LIGADO=!!d.extensao;
+      pintarCtx();pintarEstadoExt();}
     // se o motor ligou/desligou com o painel aberto, redesenha os cartoes
     if(mudou&&$('listaModelos')&&$('listaModelos').innerHTML)pintarModelos();
     $('pulso').className='pulso '+(d.pronto?'on':'off');
+    if($('ajudaEstado')){$('ajudaEstado').textContent=d.pronto?'Pronto para conversar':(d.estado==='parado'?'Escolha um motor para começar':'O motor está ligando…');$('estadoRapido').textContent=d.pronto?'pronto':(d.estado==='parado'?'desligado':'carregando');}
     if(d.estado==='parado'){
       $('modNome').textContent='escolher motor';
       $('nota').textContent='Nenhum motor ligado. Clique em "escolher motor" '+
         'no canto superior direito.';
     }else{
       $('modNome').textContent=d.nome||(d.pronto?'pronto':'ligando…');
-      $('nota').textContent=d.pronto?'Enter envia · Shift+Enter quebra linha'
-        :'Ligando o Cérebro… isso leva alguns minutos na primeira vez';
+      $('nota').textContent=d.pronto?'Enter para enviar · Shift+Enter para pular linha'
+        :'Ligando o Bigode… na primeira vez leva alguns minutos. '+
+         'Pode continuar usando o computador enquanto isso.';
     }
     if($('stEstado')){
-      $('stEstado').textContent=({online:'Pronto',carregando:'Ligando',parado:'Desligado'}[d.estado]||'—');
+      $('stEstado').textContent=({online:'Pronto para trabalhar',carregando:'Ligando',
+        parado:'Desligado'}[d.estado]||'—');
       $('stCarga').textContent=d.tempo_carga?d.tempo_carga+'s':'—';
       $('stVel').textContent=d.tokens_seg?d.tokens_seg+' t/s':'—';
       pintarLigando(d);
@@ -881,7 +1804,8 @@ async function status(){
       const falta=Math.max(0,(d.estimativa_seg||300)-d.carregando_ha);
       $('nota').textContent='Ligando '+(d.nome||'o modelo')+'… '+
         Math.floor(d.carregando_ha/60)+'min'+(d.carregando_ha%60)+'s'+
-        (falta?' · faltam cerca de '+Math.ceil(falta/60)+' min':' · quase lá');
+        (falta?' · faltam cerca de '+Math.ceil(falta/60)+' min'
+              :' · ainda não sei quanto falta');
     }
     if(d.erro_motor){
       $('avisoOff').classList.add('on');
@@ -893,8 +1817,8 @@ async function status(){
     $('modNome').textContent='offline';
     $('avisoOff').classList.add('on');
     $('avisoOff').lastElementChild.textContent=
-      'Sem conexão com o notebook. Verifique se ele está ligado, com o pendrive '+
-      'espetado e no mesmo Wi-Fi.';
+      'Não estou conseguindo falar com o seu computador. Confira se ele está '+
+      'ligado e na mesma rede Wi-Fi.';
   }
   pintarCtx();
 }
@@ -903,16 +1827,98 @@ async function pintarCtx(){
     CX=await(await fetch('/api/conexoes')).json();
     const on=Object.values(CX).filter(v=>typeof v==='object'&&v.ativa);
     let h='';
-    if(projetoAtivo)h='<span class="tag proj">'+S(IC.pasta,12)+esc(projetoAtivo.nome)+
+    // O que MUDA a resposta vem primeiro e com destaque: especialista e
+    // projeto. As conexões ligadas vêm depois, apagadas — são pano de fundo,
+    // não decisão do momento.
+    if(espAtivo)h+='<span class="tag proj" style="border-color:#4B4A7A;color:var(--ac2)">'+
+      S(IC.pessoa,12)+esc(espAtivo.nome)+' · '+esc(espAtivo.rigor_rotulo)+
+      '<button class="fechar" onclick="usarEsp(null)">'+S(IC.x,11)+'</button></span>';
+    if(projetoAtivo)h+='<span class="tag proj">'+S(IC.pasta,12)+esc(projetoAtivo.nome)+
       '<button class="fechar" onclick="soltarProjeto()">'+S(IC.x,11)+'</button></span>';
-    h+=on.map(v=>'<span class="tag"><span class="luz"></span>'+esc(v.nome)+'</span>').join('');
+
+    // ── INTERRUPTORES, NÃO ETIQUETAS ────────────────────────────────────
+    // Antes esta barra só INFORMAVA o que estava ligado, e para desligar
+    // algo era preciso abrir Configurações → Conexões. Só que cada conexão
+    // ligada custa tokens em TODA mensagem — o Drive sozinho custa 1.448,
+    // que são ~22 segundos de espera. A decisão de ligar e desligar é do
+    // momento, não de um painel escondido.
+    //
+    // Agora cada uma é um botão: clique e alterna. Apagada = desligada e
+    // fora do prompt. O Claude não aparece aqui — é ponte, não ferramenta,
+    // e fica sempre ligado.
+    const CUSTO={arquivos:1448,navegador:714,github:637,utilidades:554,web:179,terminal:119};
+    const todas=Object.entries(CX).filter(([k,v])=>typeof v==='object'&&k!=='claude');
+    h+=todas.map(([chave,v])=>{
+      const ehNav = /navegador|chrome/i.test(v.nome||'');
+      const lig   = !!v.ativa;
+      const vivo  = lig && (ehNav ? CHROME_LIGADO : true);
+      const custo = CUSTO[chave]||0;
+      const dica  = ehNav && lig && !CHROME_LIGADO
+        ? 'Extensão do Chrome não está respondendo'
+        : (lig ? 'Ligada' : 'Desligada') +
+          (custo?' · '+custo+' tokens (~'+Math.round(custo/68)+'s) por mensagem':'') +
+          ' · clique para '+(lig?'desligar':'ligar');
+      return '<button class="tag interruptor'+(lig?'':' off')+(vivo?'':' apagada')+
+        '" title="'+esc(dica)+'" onclick="virarConexao(\''+chave+'\')">'+
+        '<span class="luz"></span>'+esc(v.nome)+'</button>';
+    }).join('');
     $('ctx').innerHTML=h;
   }catch(e){}
 }
+
+/* Liga/desliga uma conexão pela barra, na hora. Grava e repinta.
+   Guardamos o estado anterior para devolver a chave ao lugar se o servidor
+   recusar — pior que não alternar é a tela dizer que alternou. */
+async function virarConexao(chave){
+  const item=CX[chave]; if(!item)return;
+  const antes=!!item.ativa;
+  item.ativa=!antes;
+  try{
+    await fetch('/api/conexoes',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(CX)});
+    toast(esc(item.nome)+(item.ativa?' ligada':' desligada'));
+  }catch(e){ item.ativa=antes; toast('Não consegui alterar agora'); }
+  pintarCtx();
+}
 function soltarProjeto(){projetoAtivo=null;pintarCtx();toast('Projeto solto');}
 
+/* ---------- rolagem ----------
+   A tela nunca arrasta você de volta para baixo. Se você subiu para reler
+   alguma coisa enquanto ele trabalha, fica lá em cima: quem manda na rolagem
+   é você, não ele. Quando isso acontece aparece um botão discreto avisando
+   que tem conteúdo novo embaixo — e ele só desce quando você clicar.
+
+   "Colado" quer dizer: você está no fim da conversa. Enquanto estiver, a tela
+   acompanha sozinha. No instante em que você rola para cima, descola.        */
+let colado=true;
+
+function pertoDoFim(){
+  const r=$('rolo');
+  // 90px de folga: rolagem por toque no celular quase nunca para no zero
+  // exato, e sem essa folga a tela descolaria sozinha sem você fazer nada.
+  return r.scrollHeight - r.scrollTop - r.clientHeight < 90;
+}
+function rolar(forcar){
+  const r=$('rolo');
+  if(!colado && !forcar) return;
+  r.scrollTop=r.scrollHeight;
+  colado=true; mostrarDescer(false);
+}
+function mostrarDescer(sim){
+  const b=$('btDescer'); if(!b)return;
+  b.classList.toggle('on', !!sim);
+}
+$('rolo').addEventListener('scroll',()=>{
+  const agora=pertoDoFim();
+  if(agora!==colado){colado=agora;mostrarDescer(!agora&&ocupado);}
+});
+// Rodinha do mouse para cima solta na hora, sem esperar o evento de scroll:
+// é o gesto mais direto de "para, quero ler isto aqui".
+$('rolo').addEventListener('wheel',e=>{
+  if(e.deltaY<0&&colado){colado=false;mostrarDescer(ocupado);}
+},{passive:true});
+
 /* ---------- conversa ---------- */
-function rolar(){const r=$('rolo');r.scrollTop=r.scrollHeight;}
 function novaFala(quem,rot){
   const i=document.querySelector('.inicio');if(i)i.remove();
   const d=document.createElement('div');d.className='fala '+quem;
@@ -980,7 +1986,10 @@ function desenharPasso(f,ev){
   if(ok===t){const g=p.querySelector('.th .gira');
     if(g)g.outerHTML='<span style="display:inline-flex;color:var(--ok)">'+S(IC.ok,14)+'</span>';
     p.querySelector('.rotulo-t').textContent=t===1?'1 ação concluída':t+' ações concluídas';
-    p.classList.remove('aberto');}
+    // O painel FICA ABERTO. Antes ele se fechava no fim, e o Fred perdia de
+    // vista o que o Bigode tinha feito — que é justamente o que importa
+    // conferir. Quem quiser recolher, clica no cabeçalho.
+  }
 }
 
 const OBRAS=new WeakMap();
@@ -1029,7 +2038,7 @@ async function decidir(id,ok,card){
   card.style.background='var(--sup)';
   card.style.borderColor=ok?'rgba(52,211,153,.35)':'rgba(248,113,113,.35)';
   card.innerHTML='<div class="fin" style="color:'+(ok?'var(--ok)':'var(--erro)')+'">'+
-    S(ok?IC.ok:IC.x,15)+(ok?'Autorizado':'Recusado')+'</div>';
+    S(ok?IC.ok:IC.x,15)+(ok?'Pode fazer':'Tudo bem — vou esperar sua orientação')+'</div>';
 }
 function falarPlano(ev){
   if(!window.__porVoz||!window.speechSynthesis)return;
@@ -1045,7 +2054,14 @@ async function persistir(){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id:conversaId,mensagens:historico,modelo:$('modNome').textContent,
       projeto:projetoAtivo?projetoAtivo.id:''})})).json();
-    conversaId=r.id;lembrarConversa(r.id);}catch(e){}
+    conversaId=r.id;lembrarConversa(r.id);carregarRecentes();
+    if(r.titulo)tituloDaConversa(r.titulo);}catch(e){}
+}
+
+/* O topo mostra em que conversa você está — igual à aba do navegador. */
+function tituloDaConversa(t){
+  const e=$('tituloTopo'); if(e)e.textContent=t||'Nova conversa';
+  document.title=(t?t+' · ':'')+'Bigode IA — Venure';
 }
 
 /* Guarda qual conversa esta aberta para que F5 nao jogue o usuario na home.
@@ -1055,27 +2071,21 @@ function lembrarConversa(id){
   try{ id?localStorage.setItem('cerebro_conversa',id)
          :localStorage.removeItem('cerebro_conversa'); }catch(e){}
 }
-async function retomarConversa(){
-  let id=null;
-  try{ id=localStorage.getItem('cerebro_conversa'); }catch(e){}
-  if(!id){
-    // primeiro acesso neste aparelho: pega a conversa mais recente do servidor
-    try{ const d=await(await fetch('/api/conversas')).json();
-         if(d.conversas&&d.conversas.length)id=d.conversas[0].id; }catch(e){}
-  }
-  if(!id)return false;
-  try{ return await abrirConversa(id); }catch(e){ return false; }
-}
+/* Antes o Bigode abria na última conversa. Parecia útil e não era: você
+   entrava querendo começar algo e caía no meio de um assunto de ontem, sem
+   perceber que estava continuando uma conversa antiga. Agora abre sempre
+   limpo, e as conversas ficam do lado, para você escolher. */
+async function retomarConversa(){ return false; }
 
 async function enviar(){
   const c=$('entrada'),texto=c.value.trim(); if(!texto||ocupado)return;
   // Sem motor ligado nao adianta mandar: leva o usuario direto para a escolha.
   if(ESTADO==='parado'){
     abrirPainel('ajustes');
-    return toast('Escolha um motor primeiro — sua mensagem continua aqui.');
+    return toast('Escolha uma IA em Configurações. Sua mensagem continua aqui.','alerta');
   }
   if(ESTADO==='carregando')
-    return toast('O motor ainda está ligando. Sua mensagem continua aqui.');
+    return toast('Ainda está ligando. Sua mensagem continua aqui.','alerta');
   c.value='';c.style.height='28px';
   const fu=novaFala('eu','Você'); bloco(fu).innerHTML=md(texto);
   historico.push({role:'user',content:texto});
@@ -1086,30 +2096,86 @@ async function enviar(){
 let abortador=null;
 
 function pararResposta(){
-  if(abortador){abortador.abort();abortador=null;toast('Interrompido');}
+  if(abortador){abortador.abort();abortador=null;toast('Parei aqui.','alerta');}
+  faixaNav(false);
+}
+
+/* ============ A FAIXA "ESTOU USANDO O SEU CHROME" ==================
+   Aparece no primeiro evento de navegador do turno e fica ate o fim.
+
+   Mostrar isso o tempo todo nao e enfeite. Quando o Bigode le um
+   arquivo, o estrago possivel e local e reversivel. Quando ele dirige
+   o SEU Chrome, ele esta dentro das suas sessoes abertas -- e-mail,
+   banco, tudo que voce deixou logado. Voce tem que conseguir ver que
+   isso esta acontecendo sem procurar, e parar sem caçar o botao.
+
+   `site` sai do endereco: dominio limpo, sem https nem caminho. E a
+   informacao que responde "onde ele esta mexendo?" numa olhada.  */
+let FAIXA=null;
+
+function siteDe(url){
+  try{
+    return new URL(String(url)).hostname.replace(/^www\./,'');
+  }catch(e){ return ''; }
+}
+
+function faixaNav(ligar, passo, site){
+  if(!ligar){
+    if(FAIXA){FAIXA.classList.remove('on');
+      const velha=FAIXA; FAIXA=null;
+      document.body.classList.remove('com-faixa');
+      // espera a animacao terminar antes de tirar do DOM
+      setTimeout(()=>{try{velha.remove();}catch(e){}},260);}
+    return;
+  }
+  if(!FAIXA){
+    FAIXA=document.createElement('div');
+    FAIXA.className='faixa-nav';
+    FAIXA.innerHTML='<span class="fponto"></span>'+
+      '<span class="ftitulo">Bigode usando o seu Chrome</span>'+
+      '<span class="fpasso"></span>'+
+      '<span class="fsite"></span>'+
+      '<button class="fparar" type="button">Parar</button>';
+    FAIXA.querySelector('.fparar').onclick=pararResposta;
+    document.body.appendChild(FAIXA);
+    document.body.classList.add('com-faixa');
+    // dois quadros antes de animar: sem isso o browser aplica o estado
+    // final direto e a faixa aparece de estalo, sem deslizar.
+    requestAnimationFrame(()=>requestAnimationFrame(
+      ()=>{ if(FAIXA) FAIXA.classList.add('on'); }));
+  }
+  if(passo!==undefined) FAIXA.querySelector('.fpasso').textContent='· '+passo;
+  // O site so e atualizado quando vem um novo: nos passos seguintes
+  // (clicar, digitar) o endereco nao viaja junto, e apagar deixaria a
+  // faixa dizendo menos do que ja sabia.
+  if(site) FAIXA.querySelector('.fsite').textContent=site;
 }
 
 async function responder(){
   if(ocupado||!historico.length)return;
   ocupado=true;
+  // Você acabou de mandar uma mensagem: quer ver ela. Aqui a tela desce por
+  // conta própria, uma vez só. Depois disso o controle volta a ser seu.
+  colado=true; rolar(true);
   const bt=$('btEnviar');
   bt.classList.add('parar');
   bt.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">'+
     '<rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
   bt.onclick=pararResposta;
 
-  const f=novaFala('ia','Cérebro');
+  const f=novaFala('ia','Bigode');
   let acc='',esp=document.createElement('div');
   // classe propria (nao "md"): assim o texto da resposta nunca e escrito
   // por engano dentro da linha de status
   esp.className='vivabox';
   // Marca da Venure girando + a frase do que ele esta fazendo agora. A frase
   // vem pronta do servidor (narrar), em linguagem de gente: "Lendo README.md".
+  // A MESMA marca do canto superior esquerdo. Antes aqui havia um segundo
+  // desenho, em contorno, enquanto o do topo era preenchido — duas marcas
+  // diferentes na mesma tela, e dava para perceber.
   esp.innerHTML='<div class="viva"><span class="vmarca">'+
-    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#04140F" '+
-    'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">'+
-    '<path d="M4 5.5 12 20l8-14.5"/></svg></span>'+
-    '<span class="vtxt">Pensando</span><span class="vseg"></span></div>';
+    '<img src="/img/marca.png" alt="" onerror="this.remove()"></span>'+
+    '<span class="vtxt">Vou cuidar disso com você</span><span class="vseg"></span></div>';
   f.appendChild(esp);rolar();
   document.body.classList.add('trabalhando');
 
@@ -1126,9 +2192,9 @@ async function responder(){
     if(fraseFixa)return;                       // acao em andamento manda na frase
     const e=esp.querySelector('.vtxt');
     if(acc.length)e.textContent='Escrevendo a resposta';
-    else if(seg<10)e.textContent='Pensando';
-    else if(historico.length<=1)e.textContent='Lendo o contexto pela primeira vez';
-    else e.textContent='Pensando';
+    else if(seg<10)e.textContent='Vou cuidar disso com você';
+    else if(historico.length<=1)e.textContent='Entendendo o que você precisa';
+    else e.textContent='Pensando na melhor resposta';
   },500);
 
   /* mantem a linha viva sempre como ultimo elemento da fala */
@@ -1138,7 +2204,9 @@ async function responder(){
   try{
     const r=await fetch('/api/chat',{method:'POST',signal:abortador.signal,
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mensagens:historico,projeto:projetoAtivo?projetoAtivo.id:''})});
+      body:JSON.stringify({mensagens:historico,
+        projeto:projetoAtivo?projetoAtivo.id:'',
+        especialista:espAtivo?espAtivo.id:''})});
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
     while(true){
       const {done,value}=await rd.read(); if(done)break;
@@ -1150,9 +2218,19 @@ async function responder(){
         if(ev.tipo==='texto'){tirar();acc+=ev.texto;bloco(f).innerHTML=md(acc);rolar();}
         else if(ev.tipo==='novo_bloco'){acc='';const d=document.createElement('div');
           d.className='md';f.appendChild(d);}
-        // o servidor rejeitou a resposta (foi escrita sem consultar os arquivos):
-        // apaga o texto da tela para nao deixar invencionice visivel
-        else if(ev.tipo==='descartar'){acc='';const u=bloco(f);u.innerHTML='';}
+        /* O servidor rejeitou a resposta: foi escrita sem consultar nada.
+           Apaga TODO o texto desta fala, não só o último pedaço.
+
+           09/09: o Fred perguntou quem foi Nelson Mandela e recebeu a MESMA
+           resposta duas vezes, quase palavra por palavra. Causa: `bloco(f)`
+           devolve o último filho, e entre o texto e o descarte já tinha
+           entrado um cartão de ação. Ele criava um bloco vazio, limpava o
+           vazio, e a resposta descartada continuava na tela — seguida da
+           versão nova. Parecia gagueira; era o descarte errando o alvo. */
+        else if(ev.tipo==='descartar'){
+          acc='';
+          f.querySelectorAll('.md').forEach(x=>x.remove());
+        }
         // A linha viva NAO some quando chega uma acao: ela vira o rotulo do que
         // esta acontecendo e desce para o fim, exatamente como no Claude.
         else if(ev.tipo==='acao'){
@@ -1166,31 +2244,31 @@ async function responder(){
           if(ev.nome)dizer('Escrevendo '+ev.nome);
           abaixo();rolar();}
         else if(ev.tipo==='navegador'){
-          const rot={ver:'Olhando a página',ir:'Abrindo '+(ev.args.url||''),
-            clicar:'Clicando no item '+(ev.args.numero??''),
-            escrever:'Digitando "'+String(ev.args.texto||'').slice(0,34)+'"',
-            teclar:'Apertando '+(ev.args.tecla||''),
+          // `args` pode faltar num evento malformado, e ai o acesso direto
+          // derruba o laco inteiro de leitura da resposta -- a conversa
+          // trava sem dizer por que. Um objeto vazio custa nada.
+          const A=ev.args||{};
+          const rot={ver:'Olhando a página',ir:'Abrindo '+(A.url||''),
+            clicar:'Clicando no item '+(A.numero??''),
+            escrever:'Digitando "'+String(A.texto||'').slice(0,34)+'"',
+            teclar:'Apertando '+(A.tecla||''),
             rolar:'Rolando a página',esperar:'Esperando carregar'};
-          desenharPasso(f,{id:'nav-'+ev.id,estado:'rodando',
-            titulo:rot[ev.acao]||('Navegador: '+ev.acao)});
-          dizer(rot[ev.acao]||('Navegador: '+ev.acao));abaixo();
-          if(window.parent!==window){
-            window.parent.postMessage({origem:'cerebro',acao:'navegador',id:ev.id,
-              tipoAcao:ev.acao,args:ev.args},'*');
-          }else{
-            fetch('/api/navegador',{method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({id:ev.id,resultado:
-                'A extensão do Chrome não está aberta. Peça ao Fred para abrir o '+
-                'painel do Cérebro no navegador.'})});
-          }
+          const _rotulo=rot[ev.acao]||('Navegador: '+ev.acao);
+          desenharPasso(f,{id:'nav-'+ev.id,estado:'rodando',titulo:_rotulo});
+          dizer(_rotulo);abaixo();
+          // A faixa fixa no topo: aparece aqui e so sai no fim do turno.
+          faixaNav(true,_rotulo,siteDe(A.url));
+          // A tela NÃO é mais o carteiro. Quem busca a ação é a extensão,
+          // direto no servidor. Antes esta parte respondia sozinha "a
+          // extensão não está aberta" sempre que o Bigode estivesse numa
+          // aba normal — e a extensão nunca chegava a ser consultada.
           rolar();}
         else if(ev.tipo==='plano'){tirar();
           const card=document.createElement('div');card.className='plano';
-          card.innerHTML='<div class="pt">'+S(IC.plano,15)+'MEU PLANO</div>'+
+          card.innerHTML='<div class="pt">'+S(IC.plano,15)+'COMO VOU FAZER</div>'+
             '<div class="obj">'+esc(ev.objetivo||'')+'</div><ol>'+
             (ev.passos||[]).map(p=>'<li>'+esc(p)+'</li>').join('')+'</ol><div class="pb"></div>'+
-            '<div class="dica-p">Não vou mexer em nada até você aprovar.</div>';
+            '<div class="dica-p">Não vou fazer nada importante sem você aprovar.</div>';
           const b=card.querySelector('.pb');
           const s=document.createElement('button');s.className='ok2';s.textContent='Pode fazer';
           const n=document.createElement('button');n.className='no2';
@@ -1199,14 +2277,65 @@ async function responder(){
           b.append(s,n);f.appendChild(card);rolar();falarPlano(ev);}
         else if(ev.tipo==='autorizacao'){tirar();
           const card=document.createElement('div');card.className='pedido';
-          card.innerHTML='<div class="ct">'+S(IC.alerta,15)+'PRECISO DA SUA AUTORIZAÇÃO</div>'+
+          card.innerHTML='<div class="ct">'+S(IC.alerta,15)+'PRECISO DA SUA CONFIRMAÇÃO</div>'+
             (ev.titulo?'<div style="font-size:14px;margin-bottom:9px">'+esc(ev.titulo)+'</div>':'')+
             '<div class="cd">'+esc(ev.acao)+'</div><div class="bs"></div>';
           const b=card.querySelector('.bs');
-          const s=document.createElement('button');s.className='sim';s.textContent='Autorizar';
-          const n=document.createElement('button');n.className='nao';n.textContent='Recusar';
+          const s=document.createElement('button');s.className='sim';s.textContent='Pode fazer';
+          const n=document.createElement('button');n.className='nao';n.textContent='Não, quero mudar algo';
           s.onclick=()=>decidir(ev.id,true,card);n.onclick=()=>decidir(ev.id,false,card);
           b.append(s,n);f.appendChild(card);rolar();}
+        // aviso do próprio Bigode sobre a resposta que ele acabou de dar
+        else if(ev.tipo==='aviso'){
+          const d=document.createElement('div');
+          d.style.cssText='margin:10px 0 2px;padding:10px 12px;border-radius:10px;'+
+            'background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.35);'+
+            'color:#d97706;font-size:12.5px;line-height:1.5;display:flex;gap:9px;align-items:flex-start';
+          d.innerHTML='<span style="flex-shrink:0;margin-top:1px">'+S(IC.alerta,15)+'</span>'+
+            '<span>'+esc(ev.texto)+'</span>';
+          f.appendChild(d);rolar();}
+        // ═══ NÃO VERIFICADO ═══
+        // O agente falou do seu projeto sem abrir nada. Não é aviso discreto:
+        // é o selo de que aquilo NÃO é fato. Vermelho, e no topo da resposta.
+        else if(ev.tipo==='nao_verificado'){
+          const d=document.createElement('div');
+          d.style.cssText='margin:12px 0 4px;padding:12px 14px;border-radius:10px;'+
+            'background:rgba(194,59,34,.10);border:1px solid rgba(194,59,34,.40);'+
+            'color:#e06a4e;font-size:12.5px;line-height:1.55;display:flex;gap:10px;align-items:flex-start';
+          d.innerHTML='<span style="flex-shrink:0;margin-top:1px">'+S(IC.alerta,15)+'</span>'+
+            '<span><b style="display:block;margin-bottom:3px;letter-spacing:.02em">ATENÇÃO — NÃO CONFERI</b>'+
+            esc(ev.texto)+'</span>';
+          f.appendChild(d);rolar();}
+
+        // ═══ VERIFICADO ═══
+        // Mostra a fonte da resposta. Poder conferir vale mais que confiar.
+        else if(ev.tipo==='verificado'){
+          const fontes=[].concat(ev.arquivos_lidos||[],ev.arquivos_escritos||[],ev.comandos||[]);
+          if(fontes.length){
+            const d=document.createElement('div');
+            d.style.cssText='margin:10px 0 2px;padding:9px 12px;border-radius:10px;'+
+              'background:rgba(34,139,90,.08);border:1px solid rgba(34,139,90,.28);'+
+              'color:#4a9d78;font-size:11.5px;line-height:1.5';
+            d.innerHTML='<b style="letter-spacing:.02em">VERIFICADO</b> — resposta baseada em: '+
+              fontes.slice(0,6).map(x=>'<code style="opacity:.85">'+esc(String(x).split(/[\\/]/).pop())+'</code>').join(', ')+
+              (fontes.length>6?' e mais '+(fontes.length-6):'');
+            f.appendChild(d);rolar();}}
+
+        // ═══ CRONÔMETRO ═══
+        // Discreto, no rodapé. Só aparece o detalhe ao passar o mouse.
+        else if(ev.tipo==='medicao'){
+          const d=document.createElement('div');
+          d.style.cssText='margin:8px 0 2px;font-size:11px;color:var(--fraco);'+
+            'display:flex;gap:10px;flex-wrap:wrap;align-items:center;cursor:default';
+          const parte=(rot,v)=>v>0.4?'<span title="'+rot+'">'+rot+' '+v.toFixed(1)+'s</span>':'';
+          d.innerHTML='<span style="opacity:.7">'+ev.total_s.toFixed(1)+'s no total</span>'+
+            [parte('lendo',ev.prefill_s),parte('escrevendo',ev.decode_s),
+             parte('ferramentas',ev.ferramentas_s),parte('esperando você',ev.autorizacao_s)]
+              .filter(Boolean).map(x=>'<span style="opacity:.55">·</span>'+x).join('')+
+            (ev.tok_por_s?'<span style="opacity:.55">·</span><span title="tokens por segundo na geração">'
+              +ev.tok_por_s+' tok/s</span>':'');
+          f.appendChild(d);}
+
         else if(ev.tipo==='erro'){tirar();const d=document.createElement('div');
           d.className='md';d.style.color='var(--erro)';d.textContent=ev.texto;f.appendChild(d);}
       }
@@ -1230,6 +2359,13 @@ async function responder(){
   }
   tirar();ocupado=false;abortador=null;
   document.body.classList.remove('trabalhando');
+  // A faixa do Chrome sai AQUI, no fim do turno, aconteca o que acontecer:
+  // resposta pronta, erro de rede ou "parar" no meio. Faixa presa na tela
+  // seria pior do que faixa nenhuma -- ela diz que ele esta mexendo agora.
+  faixaNav(false);
+  // Acabou de escrever: o convite para descer não faz mais sentido. Some,
+  // mas sem puxar a tela — se você estava lendo lá em cima, continua lá.
+  mostrarDescer(false);
 
   bt.classList.remove('parar');
   bt.innerHTML='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" '+
@@ -1242,6 +2378,19 @@ $('entrada').addEventListener('input',e=>{e.target.style.height='28px';
   e.target.style.height=Math.min(e.target.scrollHeight,220)+'px';});
 $('entrada').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}});
+
+/* ---------- clicar na caixa põe o cursor no texto ----------
+   Sem isto, só os 28px do campo respondiam. O resto da caixa — a maior
+   parte da área que parece clicável — não fazia nada, e você digitava
+   achando que estava escrevendo. Botões continuam funcionando normalmente
+   porque a checagem ignora clique em botão. */
+document.querySelector('.compor').addEventListener('mousedown', e => {
+  if (e.target.closest('button, textarea, a, input')) return;
+  e.preventDefault();                      // não perde a seleção existente
+  const c = $('entrada');
+  c.focus();
+  c.setSelectionRange(c.value.length, c.value.length);   // cursor no fim
+});
 
 /* ---------- histórico ---------- */
 async function carregarHistorico(){
@@ -1263,11 +2412,17 @@ async function carregarHistorico(){
 async function abrirConversa(id){
   const d=await(await fetch('/api/conversa?id='+id)).json();
   if(!d.mensagens||!d.mensagens.length)return false;
-  conversaId=d.id;historico=d.mensagens;$('faixa').innerHTML='';
+  conversaId=d.id;historico=d.mensagens;
+  const fx=$('faixa');
+  fx.innerHTML='';
+  // reinicia a animacao: sem remover a classe antes, o navegador ignora
+  fx.classList.remove('entrando'); void fx.offsetWidth; fx.classList.add('entrando');
   d.mensagens.forEach((m,i)=>{const q=m.role==='user'?'eu':'ia';
-    const f=novaFala(q,q==='eu'?'Você':'Cérebro');bloco(f).innerHTML=md(m.content);
+    const f=novaFala(q,q==='eu'?'Você':'Bigode');bloco(f).innerHTML=md(m.content);
     acoesFala(f,q,i);});
   lembrarConversa(d.id);
+  tituloDaConversa(d.titulo||'');
+  carregarRecentes();
   fecharPainel();
   const r=$('rolo'); if(r)r.scrollTop=r.scrollHeight;
   return true;
@@ -1296,7 +2451,7 @@ async function carregarProjetos(){
       carregarProjetos();pintarCtx();};});
 }
 async function salvarProjeto(){
-  const n=$('pNome').value.trim();if(!n)return toast('Dê um nome ao projeto');
+  const n=$('pNome').value.trim();if(!n)return toast('Escreva um nome para o projeto.','alerta');
   await fetch('/api/projetos',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({nome:n,diretorio:$('pDir').value.trim(),instrucoes:$('pInst').value})});
   ['pNome','pDir','pInst'].forEach(i=>$(i).value='');
@@ -1308,7 +2463,8 @@ const LOJA=[
  {k:'canva',nome:'Canva',icone:'canva',tipo:'mcp',endereco:'https://mcp.canva.com/mcp'},
  {k:'notion',nome:'Notion',icone:'mcp',tipo:'mcp',endereco:'npx -y @notionhq/notion-mcp-server'},
  {k:'slack',nome:'Slack',icone:'mcp',tipo:'mcp',endereco:'npx -y @modelcontextprotocol/server-slack'},
- {k:'api_externa',nome:'Outra API',icone:'api',tipo:'api',endereco:''}];
+ {k:'cloud_mcp',nome:'Cloud via MCP',icone:'mcp',tipo:'mcp',endereco:'https://seu-endpoint-mcp/mcp'},
+ {k:'api_externa',nome:'Outro serviço',icone:'api',tipo:'api',endereco:''}];
 async function carregarConn(){
   CX=await(await fetch('/api/conexoes')).json();
   const l=$('listaConn');l.innerHTML='';
@@ -1317,7 +2473,7 @@ async function carregarConn(){
     const d=document.createElement('div');d.className='conn'+(c.ativa?' on':'');
     d.innerHTML='<div class="ch"><div class="cbox">'+logo(c.icone)+'</div><div>'+
       '<div class="cn">'+esc(c.nome||k)+'</div><div class="cs"><span class="luz"></span>'+
-      (c.ativa?'CONECTADO':'DESLIGADO')+'</div></div>'+
+      (c.ativa?(c.tipo==='mcp'?'LIGADO · PRONTO PARA USAR':'CONECTADO'):'DESLIGADO')+'</div></div>'+
       '<div class="chave'+(c.ativa?' on':'')+'"><i></i></div></div>'+
       '<div class="cd">'+esc(c.info||c.endereco||'')+(c.tem_token?' · chave salva':'')+
       (c.ativa&&c.custo?'<div style="margin-top:7px;font-size:11px;color:var(--fraco)">'+
@@ -1327,7 +2483,7 @@ async function carregarConn(){
       ((k==='github'||c.removivel)?'<button class="clink">Configurar</button>':'')+
       '<div class="cmais"><div class="campo" style="margin-top:11px"><label>Chave de acesso</label>'+
       '<span class="aj">'+(c.tem_token?'Já existe uma. Preencha só para trocar.'
-        :'Fica no pendrive e nunca volta para a tela.')+'</span>'+
+        :'Fica guardada aqui e nunca volta para a tela.')+'</span>'+
       '<input type="password" placeholder="••••••••••"></div>'+
       '<div class="fila"><button class="bt forte sv">Salvar</button>'+
       (c.removivel?'<button class="bt rm">Remover</button>':'')+'</div></div>';
@@ -1346,7 +2502,7 @@ async function carregarConn(){
   const total=Object.values(CX).filter(v=>typeof v==='object'&&v.ativa)
     .reduce((s,v)=>s+(v.custo||0),0);
   $('resumoCusto').innerHTML='As conexões ligadas somam <b>'+total+' tokens</b> '+
-    'que o Cérebro relê em toda mensagem. Desligue o que não estiver usando '+
+    'que o Bigode relê em toda mensagem. Desligue o que não estiver usando '+
     'agora — isso encurta a espera de forma direta.';
 
   $('loja').innerHTML=LOJA.filter(x=>!CX[x.k]).map(x=>
@@ -1361,7 +2517,7 @@ async function carregarConn(){
 async function gravar(){await fetch('/api/conexoes',{method:'POST',
   headers:{'Content-Type':'application/json'},body:JSON.stringify(CX)});}
 async function salvarNovo(){
-  const n=$('fNome').value.trim();if(!n)return toast('Dê um nome');
+  const n=$('fNome').value.trim();if(!n)return toast('Escreva um nome antes de salvar.','alerta');
   const k=n.toLowerCase().replace(/[^a-z0-9]+/g,'_');
   CX[k]={nome:n,icone:$('fIcone').value,tipo:$('fTipo').value,
     endereco:$('fEndereco').value.trim(),token:$('fToken').value.trim(),
@@ -1403,7 +2559,7 @@ async function apagarHabilidade(){
   toast('Manual apagado'); abrirPainel('habilidades');
 }
 async function criarHabilidade(){
-  const n=$('hNome').value.trim(); if(!n)return toast('Dê um nome ao manual');
+  const n=$('hNome').value.trim(); if(!n)return toast('Escreva um nome para o manual.','alerta');
   const r=await(await fetch('/api/habilidades',{method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({acao:'criar',nome:n,quando:$('hQuando').value,
@@ -1439,6 +2595,54 @@ async function salvarIdentidade(){
   toast('Salvo');
 }
 
+/* ---------- memória semântica / domínios ---------- */
+let DOMINIOS={};
+function normalizarDominio(nome){return nome.toLowerCase().trim().replace(/[^a-z0-9à-ÿ]+/gi,'_').replace(/^_+|_+$/g,'').slice(0,63);}
+function pintarDominios(){
+  const alvo=$('listaDominios'); if(!alvo)return;
+  const chaves=Object.keys(DOMINIOS);
+  alvo.innerHTML=chaves.length?chaves.map(k=>{
+    const d=DOMINIOS[k]||{};
+    return '<div class="conn on" data-dominio="'+esc(k)+'" style="margin-top:8px">'+
+      '<div class="ch"><div><div class="cn">'+esc(d.nome||k)+'</div>'+
+      '<div class="cs"><span class="luz"></span>'+esc(k)+' · '+(d.ativo===false?'DESLIGADO':'ATIVO')+'</div></div>'+
+      '<button class="bt fraco" style="width:auto;padding:6px 10px;margin:0" onclick="removerDominio(\''+esc(k)+'\')">Remover</button></div>'+
+      '<div class="cd">'+esc((d.pastas||[]).join(' · ')||'Nenhuma pasta configurada')+'<br>'+esc((d.palavras||[]).join(', ')||'Sem palavras-chave')+'</div></div>';
+  }).join(''):'<div class="vazio2">Nenhum domínio configurado.</div>';
+}
+async function carregarDominios(){
+  try{const d=await(await fetch('/api/dominios')).json();DOMINIOS=d.dominios||{};pintarDominios();}
+  catch(e){toast('Não consegui carregar os domínios','alerta');}
+  carregarChroma();
+}
+function adicionarDominio(){
+  const nome=$('domNome').value.trim(), chave=normalizarDominio(nome);
+  if(!chave)return toast('Escreva um nome para o domínio.','alerta');
+  DOMINIOS[chave]={nome, pastas:$('domPastas').value.split('\n').map(x=>x.trim()).filter(Boolean),
+    palavras:$('domPalavras').value.split(',').map(x=>x.trim()).filter(Boolean), ativo:true};
+  ['domNome','domPastas','domPalavras'].forEach(id=>$(id).value='');
+  pintarDominios();toast('Domínio adicionado. Salve para aplicar.');
+}
+function removerDominio(chave){delete DOMINIOS[chave];pintarDominios();toast('Domínio removido. Salve para aplicar.');}
+async function salvarDominios(){
+  const r=await(await fetch('/api/dominios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dominios:DOMINIOS})})).json();
+  DOMINIOS=r.dominios||DOMINIOS;pintarDominios();toast('Domínios salvos.');
+}
+async function carregarChroma(){
+  try{const d=await(await fetch('/api/chroma/status')).json();
+    const total=Object.values(d.colecoes||{}).reduce((a,b)=>a+b,0);
+    $('chromaStatus').textContent=d.ativo?'ChromaDB ativo · '+total+' blocos indexados · '+d.caminho:(d.erro||'ChromaDB indisponível');
+  }catch(e){$('chromaStatus').textContent='ChromaDB indisponível nesta máquina.';}
+}
+async function indexarChroma(){
+  await salvarDominios();
+  $('chromaStatus').textContent='Indexando coleções…';
+  const d=await(await fetch('/api/chroma/indexar',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
+  const n=Object.values(d.colecoes||{}).reduce((a,b)=>a+(b.blocos||0),0);
+  $('chromaStatus').textContent=d.erros?.length?'Indexação concluída com avisos: '+d.erros.join(' · '):'Indexação concluída · '+n+' blocos.';
+  toast('Indexação concluída');
+}
+
 /* ---------- ajustes ---------- */
 function avisoRisco(){$('avisoRisco').style.display=$('selNivel').value==='nunca'?'block':'none';}
 async function carregarAjustes(){
@@ -1448,6 +2652,7 @@ async function carregarAjustes(){
   $('inMmap').value=CFG.usar_mmap===true?'sim':(CFG.usar_mmap===false?'nao':'auto');
   $('selNivel').value=CFG.nivel_autorizacao;avisoRisco();
   $('txPastas').value=(CFG.pastas_liberadas||[]).join('\n');
+  await carregarDominios();
   pintarModelos();
   const m=await(await fetch('/api/modelos')).json();
   $('inMcp').value=m.mcp||'';
@@ -1455,6 +2660,16 @@ async function carregarAjustes(){
     const r=await(await fetch('/api/rede')).json();
     $('urlRede').textContent=r.ip?('http://'+r.ip+':'+r.porta):'rede indisponível';
   }catch(e){}
+  pintarEstadoExt();
+}
+function pintarEstadoExt(){
+  const e=$('estadoExt'); if(!e)return;
+  e.innerHTML=CHROME_LIGADO
+    ? '<b style="color:var(--ok)">Chrome ligado.</b> A extensão está conversando '+
+      'com o Bigode agora. Ele já pode abrir páginas e clicar por você.'
+    : '<b style="color:var(--alerta)">Chrome não conectado.</b> Faça o login nas '+
+      'opções da extensão. Se já fez, recarregue a extensão em '+
+      '<code>chrome://extensions</code>.';
 }
 function copiarUrl(){
   navigator.clipboard.writeText($('urlRede').textContent);
@@ -1476,25 +2691,46 @@ function pintarLigando(d){
   $('ligIcone').innerHTML=S(IC.girar,15);
   $('ligNome').textContent='Ligando '+(d.nome||'o modelo');
   const total=d.estimativa_seg||300;
-  const pct=Math.min(97,Math.round(d.carregando_ha/total*100));
-  $('ligBarra').style.width=pct+'%';
-  const falta=Math.max(0,total-d.carregando_ha);
-  $('ligMsg').textContent=
-    Math.floor(d.carregando_ha/60)+'min'+String(d.carregando_ha%60).padStart(2,'0')+'s'+
-    (falta?' · faltam cerca de '+Math.ceil(falta/60)+' min. ':' · quase pronto. ')+
-    'Ele está sendo lido do pendrive — na próxima vez será bem mais rápido, '+
-    'porque o Windows guarda o arquivo na memória.';
+  const min=Math.floor(d.carregando_ha/60);
+
+  // A barra ia até 97% e a mensagem dizia "quase pronto" mesmo depois de
+  // DUAS HORAS. Isso é mentira: ninguém sabe quanto falta. Passado o dobro
+  // do previsto, a barra para de crescer e a tela assume que não sabe.
+  const passouMuito = d.carregando_ha > total*2;
+  $('ligBarra').style.width =
+    (passouMuito ? 100 : Math.min(90,Math.round(d.carregando_ha/total*100)))+'%';
+  $('ligBarra').style.opacity = passouMuito ? .35 : 1;
+
+  let texto = min+' min carregando. ';
+  if(min>=15){
+    texto += 'ISSO ESTÁ DEMORANDO DEMAIS. Um modelo desse tamanho '+
+             'provavelmente não cabe na memória desta máquina. '+
+             'Escolha um modelo menor na célula 1 e ligue de novo.';
+  }else if(passouMuito){
+    texto += 'Passou do previsto. Não sei quanto falta.';
+  }else{
+    texto += 'Ele está sendo lido do disco. Na próxima vez é mais rápido, '+
+             'porque o sistema guarda o arquivo em memória.';
+  }
+  $('ligMsg').textContent = texto;
 }
 
 const PAPEL={principal:'pensa melhor',rapido:'responde rápido'};
 const AREA={programacao:'código',conversa:'conversa',geral:'uso geral'};
 
+// Velocidade medida vale mais que rótulo. Quando existe número, mostra o
+// número; quando não existe, diz que não existe em vez de fingir que sabe.
+function PERFIL(x){
+  const rot=x.perfil==='rapido'?'rápido':'cuidadoso';
+  return x.tok_s_medido? rot+' · '+String(x.tok_s_medido).replace('.',',')+' tok/s' : rot;
+}
+
 async function pintarModelos(){
   const m=await(await fetch('/api/modelos')).json();
   const lista=m.modelos||[];
   if(!lista.length){
-    $('listaModelos').innerHTML='<div class="vazio2">Nenhum modelo encontrado no '+
-      'pendrive. Copie um arquivo .gguf para a raiz do pendrive.</div>';
+    $('listaModelos').innerHTML='<div class="vazio2">Nenhum modelo encontrado. '+
+      'Copie um arquivo .gguf para a pasta de IAs do seu Drive.</div>';
     return;
   }
   // "atual" e so a escolha salva; nao quer dizer que o motor esteja de pe.
@@ -1502,11 +2738,12 @@ async function pintarModelos(){
   $('listaModelos').innerHTML=lista.map(x=>{
     const ruim=x.incompleto, emUso=x.atual&&LIGADO, ligando=x.atual&&ESTADO==='carregando';
     return '<div class="mod'+(emUso?' atual':'')+(ruim?' ruim':'')+'" data-id="'+
-      esc(x.id)+'"><div class="modlogo">'+marca(x.logo)+'</div>'+
+      esc(x.id)+'" data-gb="'+(x.gb||0)+'"><div class="modlogo">'+marca(x.logo)+'</div>'+
       '<div class="modinfo"><div class="modnome">'+esc(x.nome)+
       '<span class="modmarca">'+esc(x.familia)+'</span></div>'+
-      '<div class="modsub">'+x.gb+' GB · '+(PAPEL[x.papel]||'')+' · '+
-      (AREA[x.especialidade]||'')+(x.quantizacao?' · '+esc(x.quantizacao):'')+'</div></div>'+
+      '<div class="modsub">'+x.gb+' GB · '+PERFIL(x)+' · '+
+      (AREA[x.especialidade]||'')+(x.quantizacao?' · '+esc(x.quantizacao):'')+'</div>'+
+      '<div class="modsub" style="opacity:.6;margin-top:2px">'+esc(x.nota||'')+'</div></div>'+
       (ruim?'<span class="modtag erro">INCOMPLETO</span>'
            :emUso?'<span class="modtag uso">EM USO</span>'
            :ligando?'<span class="modtag uso">LIGANDO…</span>'
@@ -1516,13 +2753,28 @@ async function pintarModelos(){
   document.querySelectorAll('.mod').forEach(el=>el.onclick=()=>{
     if(el.classList.contains('atual'))return;
     if(el.classList.contains('ruim'))
-      return toast('Esse arquivo está incompleto. Termine o download.');
-    trocarModelo(el.dataset.id, el.querySelector('.modnome').firstChild.textContent);
+      return toast('Esse arquivo está incompleto. Termine o download antes de usar.','erro');
+    trocarModelo(el.dataset.id, el.querySelector('.modnome').firstChild.textContent,
+                 parseFloat(el.dataset.gb||0));
   });
 }
 
-async function trocarModelo(caminho,nome){
-  toast('Ligando '+(nome||'o modelo')+'… leva alguns minutos');
+async function trocarModelo(caminho,nome,gb){
+  // AVISA ANTES, não depois. Foi medido: um modelo de 18,8 GB deixa menos de
+  // 3 GB livres, o sistema começa a trocar memória com o disco, e a leitura
+  // de um prompt vai de 2 para 14 minutos. Sem este aviso, você descobre
+  // depois de duas horas esperando.
+  if(gb && gb>=10){
+    const ok=confirm(
+      'ATENÇÃO: este modelo tem '+gb+' GB.\n\n'+
+      'Um modelo desse tamanho quase não deixa memória livre. O sistema '+
+      'passa a trocar memória com o disco e ler uma pergunta leva mais de '+
+      '10 minutos.\n\n'+
+      'Sem placa de vídeo, fique nos de até 5 GB.\n\n'+
+      'Ligar mesmo assim?');
+    if(!ok)return;
+  }
+  toast('Ligando '+(nome||'a IA')+'… leva alguns minutos');
   await fetch('/api/modelo',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({caminho:caminho})});
   setTimeout(()=>{status();pintarModelos();},3000);
@@ -1552,7 +2804,7 @@ function alternarVoz(){gravando?pararVoz():(VOZ.disponivel?gravarWhisper():ouvir
 async function gravarWhisper(){
   try{micStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,
     echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}
-  catch(e){return toast('Não consegui acessar o microfone');}
+  catch(e){return toast('Não consegui usar o microfone. Confira a permissão no navegador.','erro');}
   audioCtx=new (window.AudioContext||window.webkitAudioContext)();
   taxaOrigem=audioCtx.sampleRate;amostras=[];
   const fonte=audioCtx.createMediaStreamSource(micStream);
@@ -1569,7 +2821,7 @@ async function pararVoz(){
   gravando=false;$('btMic').classList.remove('gravando');
   try{noProc.disconnect();micStream.getTracks().forEach(t=>t.stop());audioCtx.close();}catch(e){}
   const total=amostras.reduce((s,a)=>s+a.length,0);
-  if(total<taxaOrigem*0.4){faixaOuvindo(false);return toast('Áudio muito curto');}
+  if(total<taxaOrigem*0.4){faixaOuvindo(false);return toast('Falou rápido demais — não deu para gravar.','erro');}
   faixaOuvindo(true,'Entendendo o que você falou…');
   $('btMic').classList.add('processando');
   const wav=montarWav(juntar(amostras,total),taxaOrigem,16000);
@@ -1579,8 +2831,8 @@ async function pararVoz(){
     if(r.ok&&r.texto){const c=$('entrada');
       c.value=(c.value?c.value.trim()+' ':'')+r.texto;
       c.dispatchEvent(new Event('input'));c.focus();window.__porVoz=true;}
-    else toast('Não entendi o áudio');
-  }catch(e){toast('Falha ao transcrever');}
+    else toast('Não entendi o que você falou. Tente de novo.','erro');
+  }catch(e){toast('Não consegui transformar sua fala em texto.','erro');}
   $('btMic').classList.remove('processando');faixaOuvindo(false);
 }
 function juntar(l,t){const s=new Float32Array(t);let i=0;l.forEach(a=>{s.set(a,i);i+=a.length;});
@@ -1601,7 +2853,7 @@ function montarWav(d,de,para){
   return buf;}
 function ouvirNavegador(){
   const R=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!R)return toast('Ditado não disponível neste navegador');
+  if(!R)return toast('Este navegador não aceita ditado.','erro');
   reconhecedor=new R();reconhecedor.lang='pt-BR';reconhecedor.continuous=true;
   reconhecedor.interimResults=true;
   const base=$('entrada').value?$('entrada').value.trim()+' ':'';let firme='';
@@ -1609,7 +2861,7 @@ function ouvirNavegador(){
     for(let i=ev.resultIndex;i<ev.results.length;i++){const t=ev.results[i][0].transcript;
       if(ev.results[i].isFinal)firme+=t+' ';else parcial+=t;}
     const c=$('entrada');c.value=base+firme+parcial;c.dispatchEvent(new Event('input'));};
-  reconhecedor.onerror=()=>toast('Não consegui ouvir');
+  reconhecedor.onerror=()=>toast('Não consegui ouvir. O microfone está ligado?','erro');
   reconhecedor.onend=()=>{reconhecedor=null;gravando=false;window.__porVoz=true;
     $('btMic').classList.remove('gravando');faixaOuvindo(false);$('entrada').focus();};
   reconhecedor.start();gravando=true;$('btMic').classList.add('gravando');
@@ -1625,13 +2877,22 @@ if('serviceWorker' in navigator){
 window.addEventListener('online',()=>{status();toast('Reconectado');});
 window.addEventListener('offline',()=>{$('avisoOff').classList.add('on');
   $('pulso').className='pulso off';$('modNome').textContent='offline';});
-document.addEventListener('visibilitychange',()=>{
+/* ---------- as duas telas mostram a mesma coisa ----------
+   A extensão do Chrome e esta janela falam com o MESMO servidor, então a
+   conversa é a mesma nos dois lugares — o que faltava era perceber a
+   mudança sem você ter de recarregar.
+
+   Ao voltar o foco: confere se a conversa aberta avançou no outro lado, e
+   atualiza a lista de recentes. Nunca mexe enquanto está respondendo, para
+   não apagar texto no meio da escrita. */
+function reconferir(){
   if(document.hidden)return;
   status();
-  // Voltou para a aba (ou destravou o celular): se a conversa avancou no outro
-  // aparelho, traz as mensagens novas. Nunca mexe enquanto esta respondendo.
+  carregarRecentes();
   if(!ocupado&&conversaId)sincronizarConversa();
-});
+}
+document.addEventListener('visibilitychange',reconferir);
+window.addEventListener('focus',reconferir);
 async function sincronizarConversa(){
   try{
     const d=await(await fetch('/api/conversa?id='+conversaId)).json();
@@ -1652,14 +2913,37 @@ window.addEventListener('message',ev=>{
   }
 });
 if(window.parent!==window){
-  try{window.parent.postMessage({origem:'cerebro',acao:'pronto'},'*');}catch(e){}
+  try{window.parent.postMessage({origem:'Bigode',acao:'pronto'},'*');}catch(e){}
 }
 
 /* Abre na conversa em que voce parou. So mostra a tela de boas-vindas se nao
    houver nenhuma conversa para retomar. */
 telaInicial();
-retomarConversa().catch(()=>{});
+retomarConversa().catch(()=>{}).then(carregarRecentes);
 status();verificarVoz();setInterval(status,9000);
+
+/* A barra lateral e o primeiro que aparece: nao espera nada carregar. */
+pintarNav('');
+carregarRecentes();
+// Os recentes se atualizam sozinhos de vez em quando -- se voce conversar no
+// celular, o notebook percebe. Intervalo folgado de proposito: e uma lista
+// lateral, nao vale gastar chamada de rede a cada segundo por ela.
+setInterval(()=>{if(!document.hidden&&!ocupado)carregarRecentes();},45000);
 </script>
+
+<style>
+#logs-discreto{position:fixed;right:12px;bottom:12px;z-index:90;color:inherit}
+#logs-discreto summary{list-style:none;cursor:pointer;opacity:.28;font-size:11px;padding:6px 8px;border-radius:9px;background:rgba(10,15,20,.55);border:1px solid rgba(255,255,255,.12)}
+#logs-discreto summary::-webkit-details-marker{display:none}
+#logs-discreto[open] summary{opacity:.9}
+#logs-caixa{width:min(680px,calc(100vw - 24px));max-height:52vh;overflow:auto;margin-top:7px;padding:10px;border-radius:12px;background:rgba(8,12,18,.96);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 35px rgba(0,0,0,.4)}
+#logs-caixa button{padding:6px 9px;border:1px solid rgba(255,255,255,.2);border-radius:7px;color:inherit;background:rgba(255,255,255,.08);cursor:pointer}
+#logs-texto{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d7f5df;margin:8px 0 0}
+</style>
+<details id="logs-discreto"><summary>diagnóstico</summary><div id="logs-caixa"><button type="button" onclick="carregarLogsBigode()">Atualizar logs</button><pre id="logs-texto">Clique em “Atualizar logs” para consultar os últimos eventos.</pre></div></details>
+<script>
+async function carregarLogsBigode(){const out=document.getElementById('logs-texto');try{const r=await fetch('/api/logs',{cache:'no-store'});const d=await r.json();out.textContent=(d.arquivos||[]).map(x=>'=== '+x.arquivo+' ===\n'+(x.linhas||[]).join('\n')).join('\n\n')||'Nenhum log registrado ainda.'}catch(e){out.textContent='Não foi possível consultar os logs: '+e}}
+</script>
+
 </body>
 </html>

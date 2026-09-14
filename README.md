@@ -1,4 +1,4 @@
-# Cérebro
+# Bigode
 
 Uma IA que roda inteira no pendrive. Sem nuvem, sem mensalidade, sem enviar
 nada para fora do computador.
@@ -9,7 +9,7 @@ Feito pela **[Venure](https://venure.com.br)**.
 
 ## O que é
 
-O Cérebro é uma plataforma de IA local. Você espeta o pendrive, dá um duplo
+O Bigode é uma plataforma de IA local. Você espeta o pendrive, dá um duplo
 clique, e abre no navegador uma conversa parecida com a do ChatGPT — só que o
 modelo roda na sua máquina e as ferramentas mexem nos seus arquivos de verdade.
 
@@ -31,13 +31,13 @@ está fazendo.
 | **Voz** | ditado por Whisper local |
 | **Celular** | instala como app no iPhone pela rede Wi-Fi |
 | **Extensão Chrome** | painel lateral com automação de navegador |
-| **Ponte MCP** | o Claude enxerga seus arquivos através do Cérebro |
+| **Ponte MCP** | o Claude enxerga seus arquivos através do Bigode |
 | **Login** | e-mail e senha, mais Google, Apple e GitHub |
 
 ## Como funciona por dentro
 
 ```
-CEREBRO.bat  ──►  cerebro.py  ──►  llamafile (motor do modelo, porta 8082)
+BIGODE.bat  ──►  cerebro.py  ──►  llamafile (motor do modelo, porta 8082)
                       │
                       ├── ferramentas.py   as mãos: arquivos, web, terminal
                       ├── modelos.py       liga e desliga os modelos GGUF
@@ -59,13 +59,13 @@ Você precisa de um pendrive (32 GB ou mais), Python 3.11+, um
 modelo no formato **GGUF**.
 
 ```powershell
-git clone https://github.com/falecomofred-lab/cerebro.git
-cd cerebro
+git clone https://github.com/falecomofred-lab/Bigode.git
+cd Bigode
 Copy-Item config.example.json config.json
 Copy-Item conexoes.example.json conexoes.json
 ```
 
-Abra o `config.json` e ajuste `pastas_liberadas` para as pastas que o Cérebro
+Abra o `config.json` e ajuste `pastas_liberadas` para as pastas que o Bigode
 pode acessar. Depois:
 
 ```powershell
@@ -73,10 +73,10 @@ pode acessar. Depois:
 ```
 
 O instalador copia tudo para o pendrive junto com um Python portátil, para o
-Cérebro rodar em qualquer máquina Windows sem instalar nada.
+Bigode rodar em qualquer máquina Windows sem instalar nada.
 
 Coloque o `llamafile` e o arquivo `.gguf` na **raiz** do pendrive, e dê um
-duplo clique em `CEREBRO.bat`.
+duplo clique em `BIGODE.bat`.
 
 ### Modelos que funcionam bem
 

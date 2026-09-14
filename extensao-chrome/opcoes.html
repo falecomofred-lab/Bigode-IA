@@ -2,17 +2,21 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<title>Cérebro — Venure</title>
+<title>Bigode IA — Venure</title>
 <style>
 :root{--bg:#0A0C11;--sup:#11141B;--sup2:#161A23;--linha:#1D222C;--txt:#ECEFF4;
-      --txt2:#A3ACBB;--fraco:#4B5464;--ac:#2DD4BF;--ac2:#818CF8;--ok:#34D399}
+      --txt2:#A3ACBB;--fraco:#4B5464;--ac:#9DC08B;--ac2:#F2EAD8;--ok:#34D399}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);min-height:100vh;padding:44px 24px;
      font:15px/1.7 -apple-system,"Segoe UI",system-ui,sans-serif}
 .caixa{max-width:520px;margin:0 auto}
 .topo{display:flex;align-items:center;gap:12px;margin-bottom:8px}
 .selo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
-      background:linear-gradient(140deg,var(--ac),var(--ac2))}
+      background:linear-gradient(140deg,var(--ac2),var(--ac));overflow:hidden}
+/* A marca é uma foto, não um desenho: precisa preencher o selo redondo sem
+   distorcer. object-fit:cover recorta o excedente em vez de esticar. */
+.selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
+  border-radius:inherit;display:block}
 h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
 .sub{font-size:9.5px;letter-spacing:3px;color:var(--fraco);font-weight:700}
 p.intro{color:var(--txt2);font-size:13.5px;margin:14px 0 26px}
@@ -33,6 +37,25 @@ button.forte{background:var(--ac);color:#04140F;border:none;font-weight:600}
 .dicas{margin-top:32px;padding-top:24px;border-top:1px solid var(--linha);
        font-size:13px;color:var(--txt2);line-height:1.9}
 .dicas b{color:var(--txt)}
+
+/* ── OS DOIS DESTINOS ──────────────────────────────────────────────────
+   O endereco da nuvem MUDA a cada sessao do Colab. Guardar os dois e
+   alternar com um clique evita reescrever o link toda vez -- e evita o
+   pior: esquecer que trocou e achar que o Bigode caiu. */
+.destinos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.destino{display:block;text-align:left;padding:14px 15px;border-radius:12px;
+  border:1px solid var(--linha);background:var(--sup);cursor:pointer;
+  transition:.15s;position:relative}
+.destino:hover{border-color:#3A4658}
+.destino b{display:block;font-size:14px;color:var(--txt2);margin-bottom:3px}
+.destino small{display:block;font:11.5px ui-monospace,Consolas,monospace;
+  color:var(--fraco);word-break:break-all;line-height:1.5;margin-bottom:5px}
+.destino em{font-style:normal;font-size:11px;color:var(--fraco)}
+.destino .luz{position:absolute;top:14px;right:14px;width:7px;height:7px;
+  border-radius:50%;background:var(--linha)}
+.destino.ativo{border-color:var(--ac);background:#0E1512}
+.destino.ativo b{color:var(--ac)}
+.destino.ativo .luz{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 code{background:var(--sup2);padding:2px 7px;border-radius:5px;
      font:12.5px ui-monospace,Consolas,monospace;color:var(--ac)}
 </style>
@@ -40,34 +63,58 @@ code{background:var(--sup2);padding:2px 7px;border-radius:5px;
 <body>
 <div class="caixa">
   <div class="topo">
-    <div class="selo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-      stroke="#04140F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 5.5 12 20l8-14.5"/></svg></div>
-    <div><h1>Cérebro</h1><div class="sub">VENURE</div></div>
+    <div class="selo"><img src="icones/128.png" alt="" onerror="this.remove()"></div>
+    <div><h1>Bigode IA</h1><div class="sub">VENURE</div></div>
   </div>
 
-  <p class="intro">Diga onde o Cérebro está rodando. No mesmo computador do pendrive,
-    deixe como está. Em outro computador da casa, use o endereço da rede.</p>
+  <p class="intro">Onde o Bigode está agora. Você tem dois: o do seu computador
+    e o da nuvem. Clique para trocar — a extensão passa a falar com o outro
+    na hora.</p>
 
-  <label>Endereço do Cérebro</label>
-  <span class="aj">Aparece na janela preta do Cérebro e em Configurações → Usar no celular</span>
-  <input id="url" placeholder="http://localhost:7000">
+  <div class="destinos">
+    <button class="destino" id="dAqui">
+      <span class="luz"></span>
+      <b>Neste computador</b>
+      <small id="urlAqui">http://localhost:7000</small>
+      <em>privado · mais lento</em>
+    </button>
+    <button class="destino" id="dNuvem">
+      <span class="luz"></span>
+      <b>Na nuvem</b>
+      <small id="urlNuvem">nenhum endereço salvo</small>
+      <em>rápido · muda a cada sessão</em>
+    </button>
+  </div>
+
+  <label style="margin-top:22px">Endereço da nuvem</label>
+  <span class="aj">Cole aqui o link que o Colab imprimiu na última célula.
+    Ele muda toda vez que você liga o Colab.</span>
+  <input id="url" placeholder="https://algo.trycloudflare.com">
 
   <div class="fila">
     <button class="forte" id="btSalvar">Salvar e testar</button>
-    <button id="btPadrao">Usar o padrão</button>
+    <button id="btPadrao">Voltar para este computador</button>
   </div>
+
+  <hr style="border:none;border-top:1px solid var(--linha);margin:26px 0">
+
+  <label>Acesso desta extensão</label>
+  <span class="aj">O login é feito no painel lateral — clique no ícone da Venure
+    ou aperte <code>Ctrl+Shift+C</code>. Aqui você só encerra o acesso.</span>
+  <div id="quemEsta" class="aj" style="margin:10px 0"></div>
+  <div class="fila"><button id="btSair">Sair desta extensão</button></div>
 
   <div class="aviso" id="aviso"></div>
 
   <div class="dicas">
     <b>Como usar</b><br>
     Clique no ícone da Venure ou aperte <code>Ctrl+Shift+C</code> para abrir o painel.<br>
-    Selecione um texto na página e clique com o botão direito para mandar ao Cérebro.<br><br>
+    Selecione um texto na página e clique com o botão direito para mandar ao Bigode.<br><br>
     <b>Para ele agir sozinho nas páginas</b><br>
-    No Cérebro, vá em <code>+ → Conectar uma ferramenta → Navegador Chrome</code> e ligue.<br><br>
+    No Bigode, vá em <code>+ → Conectar uma ferramenta → Navegador Chrome</code> e ligue.<br><br>
     <b>Se não conectar</b><br>
-    O notebook precisa estar ligado, com o pendrive espetado e o <code>CEREBRO.bat</code> aberto.
+    O Bigode precisa estar no ar. Se ele roda no Colab, confira se o link da
+    célula 8 ainda é o que está salvo aqui — ele muda a cada sessão.
   </div>
 </div>
 <script src="opcoes.js"></script>

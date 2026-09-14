@@ -1,7 +1,7 @@
 # COMO O FRED TRABALHA
 
 Este arquivo é carregado em toda conversa. Edite sempre que perceber algo novo
-sobre a forma de trabalho — é aqui que o Cérebro aprende o seu jeito.
+sobre a forma de trabalho — é aqui que o Bigode aprende o seu jeito.
 
 ## Perfil técnico
 
@@ -35,6 +35,11 @@ sobre a forma de trabalho — é aqui que o Cérebro aprende o seu jeito.
 
 ## Infraestrutura atual
 
-- `D:\` (Pen IA) — Qwen3-Coder-30B rodando em `localhost:8082`
-- `G:\Meu Drive\projetos` — todos os projetos
-- Marca: **Venure** (venure.com.br)
+- `D:\Cerebro` — o Bigode roda do pendrive. Abre com `BIGODE.bat`
+- O motor atende em `localhost:8082`. O modelo varia (Granite ou Qwen):
+  **não afirme qual é sem conferir**
+- `G:\Meu Drive\projetos` — todos os projetos dele
+- Windows, PowerShell, VS Code. Marca: **Venure** (venure.com.br)
+- Reclamou de lentidão? A primeira mensagem de cada conversa é a cara
+  (~65s); as seguintes, 2 a 9. Sugira continuar na mesma conversa e
+  desligar conexões que não estiver usando

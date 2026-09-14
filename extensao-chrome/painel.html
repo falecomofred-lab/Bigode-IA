@@ -3,44 +3,183 @@
 <head>
 <meta charset="utf-8">
 <style>
-:root{--bg:#0A0C11;--sup:#11141B;--linha:#1D222C;--txt:#ECEFF4;--txt2:#A3ACBB;
-      --fraco:#4B5464;--ac:#2DD4BF;--ac2:#818CF8;--erro:#F87171}
+:root{--bg:#0A0C11;--sup:#11141B;--sup2:#161A23;--linha:#1D222C;--linha2:#2A313E;
+      --txt:#ECEFF4;--txt2:#A3ACBB;--mudo:#6E7889;--fraco:#4B5464;
+      --ac:#9DC08B;--ac2:#F2EAD8;--ok:#34D399;--alerta:#FBBF24;--erro:#F87171}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--txt);display:flex;flex-direction:column;
-     font:14px/1.6 -apple-system,"Segoe UI",system-ui,sans-serif;overflow:hidden}
-iframe{flex:1;border:none;width:100%;background:var(--bg)}
-.erro{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;
-      padding:30px 24px;text-align:center;gap:14px}
-.erro.on{display:flex}
-.selo{width:52px;height:52px;border-radius:16px;
-      background:linear-gradient(140deg,var(--ac),var(--ac2));display:grid;place-items:center}
-.erro h2{font-size:17px;font-weight:600}
-.erro p{color:var(--txt2);font-size:13px;max-width:280px;line-height:1.7}
-.erro code{background:var(--sup);border:1px solid var(--linha);padding:3px 8px;
-           border-radius:6px;font:12.5px ui-monospace,Consolas,monospace;color:var(--ac)}
-.bt{border:1px solid #2A313E;background:none;color:var(--txt2);padding:9px 18px;
-    border-radius:9px;font:inherit;font-size:13px;cursor:pointer}
-.bt:hover{color:var(--txt)}
-.bt.forte{background:var(--ac);color:#04140F;border:none;font-weight:600}
-.fila{display:flex;gap:8px;margin-top:4px}
+     font:14px/1.6 -apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+     -webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font:inherit}
+svg{display:block;flex-shrink:0}
+@keyframes sobe{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes girar{to{transform:rotate(360deg)}}
+
+/* ---------- o Bigode, quando já entrou ---------- */
+iframe{flex:1;border:none;width:100%;background:var(--bg);display:none}
+body.dentro iframe{display:block}
+
+/* ---------- telas ---------- */
+.tela{flex:1;display:none;flex-direction:column;overflow-y:auto;padding:26px 22px}
+.tela.on{display:flex;animation:sobe .35s ease both}
+
+.topo{text-align:center;margin-bottom:22px}
+.selo{width:50px;height:50px;border-radius:16px;margin:0 auto 13px;display:grid;
+      place-items:center;background:linear-gradient(140deg,var(--ac2),var(--ac));
+      box-shadow:0 10px 30px rgba(157,192,139,.24);overflow:hidden}
+/* A marca é uma foto, não um desenho: precisa preencher o selo redondo sem
+   distorcer. object-fit:cover recorta o excedente em vez de esticar. */
+.selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
+  border-radius:inherit;display:block}
+.marca{font-size:10.5px;letter-spacing:6px;font-weight:700;color:var(--txt2);
+       padding-left:6px;margin-bottom:9px}
+.topo h1{font-size:19px;font-weight:600;letter-spacing:-.3px;margin-bottom:4px}
+.topo p{color:var(--mudo);font-size:12.5px;line-height:1.6}
+
+/* ── VIDRO ──────────────────────────────────────────────────────────────
+   O painel lateral é estreito (~360px) e fica em cima do site do usuário.
+   Aqui o vidro trabalha a favor: dá a sensação de camada sobre a página,
+   em vez de retângulo colado. A carga é leve — este painel só aparece
+   antes de entrar; depois vira um iframe com o Bigode inteiro. */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(420px 300px at 50% -6%,rgba(94,234,212,.12),transparent 66%),
+             radial-gradient(380px 280px at 88% 106%,rgba(157,192,139,.10),transparent 68%)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+  background-image:
+    linear-gradient(rgba(157,192,139,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(157,192,139,.05) 1px,transparent 1px);
+  background-size:34px 34px;
+  mask-image:radial-gradient(88% 74% at 50% 46%,transparent 26%,#000 80%);
+  -webkit-mask-image:radial-gradient(88% 74% at 50% 46%,transparent 26%,#000 80%)}
+.tela{position:relative;z-index:1}
+
+.cartao{background:rgba(22,26,35,.6);
+        -webkit-backdrop-filter:blur(18px) saturate(1.28);
+        backdrop-filter:blur(18px) saturate(1.28);
+        border:1px solid rgba(157,192,139,.16);border-radius:16px;
+        padding:20px 18px;position:relative;overflow:hidden;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06),
+                   0 18px 44px rgba(0,0,0,.45)}
+.cartao::before{content:"";position:absolute;top:0;left:16%;right:16%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(94,234,212,.7),transparent)}
+.cartao>*{position:relative}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .cartao{background:var(--sup)}
+}
+.campo{margin-bottom:13px}
+.campo label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+.campo input{width:100%;background:var(--bg);border:1px solid var(--linha);
+             border-radius:10px;padding:12px 14px;color:var(--txt);font-size:14px;
+             outline:none;transition:.15s}
+.campo input:focus{border-color:#31445E;background:#0C1016}
+.campo input::placeholder{color:var(--fraco)}
+.senha-linha{position:relative}
+.olho{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+      color:var(--fraco);padding:5px}
+.olho:hover{color:var(--txt2)}
+
+.bt{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--ac);color:#04140F;font-weight:600;font-size:14px;
+    padding:13px;border-radius:11px;transition:.15s;margin-top:4px}
+.bt:hover{filter:brightness(1.07)}
+.bt:disabled{opacity:.5;cursor:default}
+.bt.fraco{background:none;border:1px solid var(--linha2);color:var(--txt2);
+          font-weight:500}
+.bt.fraco:hover{color:var(--txt);border-color:#3A4658;filter:none}
+
+.recado{margin-top:14px;padding:11px 13px;border-radius:10px;font-size:12.5px;
+        line-height:1.6;display:none}
+.recado.on{display:block;animation:sobe .2s ease both}
+.recado.ruim{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.35);
+             color:#F8A5A5}
+.recado.bom{background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.32);
+            color:#7EE2BC}
+.recado.espera{background:var(--sup2);border:1px solid var(--linha2);color:var(--txt2)}
+
+.rodape{margin-top:auto;padding-top:22px;text-align:center;font-size:9.5px;
+        letter-spacing:1.5px;color:#3C4453;font-weight:600;text-transform:uppercase}
+
+.dica{margin-top:16px;font-size:11.5px;color:var(--fraco);line-height:1.65}
+.dica code{background:var(--sup2);border:1px solid var(--linha);padding:2px 6px;
+           border-radius:5px;font:11px ui-monospace,Consolas,monospace;color:var(--ac)}
+.gira{animation:girar 1s linear infinite}
+.linha-usuario{display:flex;align-items:center;gap:9px;font-size:12.5px;
+               color:var(--txt2);margin-bottom:14px;padding:10px 12px;
+               background:var(--sup2);border:1px solid var(--linha);border-radius:10px}
+.linha-usuario b{color:var(--txt);font-weight:600}
+.pt{width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0}
 </style>
 </head>
 <body>
-  <iframe id="quadro" allow="microphone; clipboard-write"></iframe>
-  <div class="erro" id="erro">
-    <div class="selo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-      stroke="#04140F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 5.5 12 20l8-14.5"/></svg></div>
-    <h2>Cérebro desligado</h2>
-    <p>Ligue o notebook com o pendrive e abra o <b>CEREBRO.bat</b>.<br><br>
-       Tentando em <code id="alvo">—</code></p>
-    <p id="detalhe" style="color:var(--erro);font-size:12px;max-width:300px"></p>
-    <div class="fila">
-      <button class="bt forte" id="btTentar">Tentar de novo</button>
-      <button class="bt" id="btOpcoes">Mudar endereço</button>
-    </div>
+
+<!-- ===== o Bigode, depois de entrar ===== -->
+<iframe id="quadro" allow="microphone; clipboard-write"></iframe>
+
+<!-- ===== ENTRAR ===== -->
+<div class="tela" id="telaLogin">
+  <div class="topo">
+    <div class="selo"><img src="icones/128.png" alt="" onerror="this.remove()"></div>
+    <div class="marca">VENURE</div>
+    <h1>Entrar no Bigode IA</h1>
+    <p>Este acesso é só desta extensão.<br>Use o mesmo e-mail e senha do Bigode.</p>
   </div>
+
+  <div class="cartao">
+    <div class="campo">
+      <label for="email">E-mail</label>
+      <input id="email" type="email" placeholder="seu@email.com"
+             autocomplete="username" spellcheck="false">
+    </div>
+    <div class="campo">
+      <label for="senha">Senha</label>
+      <div class="senha-linha">
+        <input id="senha" type="password" placeholder="sua senha"
+               autocomplete="current-password">
+        <button class="olho" id="btOlho" title="Mostrar a senha">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/>
+            <circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+    </div>
+    <button class="bt" id="btEntrar">Entrar</button>
+    <div class="recado" id="recado"></div>
+  </div>
+
+  <div class="dica">
+    A senha não fica guardada — só o crachá da sessão, e só neste Chrome.<br><br>
+    O Bigode precisa estar no ar — no Colab ou nesta máquina.
+    Endereço: <code id="ondeEsta">http://localhost:7000</code>
+    <button class="bt fraco" id="btEndereco" style="margin-top:11px;padding:9px;
+      font-size:12.5px">Mudar o endereço</button>
+  </div>
+
+  <div class="rodape">venure.com.br · tecnologia própria</div>
+</div>
+
+<!-- ===== BIGODE IA DESLIGADO ===== -->
+<div class="tela" id="telaOff">
+  <div class="topo">
+    <div class="selo"><img src="icones/128.png" alt="" onerror="this.remove()"></div>
+    <div class="marca">VENURE</div>
+    <h1>Bigode IA desligado</h1>
+    <p>Rode as células do Colab até a <b>8</b><br>e cole aqui o link que ela imprime.</p>
+  </div>
+  <div class="cartao">
+    <div style="font-size:12.5px;color:var(--txt2);line-height:1.7">
+      Tentando alcançar<br><code id="alvoOff"
+        style="color:var(--ac);font:12px ui-monospace,Consolas,monospace">—</code>
+    </div>
+    <div class="recado ruim" id="detalheOff" style="margin-top:12px"></div>
+    <button class="bt" id="btTentar" style="margin-top:14px">Tentar de novo</button>
+    <button class="bt fraco" id="btOpcoes2" style="margin-top:9px">Mudar o endereço</button>
+  </div>
+  <div class="rodape">venure.com.br · tecnologia própria</div>
+</div>
+
 <script src="painel.js"></script>
 </body>
 </html>

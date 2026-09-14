@@ -1,4 +1,4 @@
-# PROJETO CÉREBRO
+# PROJETO BIGODE IA
 ### Uma inteligência Venure — venure.com.br
 
 ---
@@ -31,7 +31,7 @@ Sem mensalidade. Sem nuvem obrigatória. Sem depender de instalação na máquin
         VOCÊ
           │
     ┌─────▼──────────────────────────────────┐
-    │   CÉREBRO  (interface web local)       │
+    │   BIGODE IA  (interface web local)       │
     │   identidade · memória · autorização   │
     └─────┬───────────────────┬──────────────┘
           │                   │
@@ -44,7 +44,7 @@ Sem mensalidade. Sem nuvem obrigatória. Sem depender de instalação na máquin
                        └─────────────────────┘
 
     E na outra ponta:
-    CLAUDE  ──MCP──►  CÉREBRO
+    CLAUDE  ──MCP──►  BIGODE IA
     (eu mando tarefas para ele executar localmente)
 ```
 
@@ -53,7 +53,7 @@ Sem mensalidade. Sem nuvem obrigatória. Sem depender de instalação na máquin
 ## As telas
 
 ### 1. Conversa
-Chat limpo. Enquanto o Cérebro trabalha, mostra o que está fazendo em tempo
+Chat limpo. Enquanto o Bigode trabalha, mostra o que está fazendo em tempo
 real: `✓ listar_pasta`, `✓ ler_arquivo`, `⚠ aguardando autorização`.
 
 ### 2. Conexões
@@ -61,11 +61,14 @@ Cards com o que ele pode acessar. Cada um com liga/desliga e configuração.
 Botão **+ Nova conexão** para colar qualquer servidor MCP ou API.
 
 ### 3. Memória
-Lista o que ele sabe sobre você: identidade, seu jeito de trabalhar, e o índice
-dos projetos. Botão para re-sincronizar com o Drive.
+Lista o que ele sabe sobre você: identidade, seu jeito de trabalhar e a memória
+semântica persistente no ChromaDB. Em Ajustes, cada coleção pode apontar para
+uma ou mais pastas; `codigo`, `seguros` e `cannabis` são exemplos iniciais, e
+novos domínios podem ser cadastrados pelo próprio HTML.
 
 ### 4. Ajustes
-Porta, temperatura, tamanho de contexto, caminho do modelo.
+Porta, temperatura, tamanho de contexto, caminho do modelo, coleções semânticas,
+pastas liberadas e indexação ChromaDB.
 
 ---
 
@@ -81,7 +84,7 @@ Porta, temperatura, tamanho de contexto, caminho do modelo.
 
 ---
 
-## Ferramentas do Cérebro
+## Ferramentas do Bigode
 
 **Leitura (livre)**
 `listar_pasta` · `ler_arquivo` · `buscar_no_projeto` · `github_listar` ·
@@ -98,10 +101,10 @@ e só roda depois que você clicar em Autorizar.
 
 ## Ligação com o Claude
 
-O Cérebro expõe um **servidor MCP**. Você cola o endereço nas configurações do
+O Bigode expõe um **servidor MCP**. Você cola o endereço nas configurações do
 Claude e, a partir daí, nas nossas conversas eu ganho estas ferramentas:
 
-- `cerebro_perguntar` — pergunta algo ao Cérebro
+- `cerebro_perguntar` — pergunta algo ao Bigode
 - `cerebro_codificar` — passa uma tarefa de código para ele executar local
 - `cerebro_memoria` — consulta o que ele sabe dos seus projetos
 
@@ -113,14 +116,14 @@ Na prática: eu arquiteto, reviso e decido. Ele codifica sem gastar token.
 
 ```
 D:\
-├── CEREBRO.bat                 ← você clica aqui
+├── BIGODE.bat                 ← você clica aqui
 ├── llamafile.exe
-├── Qwen3-Coder-30B.gguf
-└── Cerebro\
+├── granite-4.0-h-tiny-*.gguf
+└── Bigode\
     ├── cerebro.py              servidor + interface
     ├── ferramentas.py          as mãos (arquivos, github, web)
     ├── mcp_cliente.py          fala com servidores MCP
-    ├── mcp_servidor.py         expõe o Cérebro para o Claude
+    ├── mcp_servidor.py         expõe o Bigode para o Claude
     ├── indexar.py              sincroniza a memória
     ├── config.json
     ├── conexoes.json           suas conexões (tokens ficam aqui)
@@ -144,7 +147,7 @@ Ferramentas de arquivo, GitHub e web. Fluxo de autorização. É onde ele deixa
 de conversar e começa a trabalhar.
 
 **Fase 3 — Ponte com o Claude**
-Servidor MCP para eu mandar tarefas ao Cérebro daqui.
+Servidor MCP para eu mandar tarefas ao Bigode daqui.
 
 **Fase 4 — Plugues**
 Cliente MCP genérico: você cola Canva, Notion, o que quiser, pela tela.
@@ -156,7 +159,7 @@ Python e Node portáteis no pendrive. Funciona em qualquer PC, do zero.
 
 ## Limites honestos
 
-- O Qwen3-Coder-30B usa ferramentas bem, mas erra mais que um modelo de
+- O Granite 4.0 h-tiny usa ferramentas bem, mas erra mais que um modelo de
   fronteira. Espere revisar o trabalho dele.
 - Rodando de pendrive, cada início leva alguns minutos para carregar o modelo.
 - MCPs de nuvem (Canva, Notion) precisam de internet e login OAuth.

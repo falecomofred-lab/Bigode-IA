@@ -105,7 +105,47 @@ Nome de rota no plural e em minúsculas: `/clientes`, `/clientes/{id}`.
 
 ## 6. Telas
 
-Regras mínimas até o Fred passar a identidade visual completa:
+### A regra de contraste — inegociável
+
+**Fundo escuro, letra clara. Fundo claro, letra escura. Sempre.**
+
+Parece óbvio, e é justamente por isso que quebra sem ninguém ver. O jeito
+errado é fixar a cor num seletor solto:
+
+```css
+/* ERRADO — não acompanha o container */
+p { color: #0f172a; }
+```
+
+Dentro de uma caixa escura, esse `p` continua escuro: texto invisível. Foi
+assim que a frase do login da Carteira 2026 sumiu — azul escuro sobre azul
+escuro.
+
+O jeito certo é **herdar**:
+
+```css
+/* CERTO — segue quem contém */
+p, h2, h3, li, td { color: inherit; }
+
+/* e a superfície escura declara a cor uma vez */
+.painel-escuro { background: #0a1628; color: #ffffff; }
+```
+
+Três armadilhas que já apareceram:
+
+- **`-webkit-text-fill-color: transparent`** (usado para texto com gradiente)
+  ignora qualquer `color`, até com `!important`. Se o gradiente for claro e o
+  fundo também, o texto some. Use só onde o fundo é conhecido.
+- **Cor de borda como cor de texto.** `color: var(--color-border)` sobre
+  branco dá contraste de 1,5:1. Borda é borda; texto tem token próprio.
+- **Dois CSS com os mesmos nomes de variável.** Quem carrega por último
+  vence, e ninguém percebe até a tela mudar de cara. Design system novo usa
+  prefixo próprio nas variáveis.
+
+Contraste mínimo: **4,5:1** para texto normal, **3:1** para texto grande.
+Na dúvida, confira no WebAIM Contrast Checker.
+
+### Demais regras de tela
 
 - Todo campo tem `label` visível. `placeholder` não substitui label.
 - Toda imagem tem `alt`.

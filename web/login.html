@@ -3,21 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Entrar — Cérebro Venure</title>
-<link rel="icon" href="/icone.svg">
+<title>Entrar — Bigode IA</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3">
 <meta name="theme-color" content="#0A0C11">
 <style>
 :root{--bg:#0A0C11;--sup:#11141B;--sup2:#161A23;--linha:#1D222C;--linha2:#2A313E;
       --txt:#ECEFF4;--txt2:#A3ACBB;--mudo:#6E7889;--fraco:#4B5464;
-      --ac:#2DD4BF;--ac2:#818CF8;--ok:#34D399;--erro:#F87171}
+      --ac:#9DC08B;--ac2:#F2EAD8;--ok:#34D399;--erro:#F87171}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--txt);display:grid;place-items:center;padding:24px;
      font:15px/1.7 -apple-system,"Segoe UI",Inter,system-ui,sans-serif;
      -webkit-font-smoothing:antialiased;overflow-y:auto}
+/* Halos de cor e malha de circuito por trás do vidro. Aqui a mão é mais
+   pesada que no index: a tela de entrada é vista por segundos, não por
+   horas, e é onde a marca se apresenta. */
 body::before{content:"";position:fixed;inset:0;pointer-events:none;
-  background:radial-gradient(700px 380px at 50% -8%,rgba(45,212,191,.09),transparent 70%),
-             radial-gradient(600px 340px at 88% 108%,rgba(129,140,248,.08),transparent 70%)}
+  background:radial-gradient(760px 420px at 50% -10%,rgba(94,234,212,.13),transparent 68%),
+             radial-gradient(640px 380px at 88% 108%,rgba(157,192,139,.11),transparent 70%),
+             radial-gradient(520px 320px at 8% 88%,rgba(120,140,255,.07),transparent 70%)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(157,192,139,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(157,192,139,.05) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(80% 70% at 50% 50%,transparent 22%,#000 76%);
+  -webkit-mask-image:radial-gradient(80% 70% at 50% 50%,transparent 22%,#000 76%)}
 button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
 svg{display:block;flex-shrink:0}
 @keyframes sobe{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -25,15 +37,34 @@ svg{display:block;flex-shrink:0}
 .caixa{width:100%;max-width:396px;position:relative;animation:sobe .5s ease both}
 .topo{text-align:center;margin-bottom:30px}
 .selo{width:56px;height:56px;border-radius:18px;margin:0 auto 16px;display:grid;
-      place-items:center;background:linear-gradient(140deg,var(--ac),var(--ac2));
-      box-shadow:0 10px 34px rgba(129,140,248,.24)}
+      place-items:center;background:linear-gradient(140deg,var(--ac2),var(--ac));
+      box-shadow:0 10px 34px rgba(157,192,139,.26);overflow:hidden}
+/* A marca é uma foto, não um desenho: precisa preencher o selo redondo sem
+   distorcer. object-fit:cover recorta o excedente em vez de esticar. */
+.selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
+  border-radius:inherit;display:block}
 .marca{font-size:11.5px;letter-spacing:7px;font-weight:700;color:var(--txt2);
        padding-left:7px;margin-bottom:12px}
 .topo h1{font-size:23px;font-weight:600;letter-spacing:-.4px;margin-bottom:5px}
 .topo p{color:var(--mudo);font-size:14px}
 
-.cartao{background:var(--sup);border:1px solid var(--linha);border-radius:18px;
-        padding:26px 24px}
+/* O cartão é vidro: fundo semitransparente, desfoque do que está atrás,
+   fio de luz na borda de cima e sombra funda para ele descolar da tela. */
+.cartao{background:rgba(22,26,35,.58);
+        -webkit-backdrop-filter:blur(20px) saturate(1.3);
+        backdrop-filter:blur(20px) saturate(1.3);
+        border:1px solid rgba(157,192,139,.16);border-radius:18px;
+        padding:26px 24px;position:relative;overflow:hidden;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06),
+                   0 24px 60px rgba(0,0,0,.5)}
+/* Reflexo de luz atravessando a borda superior. Estático: brilho piscando
+   numa tela de senha parece erro, não acabamento. */
+.cartao::before{content:"";position:absolute;top:0;left:14%;right:14%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(94,234,212,.75),transparent)}
+.cartao>*{position:relative}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .cartao{background:var(--sup)}
+}
 .social{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
 .bsocial{display:flex;align-items:center;gap:11px;width:100%;padding:12px 15px;
          border:1px solid var(--linha2);border-radius:11px;font-size:14px;
@@ -86,18 +117,16 @@ svg{display:block;flex-shrink:0}
 <div class="caixa">
 
   <div class="topo">
-    <div class="selo"><svg width="27" height="27" viewBox="0 0 24 24" fill="none"
-      stroke="#04140F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 5.5 12 20l8-14.5"/></svg></div>
+    <div class="selo"><img src="/img/marca.png" alt="" onerror="this.remove()"></div>
     <div class="marca">VENURE</div>
-    <h1 id="titulo">Entrar no Cérebro</h1>
-    <p id="subtitulo">Sua inteligência local</p>
+    <h1 id="titulo">Bem-vindo de volta</h1>
+    <p id="subtitulo">Sua assistente que guarda tudo no seu computador</p>
   </div>
 
   <div class="cartao">
     <div class="primeiro" id="primeiro" style="display:none">
-      <b>Primeiro acesso.</b> Crie a conta de dono do Cérebro. Ela fica guardada
-      só no pendrive — nada vai para a internet.
+      <b>Primeira vez?</b> Crie sua conta aqui. Tudo fica apenas no seu
+      computador — nada vai para a internet.
     </div>
 
     <div class="social" id="social"></div>
@@ -133,7 +162,7 @@ svg{display:block;flex-shrink:0}
   </div>
 
   <div class="nota">
-    O Cérebro roda no seu pendrive. Suas conversas, projetos e senha<br>
+    Suas conversas, seus projetos e sua senha<br>
     ficam no seu computador — nunca saem dele.
   </div>
 </div>
@@ -184,14 +213,15 @@ async function inicio(){
     if(!Object.values(d.provedores||{}).some(p=>p.pronto)){
       $('ou').style.display='none';
     }
-  }catch(e){ recado('Não consegui falar com o Cérebro. Ele está rodando?'); }
+  }catch(e){ recado('Não consegui falar com o Bigode. Ele está rodando?'); }
 }
 
 function trocarModo(novo,silencioso){
   modo=novo;
   const criar=modo==='criar';
-  $('titulo').textContent=criar?(primeiroAcesso?'Criar sua conta':'Criar conta'):'Entrar no Cérebro';
-  $('subtitulo').textContent=criar?'Leva dez segundos':'Sua inteligência local';
+  $('titulo').textContent=criar?(primeiroAcesso?'Criar sua conta':'Criar conta'):'Bem-vindo de volta';
+  $('subtitulo').textContent=criar?'Leva dez segundos'
+    :'Sua assistente que guarda tudo no seu computador';
   $('campoNome').style.display=criar?'block':'none';
   $('botao').textContent=criar?'Criar conta e entrar':'Entrar';
   $('senha').setAttribute('autocomplete',criar?'new-password':'current-password');
@@ -215,10 +245,13 @@ $('forma').onsubmit=async ev=>{
         senha:$('senha').value})})).json();
     if(r.ok){ recado('Entrando…',true); location.href='/'; return; }
     recado(r.erro||'Não deu certo.');
-  }catch(e){ recado('Falha de conexão com o Cérebro.'); }
+  }catch(e){ recado('Falha de conexão com o Bigode.'); }
   b.disabled=false;
   trocarModo(modo,true);
 };
+
+/* Cursor no primeiro campo vazio: quem abre a tela ja pode digitar. */
+setTimeout(()=>{const c=$('email').value?$('senha'):$('email');c.focus();},120);
 
 const erroUrl=new URLSearchParams(location.search).get('erro');
 if(erroUrl) recado(decodeURIComponent(erroUrl));

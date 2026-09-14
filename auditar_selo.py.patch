@@ -1,0 +1,35 @@
+--- /home/ubuntu/cerebro-backup-before-20260821/auditar_selo.py	2026-08-19 13:39:21.000000000 +0000
++++ auditar_selo.py	2026-08-21 17:02:42.707494554 +0000
+@@ -34,6 +34,19 @@
+ 
+ BASE = pathlib.Path(__file__).resolve().parent
+ SAIDA = BASE / "auditoria"
++MOTOR = BASE / "cerebro.py"
++
++
++def verificar_trava_local():
++    """Confere a implementação real da trava no ponto que monta o payload."""
++    try:
++        fonte = MOTOR.read_text(encoding="utf-8")
++    except OSError as erro:
++        return False, "não foi possível ler cerebro.py: %s" % erro
++    esperado = 'payload["tool_choice"] = "required"'
++    if esperado in fonte:
++        return True, "payload tool_choice=required encontrado em cerebro.py"
++    return False, "payload tool_choice=required não encontrado em cerebro.py"
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -171,6 +184,12 @@
+     print("  as 5 perguntas sem resposta, agora COM a trava de evidencia")
+     print("=" * 68)
+ 
++    trava_ok, trava_msg = verificar_trava_local()
++    print("  trava local: %s" % trava_msg)
++    if not trava_ok:
++        print("  Corrija a trava antes de executar a prova do selo.\n")
++        return 1
++
+     try:
+         with urllib.request.urlopen(base + "/api/login/estado", timeout=8) as r:
+             json.loads(r.read().decode("utf-8"))

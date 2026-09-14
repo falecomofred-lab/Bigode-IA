@@ -1,0 +1,14 @@
+--- /home/ubuntu/cerebro-backup-before-20260821/config.json	2026-08-18 03:28:01.000000000 +0000
++++ config.json	2026-08-21 17:01:47.505109784 +0000
+@@ -2,8 +2,9 @@
+   "_comentario": "Configuracao do Bigode. Editavel tambem pela tela de Ajustes.",
+   "llm_url": "http://localhost:8082/v1/chat/completions",
+   "porta": 7000,
+-  "pasta_projetos": "G:\\Meu Drive\\projetos",
+-  "pastas_liberadas": [
++  "pasta_projetos": "G:\\Meu Drive\\projetos",
++  "vault_path": "G:\\Meu Drive\\projetos\\Bigode-Vault",
++  "pastas_liberadas": [
+     "G:\\Meu Drive\\projetos"
+   ],
+   "github_usuario": "",

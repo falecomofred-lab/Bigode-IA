@@ -1,0 +1,11 @@
+--- /home/ubuntu/cerebro-backup-before-20260821/cerebro.py	2026-08-19 19:42:46.000000000 +0000
++++ cerebro.py	2026-08-21 17:02:26.012551602 +0000
+@@ -804,7 +804,7 @@
+             # "required" nao e sugestao: o motor so aceita como resposta uma
+             # chamada de ferramenta. E o unico jeito confiavel de impedir que um
+             # modelo pequeno responda de cabeca sobre arquivo que nunca leu.
+-            payload["tool_choice"] = "required" if obrigar_ferramenta else "auto"
++            payload["tool_choice"] = "required"  # sempre obrigar ferramenta
+             if obrigar_ferramenta:
+                 payload["temperature"] = 0.2
+     pedido = urllib.request.Request(

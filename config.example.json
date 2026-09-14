@@ -8,6 +8,27 @@
   "pastas_liberadas": [
     "G:\\Meu Drive\\projetos"
   ],
+  "chroma_path": "./chroma_db",
+  "dominios": {
+    "codigo": {
+      "nome": "Código",
+      "pastas": ["G:\\Meu Drive\\projetos\\codigo"],
+      "palavras": ["python", "código", "api", "programação"],
+      "ativo": true
+    },
+    "seguros": {
+      "nome": "Seguros",
+      "pastas": ["G:\\Meu Drive\\projetos\\seclar"],
+      "palavras": ["seguro", "susep", "apólice", "sinistro"],
+      "ativo": true
+    },
+    "cannabis": {
+      "nome": "Cannabis",
+      "pastas": ["G:\\Meu Drive\\projetos\\soul"],
+      "palavras": ["cannabis", "anvisa", "plantio", "medicinal"],
+      "ativo": true
+    }
+  },
 
   "github_usuario": "",
   "github_token": "",

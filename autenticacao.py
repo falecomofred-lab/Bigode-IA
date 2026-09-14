@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AUTENTICACAO - quem pode usar o Cerebro
+AUTENTICACAO - quem pode usar o Bigode
 
 Contas ficam em usuarios.json, no proprio pendrive. Senha nunca e guardada:
 so o hash PBKDF2 com sal unico por usuario.
@@ -27,7 +27,20 @@ from datetime import datetime
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
-ARQUIVO = BASE / "usuarios.json"
+
+# ONDE FICAM AS CONTAS                                          (13/09)
+#
+#     Por padrao, ao lado deste arquivo -- que e o Cerebro.
+#
+#     A Pipi passou a exigir login com a MESMA conta do Bigode, e a
+#     forma errada de fazer isso seria copiar o usuarios.json para la:
+#     duas listas de conta divergem no primeiro dia em que voce troca a
+#     senha num lado so, e ninguem descobre ate ficar trancado fora.
+#
+#     Entao a Pipi aponta BIGODE_USUARIOS para o arquivo do Cerebro e as
+#     duas leem a mesma verdade. Uma conta, dois programas.
+ARQUIVO = Path(os.environ.get("BIGODE_USUARIOS", "").strip()
+               or (BASE / "usuarios.json"))
 
 SESSOES = {}                 # token -> {"email", "nome", "expira"}
 ESTADOS_OAUTH = {}           # state -> criado_em
@@ -244,7 +257,7 @@ def _post_json(url, dados, cabecalhos=None):
     corpo = urllib.parse.urlencode(dados).encode("utf-8")
     cab = {"Accept": "application/json",
            "Content-Type": "application/x-www-form-urlencoded",
-           "User-Agent": "Cerebro-Venure"}
+           "User-Agent": "Bigode-Venure"}
     cab.update(cabecalhos or {})
     pedido = urllib.request.Request(url, data=corpo, headers=cab)
     with urllib.request.urlopen(pedido, timeout=25) as r:
@@ -255,7 +268,7 @@ def _get_json(url, token):
     pedido = urllib.request.Request(url, headers={
         "Authorization": "Bearer " + token,
         "Accept": "application/json",
-        "User-Agent": "Cerebro-Venure"})
+        "User-Agent": "Bigode-Venure"})
     with urllib.request.urlopen(pedido, timeout=25) as r:
         return json.loads(r.read().decode("utf-8", "ignore"))
 

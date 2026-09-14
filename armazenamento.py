@@ -58,11 +58,21 @@ def salvar_conversa(dados):
         return {"id": ident}
 
     existente = _caminho_conversa(ident)
-    criada = (_ler(existente, {}) or {}).get("criada") if existente else None
+    anterior = (_ler(existente, {}) or {}) if existente else {}
+    criada = anterior.get("criada")
+
+    # Titulo escolhido a mao NAO e recalculado. Sem esta linha, o nome que
+    # voce deu a conversa seria desfeito na proxima mensagem -- o titulo era
+    # derivado da primeira pergunta toda vez que a conversa era gravada.
+    if anterior.get("titulo_manual"):
+        titulo = anterior.get("titulo") or titulo_de(mensagens)
+    else:
+        titulo = dados.get("titulo") or titulo_de(mensagens)
 
     registro = {
         "id": ident,
-        "titulo": dados.get("titulo") or titulo_de(mensagens),
+        "titulo": titulo,
+        "titulo_manual": bool(anterior.get("titulo_manual")),
         "criada": criada or datetime.now().isoformat(timespec="seconds"),
         "atualizada": datetime.now().isoformat(timespec="seconds"),
         "modelo": dados.get("modelo", ""),
@@ -73,6 +83,23 @@ def salvar_conversa(dados):
     dia = registro["criada"][:10]
     _gravar(CONVERSAS / dia / (ident + ".json"), registro)
     return {"id": ident, "titulo": registro["titulo"]}
+
+
+def renomear_conversa(ident, titulo):
+    """Troca o nome da conversa e marca que foi escolhido por voce."""
+    titulo = re.sub(r"\s+", " ", (titulo or "")).strip()[:80]
+    if not titulo:
+        return {"ok": False, "erro": "escreva um nome"}
+    arquivo = _caminho_conversa(ident)
+    if not arquivo:
+        return {"ok": False, "erro": "conversa nao encontrada"}
+    registro = _ler(arquivo, {}) or {}
+    if not registro:
+        return {"ok": False, "erro": "conversa vazia"}
+    registro["titulo"] = titulo
+    registro["titulo_manual"] = True      # nao recalcular daqui para a frente
+    _gravar(arquivo, registro)
+    return {"ok": True, "titulo": titulo}
 
 
 def _caminho_conversa(ident):
