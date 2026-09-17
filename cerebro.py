@@ -66,6 +66,7 @@ import modelos
 import voz
 import runtime
 import validador
+import processador_screenshot
 
 BASE = Path(__file__).resolve().parent
 MEMORIA = BASE / "memoria"
@@ -3667,6 +3668,16 @@ class Handler(BaseHTTPRequestHandler):
                 # 45s: aceita que não vai responder em vez de prender a resposta.
                 # Ver/clicar/escrever já são operações rápidas se funcionarem.
                 resultado = pedir_ao_navegador(nome, args, evento, espera=45)
+
+                # ═══ PHASE 3: PROCESSAR SCREENSHOT ══════════════════════════════════
+                # Se a extensão retornou um screenshot, processa e injeta no contexto
+                texto_resultado, caminho_screenshot = processador_screenshot.processar_resposta_extensao(resultado)
+                resultado = texto_resultado
+                if caminho_screenshot:
+                    msg_com_screenshot, tem_ss = processador_screenshot.injetar_no_contexto(
+                        texto_resultado, caminho_screenshot, evento
+                    )
+                    resultado = msg_com_screenshot
             else:
                 resultado = ferramentas.executar(nome, args)
             duracao = round(time.time() - comeco, 1)
@@ -4351,6 +4362,9 @@ def main():
     # aquece agora, enquanto voce ainda esta abrindo o navegador.
     threading.Thread(target=aquecer, daemon=True).start()
 
+    # Inicializa processador de screenshots para Phase 3
+    processador_screenshot.inicializar()
+
     # O que o motor escrever aparece aqui, marcado com `motor |`.
     threading.Thread(target=espiar_motor, daemon=True).start()
 
@@ -4376,11 +4390,13 @@ def main():
         servidor.serve_forever()
     except KeyboardInterrupt:
         print("\nCerebro encerrado.")
+        processador_screenshot.limpar_screenshots()
         servidor.server_close()
     except BaseException as erro:
         # Se o processo cair, a ultima coisa que ele faz e dizer por que.
         anotar_erro("O SERVIDOR CAIU", erro)
         print("\n  O Bigode caiu. O motivo esta em %s" % ERROS)
+        processador_screenshot.limpar_screenshots()
         servidor.server_close()
         raise
 

@@ -152,12 +152,31 @@ function pegar(numero) {
   return el;
 }
 
+/* ---------- ações com screenshot ---------- */
+async function anexarScreenshot(resultado) {
+  // Tira screenshot após ação para feedback visual
+  try {
+    const ss = await window.BigodeScreenshot?.tirar?.(0.7);
+    if (ss && typeof ss === 'string' && ss.startsWith('data:')) {
+      return {
+        texto: resultado,
+        screenshot: ss,
+        tipo_screenshot: 'jpeg_base64',
+      };
+    }
+  } catch (e) {
+    console.error('Erro ao anexar screenshot:', e);
+  }
+  return resultado;
+}
+
 /* ---------- ações ---------- */
 const ACOES = {
   async ver() {
     dizer('Lendo a página');
     await dormir(250);
-    return mapear();
+    const resultado = mapear();
+    return anexarScreenshot(resultado);
   },
 
   async clicar({ numero }) {
@@ -169,7 +188,8 @@ const ACOES = {
     el.focus?.();
     el.click();
     await dormir(900);
-    return `Cliquei em [${numero}] ${rotulo(el)}.\nAgora estou em: ${location.href}\n\n${mapear()}`;
+    const resultado = `Cliquei em [${numero}] ${rotulo(el)}.\nAgora estou em: ${location.href}\n\n${mapear()}`;
+    return anexarScreenshot(resultado);
   },
 
   async escrever({ numero, texto }) {
@@ -198,7 +218,8 @@ const ACOES = {
       }
     }
     el.dispatchEvent(new Event('change', { bubbles: true }));
-    return `Escrevi "${texto}" no campo [${numero}] ${rotulo(el)}.`;
+    const resultado = `Escrevi "${texto}" no campo [${numero}] ${rotulo(el)}.`;
+    return anexarScreenshot(resultado);
   },
 
   async teclar({ tecla }) {
@@ -211,7 +232,8 @@ const ACOES = {
     }
     if (tecla === 'Enter') alvo.closest?.('form')?.requestSubmit?.();
     await dormir(900);
-    return `Apertei ${tecla}. Estou em: ${location.href}\n\n${mapear()}`;
+    const resultado = `Apertei ${tecla}. Estou em: ${location.href}\n\n${mapear()}`;
+    return anexarScreenshot(resultado);
   },
 
   async rolar({ direcao }) {
@@ -222,7 +244,8 @@ const ACOES = {
     else if (d.includes('cima')) scrollBy({ top: -innerHeight * 0.85, behavior: 'smooth' });
     else scrollBy({ top: innerHeight * 0.85, behavior: 'smooth' });
     await dormir(750);
-    return 'Rolei a página. Esta é a visão atualizada:\n\n' + mapear();
+    const resultado = 'Rolei a página. Esta é a visão atualizada:\n\n' + mapear();
+    return anexarScreenshot(resultado);
   },
 
   async esperar({ segundos }) {
