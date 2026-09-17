@@ -3030,17 +3030,36 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
 
-        vivo = {"ok": True}
+        vivo = {"ok": True, "ultimo_evento": time.time()}
 
         def evento(obj):
             try:
                 self.wfile.write(("data: " + json.dumps(obj, ensure_ascii=False)
                                   + "\n\n").encode("utf-8"))
                 self.wfile.flush()
+                vivo["ultimo_evento"] = time.time()
                 return True
             except Exception:
                 vivo["ok"] = False      # aba fechada ou botao parar
                 return False
+
+        # Envia heartbeat a cada 20s se não há atividade, para evitar que a
+        # conexão HTTP feche silenciosamente enquanto o modelo está pensando.
+        def enviar_heartbeat():
+            while vivo["ok"]:
+                if time.time() - vivo["ultimo_evento"] > 20:
+                    try:
+                        # Comentário no SSE é ignorado pelo cliente
+                        self.wfile.write(b": heartbeat\n\n")
+                        self.wfile.flush()
+                        vivo["ultimo_evento"] = time.time()
+                    except Exception:
+                        vivo["ok"] = False
+                        break
+                time.sleep(2)
+
+        heartbeat_thread = threading.Thread(target=enviar_heartbeat, daemon=True)
+        heartbeat_thread.start()
 
         if fontes:
             evento({"tipo": "fontes", "fontes": fontes})
@@ -3274,9 +3293,10 @@ class Handler(BaseHTTPRequestHandler):
                 and quer_navegador):
             evento({"tipo": "acao", "id": "olhar", "estado": "rodando",
                     "titulo": "Olhando a sua tela", "detalhe": ""})
-            # 60s: o service worker pode estar dormindo e levar ate 30s para
-            # acordar pelo alarme, mais o tempo de ler a pagina.
-            pagina = pedir_ao_navegador("navegador_ver", {}, evento, espera=60)
+            # 30s: o service worker pode estar dormindo mas nao pode travar toda
+            # conversa. Se demorar mais, melhor reportar falha rápido do que
+            # esperar 90 segundos e trancar a resposta.
+            pagina = pedir_ao_navegador("navegador_ver", {}, evento, espera=30)
 
             # Mostrar QUAL pagina foi lida, na narracao.
             #
@@ -3352,6 +3372,7 @@ class Handler(BaseHTTPRequestHandler):
         # (nome + parametros) para comparar.
         assinaturas = []
         travou = ""
+        respostas_vazias_seguidas = 0
         for passo in range(int(cfg["max_passos"])):
             if not vivo["ok"]:
                 break
@@ -3484,6 +3505,19 @@ class Handler(BaseHTTPRequestHandler):
                 medidor.anotar_erro(texto)
                 evento({"tipo": "erro", "texto": texto})
                 break
+
+            # ═══ PROTEÇÃO CONTRA RESPOSTA VAZIA ═════════════════════════════════
+            # Se o modelo retorna string vazia ou só whitespace/tags, é um sinal
+            # de que algo deu errado. Duas vezes seguidas = abort.
+            if not resposta or not resposta.strip() or resposta.strip() in ("", "..."):
+                respostas_vazias_seguidas += 1
+                if respostas_vazias_seguidas >= 2:
+                    anotar_erro("resposta_vazia_x%d" % respostas_vazias_seguidas)
+                    evento({"tipo": "erro",
+                            "texto": "O modelo parou de responder. Tente de novo."})
+                    break
+            else:
+                respostas_vazias_seguidas = 0
 
             nome, args = nativa if nativa else extrair_chamada(resposta)
 
@@ -3629,7 +3663,9 @@ class Handler(BaseHTTPRequestHandler):
 
             comeco = time.time()
             if nome.startswith("navegador_"):
-                resultado = pedir_ao_navegador(nome, args, evento)
+                # 45s: aceita que não vai responder em vez de prender a resposta.
+                # Ver/clicar/escrever já são operações rápidas se funcionarem.
+                resultado = pedir_ao_navegador(nome, args, evento, espera=45)
             else:
                 resultado = ferramentas.executar(nome, args)
             duracao = round(time.time() - comeco, 1)
