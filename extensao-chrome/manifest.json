@@ -18,6 +18,11 @@
     "all_frames": false
   }],
 
+  "web_accessible_resources": [{
+    "resources": ["html2canvas.min.js"],
+    "matches": ["http://*/*", "https://*/*"]
+  }],
+
   "side_panel": { "default_path": "painel.html" },
 
   "action": {
