@@ -65,6 +65,7 @@ import roteador_semantico
 import modelos
 import voz
 import runtime
+import validador
 
 BASE = Path(__file__).resolve().parent
 MEMORIA = BASE / "memoria"
@@ -3677,6 +3678,35 @@ class Handler(BaseHTTPRequestHandler):
                         "nome": _final(caminho), "estado": "pronto",
                         "linhas": len(str(args.get("conteudo", "")).splitlines()),
                         "projeto": nome == "criar_projeto"})
+
+                # ═══ VALIDAR CÓDIGO APÓS ESCREVER ══════════════════════════════════
+                # Se o projeto tem linters/formatadores/testes, roda agora e
+                # mostra erros. Se houver erro, a IA pode corrigir no proximo passo.
+                try:
+                    pasta_projeto = Path(caminho).parent if "." in Path(caminho).name else Path(caminho)
+                    if pasta_projeto.exists() and pasta_projeto.is_dir():
+                        validador_obj = validador.ValidadorProjeto(pasta_projeto)
+                        if validador_obj.tipo:
+                            evento({"tipo": "acao", "id": "validar", "estado": "rodando",
+                                    "titulo": "Validando código", "resumo": validador_obj.tipo})
+                            resultado_val = validador_obj.validar_sintaxe()
+                            if not resultado_val.get("ok"):
+                                msg = validador.resumir_validacao({"ok": False, "etapas": {"sintaxe": resultado_val}})
+                                evento({"tipo": "acao", "id": "validar", "estado": "erro",
+                                        "titulo": "Validação encontrou erros",
+                                        "conteudo": msg[:1000]})
+                                # Re-injetar erros para que a IA corrija
+                                mensagens.append({"role": "assistant", "content": f"Código escrito em {caminho}"})
+                                mensagens.append({"role": "user", "content":
+                                    f"VALIDAÇÃO: {msg}\n\nCorreja os erros acima no código. "
+                                    f"Use escrever_arquivo de novo com o código corrigido."})
+                                obrigar = True
+                            else:
+                                evento({"tipo": "acao", "id": "validar", "estado": "ok",
+                                        "titulo": "Código validado", "resumo": "sem erros"})
+                except Exception as e:
+                    # Se validação der erro, continua mesmo assim - não é fatal
+                    anotar_erro(f"validacao_falhou: {e}")
 
             linhas = [l for l in (resultado or "").strip().splitlines() if l.strip()]
             evento({"tipo": "acao", "id": chave, "estado": "ok",
