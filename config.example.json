@@ -1,0 +1,45 @@
+{
+  "_comentario": "Copie este arquivo para config.json e ajuste. O config.json fica fora do Git porque tem os caminhos da sua máquina.",
+
+  "llm_url": "http://localhost:8082/v1/chat/completions",
+  "porta": 7000,
+
+  "pasta_projetos": "G:\\Meu Drive\\projetos",
+  "pastas_liberadas": [
+    "G:\\Meu Drive\\projetos"
+  ],
+  "chroma_path": "./chroma_db",
+  "dominios": {
+    "codigo": {
+      "nome": "Código",
+      "pastas": ["G:\\Meu Drive\\projetos\\codigo"],
+      "palavras": ["python", "código", "api", "programação"],
+      "ativo": true
+    },
+    "seguros": {
+      "nome": "Seguros",
+      "pastas": ["G:\\Meu Drive\\projetos\\seclar"],
+      "palavras": ["seguro", "susep", "apólice", "sinistro"],
+      "ativo": true
+    },
+    "cannabis": {
+      "nome": "Cannabis",
+      "pastas": ["G:\\Meu Drive\\projetos\\soul"],
+      "palavras": ["cannabis", "anvisa", "plantio", "medicinal"],
+      "ativo": true
+    }
+  },
+
+  "github_usuario": "",
+  "github_token": "",
+
+  "temperatura": 0.45,
+  "max_tokens": 1000,
+  "max_passos": 8,
+  "memorias_por_pergunta": 3,
+  "nivel_autorizacao": "sempre",
+  "contexto": 8192,
+  "threads": 8,
+  "aguardar_modelo_seg": 900,
+  "acesso_rede": true
+}

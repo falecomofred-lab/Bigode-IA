@@ -1,0 +1,104 @@
+--- /home/ubuntu/cerebro-backup-before-20260821/ferramentas.py	2026-08-18 02:41:32.000000000 +0000
++++ ferramentas.py	2026-08-21 17:02:18.715219719 +0000
+@@ -784,6 +784,74 @@
+         return "Erro ao criar: %s" % erro
+ 
+ 
++# ===================== NOVA FERRAMENTA: VAULT =====================
++def buscar_no_vault(consulta: str, limite: int = 5) -> str:
++    """
++    Busca no vault do Obsidian por palavras-chave e retorna trechos relevantes.
++    """
++    import json
++    import re
++    from pathlib import Path
++
++    base = Path(__file__).resolve().parent
++    with open(base / "config.json", "r", encoding="utf-8") as f:
++        cfg = json.load(f)
++    vault_path = Path(cfg.get("vault_path", ""))
++    if not vault_path.exists():
++        return "Caminho do vault não configurado ou não encontrado."
++
++    indice = vault_path.parent / "vault_index.json"
++    if not indice.exists():
++        return "Índice do vault não encontrado. Rode 'python indexar_vault.py'."
++
++    with open(indice, "r", encoding="utf-8") as f:
++        indice_dict = json.load(f)
++
++    stopwords = set("""
++    de da do das dos a o as os e ou que para por com sem no na nos nas um uma em
++    ao aos eu voce meu minha seu sua como qual quais quando onde porque isso isto
++    esse essa este esta ser estar tem ter faz fazer preciso quero pode posso mais
++    menos muito todo toda todos todas nao sim entao aqui sobre ate tambem ja bem
++    mesmo cada outro nosso the and for you with this that
++    """.split())
++
++    termos = {
++        p for p in re.findall(r"[a-zA-Z0-9À-ÿ_\-]{3,}", consulta.lower())
++        if p not in stopwords
++    }
++    if not termos:
++        return "Nenhum termo relevante."
++
++    pontuacao = {}
++    for termo in termos:
++        for entrada in indice_dict.get(termo, []):
++            caminho = entrada["caminho"]
++            pontuacao[caminho] = pontuacao.get(caminho, 0) + 1
++
++    if not pontuacao:
++        return "Nenhum arquivo encontrado."
++
++    melhores = sorted(pontuacao.items(), key=lambda item: item[1], reverse=True)[:limite]
++    saida = []
++    for caminho, _ in melhores:
++        try:
++            with open(caminho, "r", encoding="utf-8") as f:
++                conteudo = f.read()
++            linhas = [
++                linha.strip()
++                for linha in conteudo.splitlines()
++                if any(termo in linha.lower() for termo in termos)
++            ]
++            trecho = "\n".join(linhas[:8])
++            if not trecho:
++                trecho = conteudo[:1200] + "..."
++            saida.append(f"--- {Path(caminho).name} ---\n{trecho}")
++        except OSError as erro:
++            saida.append(f"--- {Path(caminho).name} --- (erro: {erro})")
++
++    return "\n\n".join(saida) if saida else "Trechos não encontrados."
++
++
+ CATALOGO = {
+     "usar_habilidade": {"fn": usar_habilidade, "escrita": False, "args": "nome",
+                         "desc": "Carrega um manual especializado do Fred antes de executar."},
+@@ -793,6 +861,9 @@
+     "criar_projeto":    {"fn": criar_projeto, "escrita": True,
+                          "args": "nome, descricao, stack",
+                          "desc": "Cria a pasta de um projeto novo e devolve o caminho base."},
++    "buscar_no_vault": {"fn": buscar_no_vault, "escrita": False,
++                        "args": "consulta, limite",
++                        "desc": "Busca no vault do Obsidian por palavras-chave e retorna os trechos mais relevantes."},
+ 
+     # leitura - livres
+     "listar_pasta":   {"fn": listar_pasta,   "escrita": False, "args": "caminho",
+@@ -875,6 +946,8 @@
+     "criar_projeto":     {"nome": "Nome da pasta do projeto",
+                           "descricao": "O que o projeto faz",
+                           "stack": "Tecnologias, ex: Node + Express + SQLite"},
++    "buscar_no_vault":   {"consulta": "Palavras-chave para buscar no vault do Obsidian",
++                          "limite": "Quantidade máxima de arquivos relevantes"},
+     "listar_pasta":      {"caminho": "Caminho completo da pasta"},
+     "ler_arquivo":       {"caminho": "Caminho completo do arquivo"},
+     "buscar":            {"termo": "Texto a procurar", "pasta": "Pasta onde procurar"},
+@@ -918,6 +991,7 @@
+     "usar_habilidade": ["nome"],
+     "apresentar_plano": ["objetivo", "passos"],
+     "criar_projeto": ["nome"],
++    "buscar_no_vault": ["consulta"],
+     "listar_pasta": ["caminho"], "ler_arquivo": ["caminho"], "buscar": ["termo"],
+     "raio_x": ["caminho"],
+     "memoria": ["consulta"], "github_ler": ["repo"], "web_buscar": ["consulta"],

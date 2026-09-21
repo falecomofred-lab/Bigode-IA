@@ -1,0 +1,77 @@
+# O QUE NUNCA SOBE PARA O GITHUB  —  Bigode IA
+#
+# Repositorio: github.com/falecomofred-lab/Bigode-IA  (PRIVADO desde 17/09)
+#
+# POR QUE ESTE REPOSITORIO FOI REFEITO DO ZERO EM 17/09/2026
+#
+#   O anterior era publico e tinha historico. Historico do Git guarda tudo:
+#   apagar um arquivo hoje NAO apaga o que ele continha nos commits antigos.
+#   Bastava um `git log -p` para ler o que ja tinha passado por la.
+#
+#   Como neste projeto ja circularam token da Hugging Face, token da Modal e
+#   o usuarios.json com e-mail e hash de senha, nao dava para confiar na
+#   limpeza: a unica correcao de verdade era apagar o repositorio inteiro e
+#   subir um comeco limpo. Foi o que se fez.
+#
+# ATE 13/09 ESTE ARQUIVO NAO CUMPRIA O QUE O README PROMETIA
+#   O README dizia que ficavam de fora o usuarios.json, o config.json, as
+#   conversas/ e os projetos/. A lista aqui tinha so o conexoes.json -- os
+#   outros quatro estavam desprotegidos. Promessa em README nao protege
+#   arquivo nenhum. Regra em .gitignore, sim.
+
+# ---------- segredos ----------
+conexoes.json
+config.json
+config.local.json
+usuarios.json
+modal.json
+motor_remoto.txt
+motor.chave
+ponte.txt
+.env
+*.env
+*.key
+*.pem
+*_token*
+*secret*
+*.credentials
+
+# ---------- o que e seu, nao do projeto ----------
+conversas/
+Historico/
+projetos/
+auditoria/
+chroma_db/
+producao/
+Criativos/
+memoria/projetos/          # fichas de cliente: tem nome, CPF e telefone
+memoria/medicoes.jsonl     # log de medicao, nasce de novo sozinho
+
+# ---------- pesado demais para o Git ----------
+# Um GGUF tem ~4,5 GB. O limite do GitHub e 100 MB por arquivo, e o LFS
+# cobra por armazenamento. Modelo se baixa, nao se versiona.
+*.gguf
+*.safetensors
+*.bin
+*.ckpt
+*.pt
+Arquivos GGUF/
+python/                    # o Python portatil do pendrive
+llamafile/
+ComfyUI/
+
+# ---------- lixo de execucao ----------
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.log
+*.db
+*.sqlite
+*.crdownload
+_lixo-*/
+_quarentena-*/
+desktop.ini
+Thumbs.db
+.DS_Store

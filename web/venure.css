@@ -1,0 +1,179 @@
+/* ===================================================================
+   VENURE — sistema visual comum ao Bigode IA e à Pipi IA
+   venure.com.br · 13/09/2026
+
+   UMA FOLHA, DUAS FERRAMENTAS
+       O Bigode e a Pipi são programas diferentes, mas são a mesma casa.
+       Tudo aqui é igual nos dois. A única coisa que cada tela define por
+       conta própria é a cor de destaque:
+
+           Bigode   --ac: #9DC08B    verde-sage
+           Pipi     --ac: #E0849B    rosa queimado
+
+       Quem olha de longe reconhece na hora qual das duas está aberta,
+       sem precisar ler nada. É a mesma lógica de dois cômodos com a
+       mesma arquitetura e tinta diferente.
+
+   COMO USAR
+       <link rel="stylesheet" href="/venure.css">
+       e, depois dele, um bloco <style> com as três linhas da cor.
+       O que vier depois ganha, então a tela sempre pode discordar.
+   =================================================================== */
+
+:root{
+  /* Cor de destaque. A tela sobrescreve; isto é só o padrão. */
+  --ac:#9DC08B;
+  --ac-rgb:157,192,139;
+
+  /* ── VIDRO ───────────────────────────────────────────────────────
+     A regra que seguimos e que vale a pena escrever, porque é
+     contraintuitiva: o vidro fica no CONTORNO da tela — cabeçalho,
+     painéis, caixa de texto, etiquetas. NUNCA atrás do texto que você
+     está lendo.
+
+     Texto sobre fundo desfocado cansa a vista em cinco minutos, e a
+     conversa é justamente onde os olhos ficam. Vidro bonito que torna
+     a leitura pior é vidro mal usado.                                */
+  --vidro:rgba(22,26,35,.62);
+  --vidro2:rgba(29,34,44,.55);
+  --vidro-borda:rgba(var(--ac-rgb),.14);
+  --vidro-luz:rgba(255,255,255,.05);
+  --desfoque:blur(16px) saturate(1.25);
+  --desfoque-forte:blur(26px) saturate(1.4);
+}
+
+/* ===================================================================
+   VIDRO LÍQUIDO
+   ===================================================================
+   "Líquido" não é o desfoque. Desfoque sozinho é vidro fosco, e vidro
+   fosco é chapado. O que dá a impressão de líquido são três camadas
+   somadas, e cada uma resolve um problema:
+
+     1. a borda superior clara      — simula a luz batendo na quina
+     2. o brilho que escorrega      — dá a sensação de superfície molhada
+     3. a sombra interna embaixo    — dá espessura, senão parece adesivo
+
+   Sem a 3, o elemento flutua sem peso. Sem a 1, ele some no fundo.    */
+
+.vidro{
+  position:relative;
+  background:var(--vidro);
+  -webkit-backdrop-filter:var(--desfoque);
+  backdrop-filter:var(--desfoque);
+  border:1px solid var(--vidro-borda);
+  box-shadow:
+    inset 0 1px 0 var(--vidro-luz),          /* a quina iluminada */
+    inset 0 -14px 26px -18px rgba(0,0,0,.55), /* a espessura      */
+    0 10px 30px -12px rgba(0,0,0,.5);        /* a sombra no chão  */
+  overflow:hidden;
+}
+
+/* O brilho que escorrega. Fica por cima do fundo e por baixo do
+   conteúdo, e não intercepta o mouse. */
+.vidro::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(
+    135deg,
+    rgba(255,255,255,.07) 0%,
+    rgba(255,255,255,.02) 28%,
+    transparent 52%);
+}
+
+.vidro-forte{
+  -webkit-backdrop-filter:var(--desfoque-forte);
+  backdrop-filter:var(--desfoque-forte);
+  background:var(--vidro2);
+}
+
+/* O vidro reage ao toque: a luz muda de ângulo, como aconteceria com
+   uma superfície de verdade. */
+.vidro-toque{transition:box-shadow .25s ease,border-color .25s ease}
+.vidro-toque:hover{
+  border-color:rgba(var(--ac-rgb),.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.09),
+    inset 0 -14px 26px -18px rgba(0,0,0,.5),
+    0 14px 38px -12px rgba(0,0,0,.55);
+}
+
+/* NAVEGADOR SEM SUPORTE
+   Safari antigo e Firefox com o recurso desligado ignoram o
+   backdrop-filter. Sem esta regra, o painel vira um retângulo quase
+   transparente com texto por cima — ilegível. Aqui ele volta a ser
+   sólido, que é feio mas se lê. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .vidro,.vidro-forte{background:var(--sup2,#161A23)}
+}
+
+/* ===================================================================
+   A MARCA RESPIRANDO  —  "ele está pensando"
+   ===================================================================
+   O selo redondo da marca infla e desinfla devagar, com um halo que
+   acompanha. Três decisões deliberadas:
+
+     · 2,6 segundos por ciclo. Respiração humana em repouso. Mais
+       rápido vira ansiedade e faz a espera parecer mais longa.
+
+     · a escala vai só até 1.06. O olho percebe movimento muito antes
+       de conseguir medi-lo; pulsar forte distrai de ler a resposta.
+
+     · o halo é uma sombra, não um elemento. Um segundo elemento
+       precisaria de posicionamento e desalinharia em telas pequenas.  */
+
+@keyframes venure-respira{
+  0%,100%{ transform:scale(1);
+           box-shadow:0 0 0 0 rgba(var(--ac-rgb),.34),
+                      0 0 12px 2px rgba(var(--ac-rgb),.16); }
+  50%    { transform:scale(1.06);
+           box-shadow:0 0 0 7px rgba(var(--ac-rgb),0),
+                      0 0 22px 5px rgba(var(--ac-rgb),.3); }
+}
+
+.pensando{
+  animation:venure-respira 2.6s cubic-bezier(.4,0,.5,1) infinite;
+  border-radius:50%;
+  will-change:transform;   /* evita o tremido em tela de alta densidade */
+}
+
+/* A linha de status ao lado da marca. */
+.pensando-linha{
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;color:var(--mudo,#6E7889);min-height:22px;
+}
+.pensando-linha .pt-marca{
+  width:18px;height:18px;border-radius:50%;flex-shrink:0;
+  background:var(--ac);
+}
+.pensando-linha .pt-marca img{
+  width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
+}
+.pensando-linha .pt-txt{font-weight:400}
+.pensando-linha .pt-seg{
+  margin-left:auto;font-size:10.5px;color:var(--fraco,#4B5464);
+  font-variant-numeric:tabular-nums;flex-shrink:0;
+}
+
+/* ===================================================================
+   CHANCELA
+   =================================================================== */
+.chancela{
+  text-align:center;font-size:11px;letter-spacing:.4px;
+  color:var(--fraco,#4B5464);padding:14px 0 10px;
+}
+.chancela b{color:var(--ac);font-weight:600;letter-spacing:1.4px}
+.chancela a{color:inherit;text-decoration:none}
+.chancela a:hover{color:var(--txt2,#A3ACBB)}
+
+/* ===================================================================
+   QUEM PEDIU MENOS MOVIMENTO, RECEBE MENOS MOVIMENTO
+   ===================================================================
+   Não é acessibilidade de enfeite: para quem tem enxaqueca vestibular,
+   animação contínua na periferia da tela dá sintoma de verdade. Aqui a
+   respiração vira uma variação suave de opacidade, que informa o mesmo
+   sem mover nada.                                                     */
+@media (prefers-reduced-motion:reduce){
+  .pensando{animation:venure-suave 2.6s ease-in-out infinite;
+            box-shadow:0 0 12px 2px rgba(var(--ac-rgb),.16)}
+  @keyframes venure-suave{0%,100%{opacity:1}50%{opacity:.62}}
+  .vidro-toque{transition:none}
+}

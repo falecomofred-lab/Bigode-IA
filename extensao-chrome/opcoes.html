@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Bigode IA — Venure</title>
+<style>
+:root{--bg:#0A0C11;--sup:#11141B;--sup2:#161A23;--linha:#1D222C;--txt:#ECEFF4;
+      --txt2:#A3ACBB;--fraco:#4B5464;--ac:#9DC08B;--ac2:#F2EAD8;--ok:#34D399}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);min-height:100vh;padding:44px 24px;
+     font:15px/1.7 -apple-system,"Segoe UI",system-ui,sans-serif}
+.caixa{max-width:520px;margin:0 auto}
+.topo{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.selo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(140deg,var(--ac2),var(--ac));overflow:hidden}
+/* A marca é uma foto, não um desenho: precisa preencher o selo redondo sem
+   distorcer. object-fit:cover recorta o excedente em vez de esticar. */
+.selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
+  border-radius:inherit;display:block}
+h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
+.sub{font-size:9.5px;letter-spacing:3px;color:var(--fraco);font-weight:700}
+p.intro{color:var(--txt2);font-size:13.5px;margin:14px 0 26px}
+label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.aj{display:block;font-size:12px;color:var(--fraco);margin-bottom:9px;line-height:1.6}
+input{width:100%;background:var(--sup);border:1px solid var(--linha);border-radius:10px;
+      padding:12px 14px;color:var(--txt);font:14px ui-monospace,Consolas,monospace;outline:none}
+input:focus{border-color:#31445E}
+.fila{display:flex;gap:9px;margin-top:16px}
+button{border:1px solid #2A313E;background:none;color:var(--txt2);padding:11px 20px;
+       border-radius:10px;font:inherit;font-size:13.5px;cursor:pointer}
+button:hover{color:var(--txt)}
+button.forte{background:var(--ac);color:#04140F;border:none;font-weight:600}
+.aviso{margin-top:18px;padding:12px 15px;border-radius:10px;font-size:13px;display:none}
+.aviso.on{display:block}
+.aviso.ok{background:#0D2119;border:1px solid #1F5140;color:var(--ok)}
+.aviso.ruim{background:#1D1215;border:1px solid #5A2A2E;color:#F8A5A5}
+.dicas{margin-top:32px;padding-top:24px;border-top:1px solid var(--linha);
+       font-size:13px;color:var(--txt2);line-height:1.9}
+.dicas b{color:var(--txt)}
+
+/* ── OS DOIS DESTINOS ──────────────────────────────────────────────────
+   Guardar os dois e alternar com um clique evita reescrever o endereco
+   toda vez -- e evita o pior: esquecer que trocou e achar que o Bigode
+   caiu, quando na verdade a extensao esta batendo em outra maquina. */
+.destinos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.destino{display:block;text-align:left;padding:14px 15px;border-radius:12px;
+  border:1px solid var(--linha);background:var(--sup);cursor:pointer;
+  transition:.15s;position:relative}
+.destino:hover{border-color:#3A4658}
+.destino b{display:block;font-size:14px;color:var(--txt2);margin-bottom:3px}
+.destino small{display:block;font:11.5px ui-monospace,Consolas,monospace;
+  color:var(--fraco);word-break:break-all;line-height:1.5;margin-bottom:5px}
+.destino em{font-style:normal;font-size:11px;color:var(--fraco)}
+.destino .luz{position:absolute;top:14px;right:14px;width:7px;height:7px;
+  border-radius:50%;background:var(--linha)}
+.destino.ativo{border-color:var(--ac);background:#0E1512}
+.destino.ativo b{color:var(--ac)}
+.destino.ativo .luz{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+code{background:var(--sup2);padding:2px 7px;border-radius:5px;
+     font:12.5px ui-monospace,Consolas,monospace;color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="caixa">
+  <div class="topo">
+    <div class="selo"><img src="icones/128.png" alt="" onerror="this.remove()"></div>
+    <div><h1>Bigode IA</h1><div class="sub">VENURE</div></div>
+  </div>
+
+  <!-- "NA NUVEM" NÃO EXISTE MAIS                              (18/09)
+
+       Esta tela oferecia dois Bigodes: o do computador e o da nuvem, com
+       o segundo descrito como "rápido · muda a cada sessão" — o Colab.
+
+       O Colab saiu. E o que entrou no lugar, a Modal, hospeda o MOTOR de
+       texto, não o Bigode: o `cerebro.py` continua rodando na sua
+       máquina, e é com ele que esta extensão fala. Trocar o rótulo para
+       "Modal" teria sido a correção errada — daria a entender que dá para
+       apontar a extensão para um endereço da Modal, e não dá.
+
+       O segundo destino continua existindo porque continua sendo REAL:
+       é o mesmo Bigode alcançado de outro aparelho na mesma rede (o
+       `/api/rede` do cerebro.py existe para isso), ou por um túnel que
+       você mesmo abra. Mudou o nome e a explicação, não a função. -->
+  <p class="intro">Com qual Bigode esta extensão fala. Normalmente é o do seu
+    próprio computador. O segundo campo serve para alcançar um Bigode que
+    está em outra máquina da sua rede.</p>
+
+  <div class="destinos">
+    <button class="destino" id="dAqui">
+      <span class="luz"></span>
+      <b>Neste computador</b>
+      <small id="urlAqui">http://localhost:7000</small>
+      <em>o normal</em>
+    </button>
+    <button class="destino" id="dNuvem">
+      <span class="luz"></span>
+      <b>Outro endereço</b>
+      <small id="urlNuvem">nenhum endereço salvo</small>
+      <em>outra máquina da rede</em>
+    </button>
+  </div>
+
+  <label style="margin-top:22px">Outro endereço</label>
+  <span class="aj">O endereço de rede que o Bigode mostra em
+    Configurações › Rede, para usar de outro aparelho. Ex.:
+    <code>http://192.168.0.12:7000</code></span>
+  <input id="url" placeholder="http://192.168.0.12:7000">
+
+  <div class="fila">
+    <button class="forte" id="btSalvar">Salvar e testar</button>
+    <button id="btPadrao">Voltar para este computador</button>
+  </div>
+
+  <hr style="border:none;border-top:1px solid var(--linha);margin:26px 0">
+
+  <label>Acesso desta extensão</label>
+  <span class="aj">O login é feito no painel lateral — clique no ícone da Venure
+    ou aperte <code>Ctrl+Shift+C</code>. Aqui você só encerra o acesso.</span>
+  <div id="quemEsta" class="aj" style="margin:10px 0"></div>
+  <div class="fila"><button id="btSair">Sair desta extensão</button></div>
+
+  <div class="aviso" id="aviso"></div>
+
+  <div class="dicas">
+    <b>Como usar</b><br>
+    Clique no ícone da Venure ou aperte <code>Ctrl+Shift+C</code> para abrir o painel.<br>
+    Selecione um texto na página e clique com o botão direito para mandar ao Bigode.<br><br>
+    <b>Para ele agir sozinho nas páginas</b><br>
+    No Bigode, vá em <code>+ → Conectar uma ferramenta → Navegador Chrome</code> e ligue.<br><br>
+    <b>Se não conectar</b><br>
+    Quase sempre é o Bigode fechado: abra o <code>BIGODE.bat</code> e espere
+    ele dizer que está pronto. Se estiver aberto e ainda assim não conectar,
+    confira se o endereço aqui em cima é o mesmo que ele imprimiu ao subir.
+  </div>
+</div>
+<script src="opcoes.js"></script>
+</body>
+</html>

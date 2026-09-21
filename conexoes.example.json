@@ -1,0 +1,11 @@
+{
+  "_comentario": "Copie para conexoes.json. Os tokens ficam SÓ no seu arquivo local, nunca aqui.",
+
+  "arquivos":   { "nome": "Arquivos",        "icone": "pasta",     "ativa": true,  "token": "" },
+  "github":     { "nome": "GitHub",          "icone": "github",    "ativa": false, "token": "" },
+  "web":        { "nome": "Web",             "icone": "globo",     "ativa": true,  "token": "" },
+  "utilidades": { "nome": "APIs do Brasil",  "icone": "bussola",   "ativa": true,  "token": "" },
+  "navegador":  { "nome": "Navegador Chrome","icone": "chrome",    "ativa": false, "token": "" },
+  "terminal":   { "nome": "Terminal",        "icone": "terminal",  "ativa": false, "token": "" },
+  "claude":     { "nome": "Claude",          "icone": "claude",    "ativa": true,  "token": "" }
+}

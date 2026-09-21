@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Bigode IA",
+  "short_name": "Bigode",
+  "version": "1.0.0",
+  "description": "Sua IA local da Venure dentro do Chrome. Analisa a página, resume e programa sem sair do navegador.",
+
+  "permissions": ["sidePanel", "contextMenus", "storage", "activeTab",
+                  "scripting", "tabs", "alarms", "audioCapture"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+
+  "background": { "service_worker": "fundo.js" },
+
+  "content_scripts": [{
+    "matches": ["http://*/*", "https://*/*"],
+    "js": ["conteudo.js"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }],
+
+  "side_panel": { "default_path": "painel.html" },
+
+  "action": {
+    "default_title": "Abrir o Bigode",
+    "default_icon": {
+      "16": "icones/16.png", "32": "icones/32.png",
+      "48": "icones/48.png", "128": "icones/128.png"
+    }
+  },
+
+  "options_page": "opcoes.html",
+
+  "icons": {
+    "16": "icones/16.png", "32": "icones/32.png",
+    "48": "icones/48.png", "128": "icones/128.png"
+  },
+
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Ctrl+Shift+C", "mac": "Command+Shift+C" },
+      "description": "Abrir o Bigode"
+    }
+  }
+}

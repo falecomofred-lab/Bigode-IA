@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrar — Bigode IA</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3">
+<meta name="theme-color" content="#0A0C11">
+<style>
+:root{--bg:#0A0C11;--sup:#11141B;--sup2:#161A23;--linha:#1D222C;--linha2:#2A313E;
+      --txt:#ECEFF4;--txt2:#A3ACBB;--mudo:#6E7889;--fraco:#4B5464;
+      --ac:#9DC08B;--ac2:#F2EAD8;--ok:#34D399;--erro:#F87171}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);display:grid;place-items:center;padding:24px;
+     font:15px/1.7 -apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+     -webkit-font-smoothing:antialiased;overflow-y:auto}
+/* Halos de cor e malha de circuito por trás do vidro. Aqui a mão é mais
+   pesada que no index: a tela de entrada é vista por segundos, não por
+   horas, e é onde a marca se apresenta. */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(760px 420px at 50% -10%,rgba(94,234,212,.13),transparent 68%),
+             radial-gradient(640px 380px at 88% 108%,rgba(157,192,139,.11),transparent 70%),
+             radial-gradient(520px 320px at 8% 88%,rgba(120,140,255,.07),transparent 70%)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+  background-image:
+    linear-gradient(rgba(157,192,139,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(157,192,139,.05) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(80% 70% at 50% 50%,transparent 22%,#000 76%);
+  -webkit-mask-image:radial-gradient(80% 70% at 50% 50%,transparent 22%,#000 76%)}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+svg{display:block;flex-shrink:0}
+@keyframes sobe{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+.caixa{width:100%;max-width:396px;position:relative;animation:sobe .5s ease both}
+.topo{text-align:center;margin-bottom:30px}
+.selo{width:56px;height:56px;border-radius:18px;margin:0 auto 16px;display:grid;
+      place-items:center;background:linear-gradient(140deg,var(--ac2),var(--ac));
+      box-shadow:0 10px 34px rgba(157,192,139,.26);overflow:hidden}
+/* A marca é uma foto, não um desenho: precisa preencher o selo redondo sem
+   distorcer. object-fit:cover recorta o excedente em vez de esticar. */
+.selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
+  border-radius:inherit;display:block}
+.marca{font-size:11.5px;letter-spacing:7px;font-weight:700;color:var(--txt2);
+       padding-left:7px;margin-bottom:12px}
+.topo h1{font-size:23px;font-weight:600;letter-spacing:-.4px;margin-bottom:5px}
+.topo p{color:var(--mudo);font-size:14px}
+
+/* O cartão é vidro: fundo semitransparente, desfoque do que está atrás,
+   fio de luz na borda de cima e sombra funda para ele descolar da tela. */
+.cartao{background:rgba(22,26,35,.58);
+        -webkit-backdrop-filter:blur(20px) saturate(1.3);
+        backdrop-filter:blur(20px) saturate(1.3);
+        border:1px solid rgba(157,192,139,.16);border-radius:18px;
+        padding:26px 24px;position:relative;overflow:hidden;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.06),
+                   0 24px 60px rgba(0,0,0,.5)}
+/* Reflexo de luz atravessando a borda superior. Estático: brilho piscando
+   numa tela de senha parece erro, não acabamento. */
+.cartao::before{content:"";position:absolute;top:0;left:14%;right:14%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(94,234,212,.75),transparent)}
+.cartao>*{position:relative}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .cartao{background:var(--sup)}
+}
+.social{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
+.bsocial{display:flex;align-items:center;gap:11px;width:100%;padding:12px 15px;
+         border:1px solid var(--linha2);border-radius:11px;font-size:14px;
+         font-weight:500;transition:.15s;background:var(--sup2)}
+.bsocial:hover{border-color:#3C4E68;background:#1A2029}
+.bsocial:disabled{opacity:.4;cursor:not-allowed}
+.bsocial span{flex:1;text-align:left}
+.bsocial .aviso{font-size:10.5px;color:var(--fraco);font-weight:400;flex:0}
+
+.ou{display:flex;align-items:center;gap:13px;margin:20px 0;color:var(--fraco);
+    font-size:11.5px;letter-spacing:1.2px}
+.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--linha)}
+
+.campo{margin-bottom:14px}
+.campo label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.campo input{width:100%;background:var(--bg);border:1px solid var(--linha);
+             border-radius:11px;padding:13px 15px;color:var(--txt);font-size:14.5px;
+             outline:none;transition:.15s}
+.campo input:focus{border-color:#31445E;background:#0C1016}
+.campo input::placeholder{color:var(--fraco)}
+.senha-linha{position:relative}
+.olho{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--fraco);
+      padding:5px}
+.olho:hover{color:var(--txt2)}
+
+.principal{width:100%;background:var(--ac);color:#04140F;padding:14px;border-radius:11px;
+           font-size:14.5px;font-weight:700;transition:.15s;margin-top:4px}
+.principal:hover{filter:brightness(1.08)}
+.principal:disabled{opacity:.5;cursor:default}
+
+.recado{margin-top:14px;padding:11px 14px;border-radius:10px;font-size:13px;
+        display:none;line-height:1.6}
+.recado.on{display:block;animation:sobe .2s ease both}
+.recado.ruim{background:#1D1215;border:1px solid #5A2A2E;color:#F8A5A5}
+.recado.bom{background:#0D2119;border:1px solid #1F5140;color:var(--ok)}
+
+.rodape{text-align:center;margin-top:20px;font-size:13px;color:var(--mudo)}
+.rodape button{color:var(--ac);font-weight:600}
+.rodape button:hover{text-decoration:underline}
+.nota{text-align:center;margin-top:22px;font-size:11.5px;color:var(--fraco);
+      line-height:1.7}
+.primeiro{background:#12212A;border:1px solid #2A4A55;border-radius:12px;
+          padding:13px 15px;font-size:13px;color:var(--txt2);margin-bottom:20px;
+          line-height:1.6}
+.primeiro b{color:var(--ac)}
+@media(max-width:420px){.cartao{padding:22px 18px}.topo h1{font-size:21px}}
+</style>
+</head>
+<body>
+<div class="caixa">
+
+  <div class="topo">
+    <div class="selo"><img src="/img/marca.png" alt="" onerror="this.remove()"></div>
+    <div class="marca">VENURE</div>
+    <h1 id="titulo">Bem-vindo de volta</h1>
+    <p id="subtitulo">Sua assistente que guarda tudo no seu computador</p>
+  </div>
+
+  <div class="cartao">
+    <div class="primeiro" id="primeiro" style="display:none">
+      <b>Primeira vez?</b> Crie sua conta aqui. Tudo fica apenas no seu
+      computador — nada vai para a internet.
+    </div>
+
+    <div class="social" id="social"></div>
+    <div class="ou" id="ou">OU</div>
+
+    <form id="forma">
+      <div class="campo" id="campoNome" style="display:none">
+        <label>Seu nome</label>
+        <input id="nome" autocomplete="name" placeholder="Frederico">
+      </div>
+      <div class="campo">
+        <label>E-mail</label>
+        <input id="email" type="email" autocomplete="username"
+               placeholder="voce@venure.com.br" required>
+      </div>
+      <div class="campo">
+        <label>Senha</label>
+        <div class="senha-linha">
+          <input id="senha" type="password" autocomplete="current-password"
+                 placeholder="••••••••" required>
+          <button type="button" class="olho" id="verSenha" title="Mostrar"></button>
+        </div>
+      </div>
+      <button class="principal" id="botao">Entrar</button>
+    </form>
+
+    <div class="recado" id="recado"></div>
+
+    <div class="rodape" id="rodape">
+      <span id="rodapeTexto">Ainda não tem conta?</span>
+      <button id="alternar">Criar conta</button>
+    </div>
+  </div>
+
+  <div class="nota">
+    Suas conversas, seus projetos e sua senha<br>
+    ficam no seu computador — nunca saem dele.
+  </div>
+</div>
+
+<script>
+const $=i=>document.getElementById(i);
+const esc=t=>{const d=document.createElement('div');d.textContent=t??'';return d.innerHTML};
+let modo='entrar', primeiroAcesso=false;
+
+const LOGOS={
+ google:'<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.51 6.16-4.51z"/></svg>',
+ apple:'<svg width="18" height="18" viewBox="0 0 24 24" fill="#ECEFF4"><path d="M17.05 12.54c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.72-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.87-.76-1.48.02-2.84.86-3.6 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.08 2.65-2.14.84-1.23 1.18-2.42 1.2-2.48-.03-.01-2.3-.88-2.32-3.5zM14.9 5.3c.6-.74 1.01-1.76.9-2.78-.87.04-1.93.58-2.56 1.31-.56.65-1.06 1.7-.93 2.7.97.08 1.97-.49 2.59-1.23z"/></svg>',
+ github:'<svg width="18" height="18" viewBox="0 0 24 24" fill="#ECEFF4"><path d="M12 .3a12 12 0 0 0-3.79 23.4c.6.1.82-.26.82-.58v-2.23c-3.34.72-4.04-1.6-4.04-1.6-.55-1.4-1.34-1.77-1.34-1.77-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5.99.1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.21.7.83.58A12 12 0 0 0 12 .3"/></svg>'};
+
+const OLHO='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const OLHO_OFF='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19c-6.4 0-10-7-10-7a18 18 0 0 1 5.1-5.9M9.9 4.2A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a18 18 0 0 1-2.2 3.2M2 2l20 20"/></svg>';
+
+$('verSenha').innerHTML=OLHO;
+$('verSenha').onclick=()=>{
+  const s=$('senha');
+  const escondida=s.type==='password';
+  s.type=escondida?'text':'password';
+  $('verSenha').innerHTML=escondida?OLHO_OFF:OLHO;
+};
+
+function recado(txt,bom){
+  const r=$('recado');
+  r.textContent=txt; r.className='recado on '+(bom?'bom':'ruim');
+}
+
+async function inicio(){
+  try{
+    const d=await(await fetch('/api/login/estado')).json();
+    primeiroAcesso=!d.tem_conta;
+    if(primeiroAcesso) trocarModo('criar',true);
+
+    const s=$('social');
+    s.innerHTML=Object.entries(d.provedores||{}).map(([k,p])=>
+      '<button type="button" class="bsocial" data-p="'+k+'"'+(p.pronto?'':' disabled')+
+      (p.motivo?' title="'+esc(p.motivo)+'"':'')+'>'+(LOGOS[k]||'')+
+      '<span>Continuar com '+esc(p.nome)+'</span>'+
+      (p.pronto?'':'<span class="aviso">não configurado</span>')+'</button>').join('');
+
+    s.querySelectorAll('.bsocial').forEach(b=>b.onclick=()=>{
+      location.href='/auth/'+b.dataset.p;
+    });
+
+    if(!Object.values(d.provedores||{}).some(p=>p.pronto)){
+      $('ou').style.display='none';
+    }
+  }catch(e){ recado('Não consegui falar com o Bigode. Ele está rodando?'); }
+}
+
+function trocarModo(novo,silencioso){
+  modo=novo;
+  const criar=modo==='criar';
+  $('titulo').textContent=criar?(primeiroAcesso?'Criar sua conta':'Criar conta'):'Bem-vindo de volta';
+  $('subtitulo').textContent=criar?'Leva dez segundos'
+    :'Sua assistente que guarda tudo no seu computador';
+  $('campoNome').style.display=criar?'block':'none';
+  $('botao').textContent=criar?'Criar conta e entrar':'Entrar';
+  $('senha').setAttribute('autocomplete',criar?'new-password':'current-password');
+  $('rodapeTexto').textContent=criar?'Já tem conta?':'Ainda não tem conta?';
+  $('alternar').textContent=criar?'Entrar':'Criar conta';
+  $('primeiro').style.display=(criar&&primeiroAcesso)?'block':'none';
+  $('rodape').style.display=primeiroAcesso?'none':'block';
+  if(!silencioso)$('recado').className='recado';
+}
+
+$('alternar').onclick=()=>trocarModo(modo==='criar'?'entrar':'criar');
+
+$('forma').onsubmit=async ev=>{
+  ev.preventDefault();
+  const b=$('botao'); b.disabled=true; b.textContent='Um instante…';
+  try{
+    const rota=modo==='criar'?'/api/login/criar':'/api/login/entrar';
+    const r=await(await fetch(rota,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:$('nome').value,email:$('email').value,
+        senha:$('senha').value})})).json();
+    if(r.ok){ recado('Entrando…',true); location.href='/'; return; }
+    recado(r.erro||'Não deu certo.');
+  }catch(e){ recado('Falha de conexão com o Bigode.'); }
+  b.disabled=false;
+  trocarModo(modo,true);
+};
+
+/* Cursor no primeiro campo vazio: quem abre a tela ja pode digitar. */
+setTimeout(()=>{const c=$('email').value?$('senha'):$('email');c.focus();},120);
+
+const erroUrl=new URLSearchParams(location.search).get('erro');
+if(erroUrl) recado(decodeURIComponent(erroUrl));
+
+inicio();
+</script>
+</body>
+</html>
