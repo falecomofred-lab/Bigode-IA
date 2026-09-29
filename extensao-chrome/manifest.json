@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Bigode IA",
   "short_name": "Bigode",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sua IA local da Venure dentro do Chrome. Analisa a página, resume e programa sem sair do navegador.",
 
   "permissions": ["sidePanel", "contextMenus", "storage", "activeTab",

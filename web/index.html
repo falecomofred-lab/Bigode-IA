@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bigode IA — Venure</title>
 <link rel="manifest" href="/manifest.json">
 <!-- O ?v= existe para o Chrome buscar de novo: ele guarda o icone da aba com
@@ -93,20 +93,20 @@ body>*{position:relative;z-index:1}
 
 .lnovo{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;
        border-radius:10px;background:var(--sup2);border:1px solid var(--linha2);
-       font-size:13.5px;font-weight:600;color:var(--txt);transition:.15s;margin-bottom:12px}
+       font-size:14px;font-weight:600;color:var(--txt);transition:.15s;margin-bottom:12px}
 .lnovo:hover{border-color:var(--ac);color:var(--ac)}
 .lnovo svg{color:var(--ac)}
 
 .lit{display:flex;align-items:center;gap:11px;width:100%;padding:8px 11px;border-radius:9px;
-     font-size:13.5px;color:var(--txt2);transition:.13s;text-align:left}
+     font-size:14px;color:var(--txt2);transition:.13s;text-align:left}
 .lit:hover{background:var(--sup);color:var(--txt)}
 .lit.on{background:var(--sup2);color:var(--txt);font-weight:500}
 .lit svg{color:var(--mudo);flex-shrink:0}
 .lit:hover svg,.lit.on svg{color:var(--ac)}
-.lit .num{margin-left:auto;font-size:11px;color:var(--fraco);
+.lit .num{margin-left:auto;font-size:12px;color:var(--fraco);
           font-variant-numeric:tabular-nums}
 
-.lgrupo{font-size:10px;letter-spacing:1.6px;color:var(--fraco);font-weight:700;
+.lgrupo{font-size:11px;letter-spacing:1.6px;color:var(--fraco);font-weight:700;
         padding:0 11px;margin:18px 0 7px}
 .lrec{display:flex;align-items:center;gap:6px;width:100%;padding:7px 8px 7px 11px;
       border-radius:8px;font-size:13px;color:var(--txt2);transition:.13s;
@@ -150,15 +150,15 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .marca{display:flex;align-items:center;gap:10px}
 .selo{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;
       background:linear-gradient(140deg,var(--ac2),var(--ac));overflow:hidden}
-.marca b{font-size:15.5px;font-weight:600;letter-spacing:-.2px}
-.marca i{font-size:9px;letter-spacing:2.2px;color:var(--fraco);font-weight:700;
+.marca b{font-size:16px;font-weight:600;letter-spacing:-.2px}
+.marca i{font-size:11px;letter-spacing:2.2px;color:var(--fraco);font-weight:700;
          font-style:normal;margin-left:3px}
-.tituloTopo{font-size:13.5px;color:var(--txt2);white-space:nowrap;overflow:hidden;
+.tituloTopo{font-size:14px;color:var(--txt2);white-space:nowrap;overflow:hidden;
             text-overflow:ellipsis;min-width:0}
 .dir{margin-left:auto;display:flex;align-items:center;gap:7px}
 .chip{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;
       background:var(--sup);border:1px solid var(--linha);border-radius:16px;
-      font-size:12.5px;color:var(--txt2);max-width:240px;transition:.15s}
+      font-size:13px;color:var(--txt2);max-width:240px;transition:.15s}
 .chip:hover{border-color:var(--linha2);color:var(--txt)}
 .chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pulso{width:7px;height:7px;border-radius:50%;background:var(--alerta);flex-shrink:0;
@@ -186,17 +186,17 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
    distorcer. object-fit:cover recorta o excedente em vez de esticar. */
 .selo img,.vmark img,.viva .vmarca img{width:100%;height:100%;object-fit:cover;
   border-radius:inherit;display:block}
-.vnome{font-size:11.5px;letter-spacing:7px;font-weight:700;color:var(--txt2);
+.vnome{font-size:12px;letter-spacing:7px;font-weight:700;color:var(--txt2);
        padding-left:7px;margin-bottom:20px}
 .inicio h2{font-size:24px;font-weight:600;letter-spacing:-.5px;margin-bottom:7px}
-.inicio p{color:var(--mudo);font-size:14.5px;max-width:430px;margin:0 auto}
+.inicio p{color:var(--mudo);font-size:15px;max-width:430px;margin:0 auto}
 .exemplos{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:30px}
 .ex{background:var(--sup);border:1px solid var(--linha);border-radius:20px;
     padding:9px 16px;font-size:13px;color:var(--txt2);transition:.15s}
 .ex:hover{border-color:var(--ac);color:var(--txt)}
 
 .fala{margin-bottom:30px;animation:sobe .3s ease both}
-.rot{font-size:10.5px;letter-spacing:1.5px;font-weight:700;color:var(--fraco);
+.rot{font-size:11px;letter-spacing:1.5px;font-weight:700;color:var(--fraco);
      text-transform:uppercase;margin-bottom:8px}
 .fala.eu .md{background:var(--sup);border:1px solid var(--linha);
              border-radius:4px 14px 14px 14px;padding:12px 17px}
@@ -205,8 +205,8 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .md p{margin:0 0 12px}.md p:last-child{margin-bottom:0}
 .md h1,.md h2,.md h3,.md h4{font-weight:600;letter-spacing:-.2px;margin:20px 0 10px;
      line-height:1.35}
-.md h1{font-size:20px}.md h2{font-size:17.5px}.md h3{font-size:15.5px}
-.md h4{font-size:14.5px;color:var(--txt2)}
+.md h1{font-size:20px}.md h2{font-size:18px}.md h3{font-size:16px}
+.md h4{font-size:15px;color:var(--txt2)}
 .md ul,.md ol{margin:0 0 12px;padding-left:22px}
 .md li{margin-bottom:5px}.md li::marker{color:var(--fraco)}
 .md blockquote{border-left:2px solid var(--linha2);padding-left:14px;color:var(--txt2);
@@ -214,24 +214,24 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .md hr{border:none;border-top:1px solid var(--linha);margin:20px 0}
 .md code{background:#1A2029;padding:2px 6px;border-radius:5px;
      font:13px ui-monospace,Consolas,monospace;color:#7DD3D8}
-.md table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:13.5px}
+.md table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:14px}
 .md th,.md td{border:1px solid var(--linha);padding:8px 11px;text-align:left}
-.md th{background:var(--sup);font-weight:600;color:var(--txt2);font-size:12.5px}
+.md th{background:var(--sup);font-weight:600;color:var(--txt2);font-size:13px}
 .bloco{margin:14px 0;border:1px solid var(--linha);border-radius:11px;overflow:hidden;
        background:#0C1016}
 .bloco .bh{display:flex;align-items:center;padding:7px 12px;background:var(--sup);
            border-bottom:1px solid var(--linha)}
-.bloco .bl{font-size:11px;color:var(--fraco);letter-spacing:.5px;text-transform:uppercase;
+.bloco .bl{font-size:12px;color:var(--fraco);letter-spacing:.5px;text-transform:uppercase;
            font-weight:600}
-.bloco .bc{margin-left:auto;font-size:11.5px;color:var(--mudo);display:flex;gap:6px;
+.bloco .bc{margin-left:auto;font-size:12px;color:var(--mudo);display:flex;gap:6px;
            align-items:center;padding:3px 8px;border-radius:6px}
 .bloco .bc:hover{background:var(--sup2);color:var(--txt)}
 .bloco pre{padding:14px 16px;overflow-x:auto;margin:0}
-.bloco code{background:none;padding:0;color:#B4C3D6;font-size:12.8px;line-height:1.7}
+.bloco code{background:none;padding:0;color:#B4C3D6;font-size:13px;line-height:1.7}
 .acoes{display:flex;gap:2px;margin-top:9px;opacity:0;transition:.15s}
 .fala:hover .acoes{opacity:1}
 .abt{display:flex;align-items:center;gap:6px;padding:5px 9px;border-radius:7px;
-     font-size:11.5px;color:var(--fraco);transition:.13s}
+     font-size:12px;color:var(--fraco);transition:.13s}
 .abt:hover{background:var(--sup2);color:var(--txt)}
 .abt.feito{color:var(--ok)}
 
@@ -248,69 +248,69 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
                   width:1.5px;background:var(--linha2);border-radius:2px}
 .trabalho .th{display:none}          /* sem cabecalho, sem contador */
 .trabalho .tp{display:block}
-.passo{display:flex;gap:9px;align-items:flex-start;padding:4px 0;font-size:12.5px;
+.passo{display:flex;gap:9px;align-items:flex-start;padding:4px 0;font-size:13px;
        color:var(--mudo);animation:sobe .2s ease both;line-height:1.5}
 .passo .mk{width:13px;height:13px;color:var(--fraco);margin-top:3px;flex-shrink:0}
 .passo.ok .mk{color:var(--ac)}
 .passo .txt{min-width:0;flex:1}
-.passo .tit{color:var(--txt2);font-size:12.5px}
+.passo .tit{color:var(--txt2);font-size:13px}
 .passo.ok .tit{color:var(--mudo)}
-.passo .sub{font:11px ui-monospace,Consolas,monospace;color:var(--fraco);margin-top:1px;
+.passo .sub{font:12px ui-monospace,Consolas,monospace;color:var(--fraco);margin-top:1px;
             overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.passo .tempo{color:var(--fraco);font-size:10.5px;flex-shrink:0;margin-top:3px;
+.passo .tempo{color:var(--fraco);font-size:11px;flex-shrink:0;margin-top:3px;
               font-variant-numeric:tabular-nums}
 .passo .prev{margin-top:8px;background:var(--bg);border:1px solid var(--linha);
-             border-radius:8px;padding:9px 11px;font:11.5px ui-monospace,Consolas,monospace;
+             border-radius:8px;padding:9px 11px;font:12px ui-monospace,Consolas,monospace;
              color:var(--txt2);max-height:150px;overflow:auto;white-space:pre-wrap;display:none}
 .passo.expandido .prev{display:block}
-.passo .abrir{font-size:11px;color:var(--ac);margin-top:5px;display:inline-block}
+.passo .abrir{font-size:12px;color:var(--ac);margin-top:5px;display:inline-block}
 .cartao{display:flex;align-items:center;gap:11px;margin-top:8px;padding:10px 12px;
         background:var(--bg);border:1px solid var(--linha);border-radius:9px}
 .cartao img{width:17px;height:17px;border-radius:4px}
-.cartao .dom{font-size:12.5px;color:var(--txt);font-weight:500}
-.cartao .cam{font-size:11px;color:var(--fraco);overflow:hidden;text-overflow:ellipsis;
+.cartao .dom{font-size:13px;color:var(--txt);font-weight:500}
+.cartao .cam{font-size:12px;color:var(--fraco);overflow:hidden;text-overflow:ellipsis;
              white-space:nowrap}
 .gira{animation:girar 1s linear infinite}
 
 .pedido{background:linear-gradient(180deg,#1D1A11,#161A23);border:1px solid #4A3D1A;
         border-radius:12px;padding:16px 18px;margin:13px 0;animation:sobe .3s ease both}
 .pedido .ct{display:flex;align-items:center;gap:9px;margin-bottom:11px;color:var(--alerta);
-            font-size:11.5px;font-weight:700;letter-spacing:.7px}
+            font-size:12px;font-weight:700;letter-spacing:.7px}
 .pedido .cd{background:#0C1016;border:1px solid var(--linha);border-radius:9px;
-            padding:12px 14px;font:12.8px ui-monospace,Consolas,monospace;
+            padding:12px 14px;font:13px ui-monospace,Consolas,monospace;
             word-break:break-all;line-height:1.7}
 .pedido .bs{display:flex;gap:9px;margin-top:14px}
 .sim{background:var(--ok);color:#052A1E;padding:9px 20px;border-radius:9px;font-size:13px;
      font-weight:700}
 .nao{border:1px solid var(--linha2);color:var(--txt2);padding:9px 20px;border-radius:9px;
      font-size:13px}
-.fin{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600}
+.fin{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
 
-.plano{background:var(--sup);border:1px solid #2A4A55;border-radius:13px;padding:17px 19px;
+.plano{background:var(--sup);border:1px solid var(--linha2);border-radius:13px;padding:17px 19px;
        margin:14px 0;animation:sobe .3s ease both}
-.plano .pt{display:flex;align-items:center;gap:9px;color:var(--ac);font-size:11.5px;
+.plano .pt{display:flex;align-items:center;gap:9px;color:var(--ac);font-size:12px;
            font-weight:700;letter-spacing:.7px;margin-bottom:11px}
 .plano .obj{font-size:15px;font-weight:600;margin-bottom:14px;line-height:1.5}
 .plano ol{list-style:none;counter-reset:p;margin:0 0 4px}
-.plano li{counter-increment:p;position:relative;padding:8px 0 8px 34px;font-size:13.5px;
+.plano li{counter-increment:p;position:relative;padding:8px 0 8px 34px;font-size:14px;
           color:var(--txt2);border-top:1px solid var(--linha)}
 .plano li:first-child{border-top:none}
 .plano li::before{content:counter(p);position:absolute;left:0;top:9px;width:22px;height:22px;
                   border-radius:7px;background:var(--sup2);border:1px solid var(--linha2);
-                  color:var(--ac);font-size:11px;font-weight:700;display:grid;place-items:center}
+                  color:var(--ac);font-size:12px;font-weight:700;display:grid;place-items:center}
 .plano .pb{display:flex;gap:9px;margin-top:15px;flex-wrap:wrap}
-.plano .ok2{background:var(--ac);color:#04140F;padding:10px 20px;border-radius:9px;
-            font-size:13.5px;font-weight:700}
+.plano .ok2{background:var(--ac);color:#0A0C11;padding:10px 20px;border-radius:9px;
+            font-size:14px;font-weight:700}
 .plano .no2{border:1px solid var(--linha2);color:var(--txt2);padding:10px 20px;
-            border-radius:9px;font-size:13.5px}
-.plano .dica-p{font-size:11.5px;color:var(--fraco);margin-top:11px}
+            border-radius:9px;font-size:14px}
+.plano .dica-p{font-size:12px;color:var(--fraco);margin-top:11px}
 
 .obra{border:1px solid var(--linha);border-radius:12px;overflow:hidden;margin:13px 0;
       background:#0C1016;animation:sobe .3s ease both}
 .obra .oh{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--sup);
-          border-bottom:1px solid var(--linha);font-size:12.5px}
+          border-bottom:1px solid var(--linha);font-size:13px}
 .obra .oh .nm{font-weight:600;color:var(--txt)}
-.obra .oh .qt{margin-left:auto;color:var(--fraco);font-size:11.5px}
+.obra .oh .qt{margin-left:auto;color:var(--fraco);font-size:12px}
 .obra .grade2{display:grid;grid-template-columns:190px 1fr;min-height:150px}
 .obra .lista{border-right:1px solid var(--linha);padding:7px;overflow-y:auto;max-height:290px}
 .obra .arq{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:7px;
@@ -330,8 +330,59 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 /* ============ COMPOSITOR ============ */
 .base{flex-shrink:0;padding:6px 20px 20px;background:linear-gradient(transparent,var(--bg) 30%)}
 .ctx{max-width:730px;margin:0 auto 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+/* Painel Blender 3D (28/09): cada acao explica o que faz, em portugues claro */
+.b3-abrir{display:flex;align-items:center;gap:9px;height:34px;padding:0 14px;border-radius:17px;
+  border:1px solid var(--linha2);background:rgba(var(--ac-rgb),.10);color:var(--txt);font:inherit;
+  font-size:13px;cursor:pointer}
+.b3-abrir:hover{border-color:var(--ac);background:rgba(var(--ac-rgb),.2)}
+.b3-abrir b{color:var(--ac);font-weight:600}
+.b3-abrir .seta{color:var(--fraco);font-size:12px}
+.b3-status{display:flex;align-items:center;gap:8px;font-size:13px;padding:10px 12px;border-radius:10px;
+  background:var(--sup2);border:1px solid var(--linha);margin-bottom:6px}
+.b3-status i{width:8px;height:8px;border-radius:50%;background:var(--fraco);flex:0 0 8px}
+.b3-status.ok i{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.b3-status.off i{background:var(--erro)}
+.b3-hero{background:linear-gradient(180deg,rgba(var(--ac-rgb),.10),rgba(var(--ac-rgb),.03));border:1px solid var(--linha2);
+  border-radius:14px;padding:14px;margin:8px 0 12px}
+.b3-passo{font-size:13px;font-weight:600;margin:2px 0 7px;display:flex;align-items:center;gap:8px}
+.b3-passo b{width:20px;height:20px;border-radius:50%;background:var(--ac);color:#0A0C11;font-size:12px;
+  display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px}
+.b3-hero textarea{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--linha);border-radius:10px;
+  color:var(--txt);padding:10px 12px;font:inherit;font-size:14px;resize:vertical;margin-bottom:12px}
+.b3-hero textarea:focus{outline:none;border-color:var(--ac)}
+.b3-modos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.b3-modo{display:flex;gap:8px;align-items:flex-start;padding:10px;border:1px solid var(--linha);border-radius:10px;
+  background:var(--sup2);cursor:pointer}
+.b3-modo:has(input:checked){border-color:var(--ac);background:rgba(var(--ac-rgb),.14)}
+.b3-modo input{margin-top:3px;accent-color:var(--ac)}
+.b3-modo strong{display:block;font-size:13px}
+.b3-modo small{display:block;font-size:12px;color:var(--fraco);line-height:1.45;margin-top:2px}
+.b3-acoes{display:flex;flex-direction:column;gap:7px}
+.b3-acoes .bt{height:38px;font-size:13px}
+.b3-nota{font-size:12px;color:var(--mudo);margin-top:9px;line-height:1.5}
+.b3-mais{margin-top:4px}
+.b3-mais summary{cursor:pointer;font-size:13px;padding:10px 12px;border:1px dashed var(--linha);border-radius:10px;
+  color:var(--fraco);list-style:none}
+.b3-mais summary::before{content:"＋ ";color:var(--ac)}
+.b3-mais[open] summary::before{content:"－ "}
+@media (max-width:520px){.b3-modos{grid-template-columns:1fr}}
+.b3-card{background:var(--sup2);border:1px solid var(--linha);border-radius:12px;padding:13px 14px;margin-bottom:10px}
+.b3-card h4{margin:0 0 3px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.b3-card h4 span{font-size:16px}
+.b3-card p{margin:0 0 10px;font-size:12px;color:var(--fraco);line-height:1.55}
+.b3-card p em{color:var(--mudo);font-style:normal}
+.b3-linha{display:flex;gap:7px;flex-wrap:wrap}
+.b3-linha input,.b3-linha select{flex:1 1 140px;min-width:0;background:var(--bg);border:1px solid var(--linha);
+  border-radius:9px;color:var(--txt);padding:8px 10px;font:inherit;font-size:13px}
+.b3-linha .bt{flex:0 0 auto;height:34px}
+.b3-arq{font-size:12px;color:var(--mudo);margin-top:6px;word-break:break-all}
+.blender-bar .rot{font-size:12px;color:var(--ac);font-weight:600;letter-spacing:.3px;margin-right:2px;
+  display:flex;align-items:center;gap:5px}
+.blender-bar .atalho{height:25px;padding:0 10px;border-radius:13px;border:1px solid #5a3a22;
+  background:rgba(var(--ac-rgb),.08);color:var(--txt);font:inherit;font-size:12px;cursor:pointer}
+.blender-bar .atalho:hover{border-color:var(--ac);background:rgba(var(--ac-rgb),.18)}
 .tag{display:flex;align-items:center;gap:6px;height:25px;padding:0 10px;background:var(--sup);
-     border:1px solid var(--linha);border-radius:13px;font-size:11.5px;color:var(--mudo)}
+     border:1px solid var(--linha);border-radius:13px;font-size:12px;color:var(--mudo)}
 /* 6px em vez de 5px. Sem a moldura da pílula, a bolinha virou o único
    sinal -- e a 5px ela sumia ao lado do texto. */
 .tag .luz{width:6px;height:6px;border-radius:50%;background:var(--ok);
@@ -341,7 +392,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
    hora em que falha. */
 .tag.apagada{opacity:.45}
 .tag.apagada .luz{background:var(--fraco)}
-.tag.proj{border-color:#2E5560;color:var(--ac)}
+.tag.proj{border-color:rgba(var(--ac-rgb),.35);color:var(--ac)}
 .tag .fechar{color:var(--fraco);margin-left:2px}
 .tag .fechar:hover{color:var(--erro)}
 /* A BOLINHA FAZ O TRABALHO, A MOLDURA SAI DA FRENTE          (18/09)
@@ -377,7 +428,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
    ambar nunca apareceria, e a conexao muda continuaria pintada de verde
    como se estivesse respondendo. */
 .tag.interruptor.apagada:not(.off){opacity:1;color:var(--fraco)}
-.tag.interruptor.apagada:not(.off) .luz{background:#D9A441;border:0;
+.tag.interruptor.apagada:not(.off) .luz{background:var(--alerta);border:0;
      box-shadow:0 0 6px rgba(217,164,65,.5)}
 /* A caixa tem ~54px de altura, mas o campo de texto dentro dela começa com
    28px. Clicar no resto — a faixa acima e abaixo do texto — não fazia nada,
@@ -405,7 +456,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 @keyframes pulsar{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.35)}
                   70%{box-shadow:0 0 0 7px rgba(248,113,113,0)}}
 .env{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
-     background:var(--ac);color:#04140F;transition:.15s;flex-shrink:0}
+     background:var(--ac);color:#0A0C11;transition:.15s;flex-shrink:0}
 .env:hover{filter:brightness(1.08)}
 .env:disabled{opacity:.25;cursor:default}
 .env.parar{background:var(--erro);color:#2A0A0C}
@@ -435,7 +486,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
                   50%{opacity:.35;transform:scale(.82)}}
 @keyframes vgira{to{transform:rotate(360deg)}}
 .viva .vtxt{color:var(--mudo);font-weight:400}
-.viva .vseg{margin-left:auto;font-size:10.5px;color:var(--fraco);
+.viva .vseg{margin-left:auto;font-size:11px;color:var(--fraco);
             font-variant-numeric:tabular-nums;flex-shrink:0}
 
 @media (prefers-reduced-motion:reduce){
@@ -458,7 +509,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
    Ela some sozinha quando o turno acaba.                      (13/09) */
 .faixa-nav{position:fixed;top:0;left:0;right:0;z-index:90;
   display:flex;align-items:center;gap:11px;
-  padding:9px 15px;font-size:12.5px;
+  padding:9px 15px;font-size:13px;
   background:var(--ac);color:#fff;
   box-shadow:0 2px 14px rgba(0,0,0,.28);
   transform:translateY(-100%);transition:transform .22s ease}
@@ -486,20 +537,20 @@ body.com-faixa{padding-top:38px}
   .faixa-nav .fponto{animation:none}
 }
 
-.nota{max-width:730px;margin:9px auto 0;font-size:11.5px;color:var(--fraco);text-align:center}
+.nota{max-width:730px;margin:9px auto 0;font-size:12px;color:var(--fraco);text-align:center}
 
 /* rodape fino da casa */
-.rodape{max-width:730px;margin:10px auto 0;text-align:center;font-size:10.5px;
-        letter-spacing:1.6px;color:#3C4453;font-weight:600;text-transform:uppercase;
+.rodape{max-width:730px;margin:10px auto 0;text-align:center;font-size:11px;
+        letter-spacing:1.6px;color:var(--mudo);font-weight:600;text-transform:uppercase;
         user-select:none}
-.rodape span{color:#2B323E;margin:0 5px}
-.rodape a{color:#4A5464;text-decoration:none}
+.rodape span{color:var(--fraco);margin:0 5px}
+.rodape a{color:var(--txt2);text-decoration:none}
 .rodape a:hover{color:var(--txt2)}
 .rodape .lema{display:block;margin-top:3px;letter-spacing:1.1px;
-              color:#2F3642;font-weight:600}
+              color:var(--mudo);font-weight:600}
 /* A nota de direitos e a unica linha do rodape em caixa normal: e texto
    para ler, nao assinatura para reconhecer. */
-.rodape .direitos{display:block;margin-top:6px;color:#333A47;font-size:9.5px;
+.rodape .direitos{display:block;margin-top:6px;color:var(--fraco);font-size:11px;
   letter-spacing:0;text-transform:none;font-weight:400;line-height:1.5}
 
 /* ============ PAINEL: O QUE ESTA LIGADO ============
@@ -510,10 +561,10 @@ body.com-faixa{padding-top:38px}
 .painel .plinha{display:flex;align-items:baseline;gap:10px;
                 padding:7px 0;border-bottom:1px solid var(--linha)}
 .painel .plinha:last-child{border-bottom:0}
-.painel .prot{flex:0 0 94px;font-size:10.5px;font-weight:700;letter-spacing:1.1px;
+.painel .prot{flex:0 0 94px;font-size:11px;font-weight:700;letter-spacing:1.1px;
               text-transform:uppercase;color:var(--mudo)}
 .painel .pval{flex:1;font-size:13px;color:var(--txt);overflow-wrap:anywhere}
-.painel .pval small{display:block;color:var(--mudo);font-size:11.5px;margin-top:2px}
+.painel .pval small{display:block;color:var(--mudo);font-size:12px;margin-top:2px}
 .pauto{margin:0;padding:0;list-style:none}
 .pauto li{position:relative;padding:3px 0 3px 19px;color:var(--txt2);
           font-size:12px;line-height:1.5}
@@ -528,7 +579,7 @@ body.com-faixa{padding-top:38px}
 .descer{position:absolute;left:50%;top:-40px;transform:translate(-50%,6px);
         display:flex;align-items:center;gap:8px;padding:8px 15px;border-radius:20px;
         background:var(--sup2);border:1px solid var(--linha2);color:var(--txt2);
-        font-size:12.5px;z-index:12;opacity:0;pointer-events:none;transition:.2s;
+        font-size:13px;z-index:12;opacity:0;pointer-events:none;transition:.2s;
         box-shadow:0 6px 20px rgba(0,0,0,.4)}
 .descer.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
 .descer:hover{color:var(--txt);border-color:var(--ac)}
@@ -536,7 +587,7 @@ body.com-faixa{padding-top:38px}
 /* a base precisa ser referencia para o botao flutuar logo acima dela */
 .base{position:relative}
 .ouvindo{max-width:730px;margin:0 auto 8px;display:flex;align-items:center;gap:10px;
-         font-size:12.5px;color:var(--txt2)}
+         font-size:13px;color:var(--txt2)}
 .ouvindo .onda{display:flex;gap:3px;align-items:flex-end;height:15px}
 .ouvindo .onda i{width:3px;background:var(--erro);border-radius:2px;
                  animation:oscilar .9s ease-in-out infinite}
@@ -555,10 +606,72 @@ body.com-faixa{padding-top:38px}
 .mi:hover{background:var(--sup)}
 .mi svg{color:var(--mudo)}
 .mi:hover svg{color:var(--ac)}
-.mi b{font-size:13.5px;font-weight:500;display:block}
-.mi i{font-size:11.5px;color:var(--fraco);font-style:normal;display:block;line-height:1.4}
+.mi b{font-size:14px;font-weight:500;display:block}
+.mi i{font-size:12px;color:var(--fraco);font-style:normal;display:block;line-height:1.4}
 .msep{height:1px;background:var(--linha);margin:5px 8px}
 
+/* ============ CLONAR SITE (28/09) ============ */
+.gaveta.larga{width:980px}
+.gaveta.larga2{width:760px}
+.gaveta.larga2 .painel{max-width:none;margin-top:0}
+.gaveta.larga .painel{max-width:none;margin-top:0}
+.cl-passo{font-size:14px;font-weight:600;margin:4px 0 9px;display:flex;align-items:center;gap:8px}
+.cl-passo b{width:22px;height:22px;border-radius:50%;background:var(--ac);color:#0A0C11;font-size:12px;
+  display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px}
+.cl-modos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.cl-modo{border:1px solid var(--linha);background:var(--sup2);border-radius:12px;padding:13px;cursor:pointer;
+  text-align:left;color:var(--txt);font:inherit}
+.cl-modo strong{display:block;font-size:14px;margin-bottom:3px}
+.cl-modo small{color:var(--fraco);font-size:12px;line-height:1.45}
+.cl-modo.on{border-color:var(--ac);background:rgba(var(--ac-rgb),.13)}
+.cl-solta{border:2px dashed var(--linha);border-radius:12px;padding:22px;text-align:center;cursor:pointer;
+  color:var(--fraco);font-size:13px;margin-bottom:14px;transition:.15s}
+.cl-solta.sobre,.cl-solta:hover{border-color:var(--ac);color:var(--txt)}
+.cl-solta img{max-width:100%;max-height:220px;border-radius:8px;display:block;margin:0 auto 8px}
+.cl-campo{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--linha);border-radius:10px;
+  color:var(--txt);padding:10px 12px;font:inherit;font-size:14px;margin-bottom:12px}
+.cl-campo:focus{outline:none;border-color:var(--ac)}
+.cl-bt{width:100%;height:42px;border:0;border-radius:11px;background:var(--ac);color:#0A0C11;font:inherit;
+  font-size:14px;font-weight:600;cursor:pointer}
+.cl-bt:disabled{opacity:.5;cursor:default}
+.cl-aviso{font-size:12px;color:var(--mudo);margin:9px 0 0;line-height:1.5}
+.cl-prog{background:var(--sup2);border:1px solid var(--linha);border-radius:12px;padding:13px;margin:14px 0;font-size:13px}
+.cl-prog .at{display:flex;align-items:center;gap:9px;font-weight:600}
+.cl-prog .gira{width:14px;height:14px;border:2px solid var(--ac);border-right-color:transparent;border-radius:50%;
+  animation:clgira .8s linear infinite}
+@keyframes clgira{to{transform:rotate(360deg)}}
+.cl-prog ol{margin:8px 0 0 18px;padding:0;color:var(--fraco);font-size:12px;line-height:1.6}
+.cl-res{margin-top:14px}
+.cl-barra{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+.cl-barra button,.cl-barra a{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--linha);
+  background:var(--sup2);color:var(--txt);font:inherit;font-size:13px;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center}
+.cl-barra .on{border-color:var(--ac);background:rgba(var(--ac-rgb),.15)}
+.cl-quadro{background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--linha);margin:0 auto;transition:width .2s}
+.cl-quadro iframe{width:100%;height:520px;border:0;display:block;background:#fff}
+.cl-lado{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.cl-lado img{width:100%;border-radius:8px;border:1px solid var(--linha)}
+.cl-inc{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:10px 12px;
+  font-size:13px;margin-top:12px}
+.cl-inc ul{margin:5px 0 0 18px;padding:0}
+.cl-lista .it{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--linha);font-size:13px}
+.cl-lista .it span{flex:1}
+.cl-lista .it small{color:var(--mudo)}
+@media (max-width:700px){.cl-modos,.cl-lado{grid-template-columns:1fr}.cl-quadro iframe{height:420px}}
+/* ============ ESTUDIO MUSICAL (28/09) ============ */
+.em-modos{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.em-modo{border:1px solid var(--linha);background:var(--sup2);border-radius:12px;padding:11px;cursor:pointer;
+  text-align:left;color:var(--txt);font:inherit}
+.em-modo strong{display:block;font-size:14px;margin-bottom:2px}
+.em-modo small{color:var(--fraco);font-size:12px;line-height:1.4}
+.em-modo.on{border-color:var(--ac);background:rgba(var(--ac-rgb),.14)}
+.em-faixa{display:grid;grid-template-columns:110px 1fr 150px 44px;gap:10px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--linha)}
+.em-faixa b{font-size:13px}
+.em-faixa audio{width:100%;height:34px}
+.em-faixa input[type=range]{width:100%;accent-color:var(--ac)}
+.em-faixa .v{font-size:12px;color:var(--fraco);text-align:right}
+@media (max-width:700px){.em-faixa{grid-template-columns:80px 1fr;}.em-faixa input,.em-faixa .v{grid-column:span 1}}
 /* ============ PAINEL ============ */
 .veu{position:fixed;inset:0;background:rgba(6,9,14,.55);opacity:0;pointer-events:none;
      transition:.22s;z-index:60;backdrop-filter:blur(3px)}
@@ -567,10 +680,8 @@ body.com-faixa{padding-top:38px}
         background:var(--sup);border-left:1px solid var(--linha);transform:translateX(100%);
         transition:transform .26s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column}
 .gaveta.on{transform:none}
-  background:radial-gradient(70vw 60vh at 50% 0%,rgba(236,72,153,.16),transparent 65%),
-             linear-gradient(145deg,#100a12,#241022);z-index:63}
 .gcab{padding:18px 20px;border-bottom:1px solid var(--linha);display:flex;align-items:center}
-.gcab h3{font-size:16.5px;font-weight:600}
+.gcab h3{font-size:18px;font-weight:600}
 .gcab button{margin-left:auto}
 .gcorpo{flex:1;overflow-y:auto;padding:20px}
 /* ══════════════════════════════════════════════════════════════════════
@@ -654,40 +765,40 @@ header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
 }
 
 .painel{display:none}.painel.on{display:block;animation:sobe .2s ease both}
-.et{font-size:10px;letter-spacing:1.8px;color:var(--fraco);font-weight:700;margin:24px 0 11px}
+.et{font-size:11px;letter-spacing:1.8px;color:var(--fraco);font-weight:700;margin:24px 0 11px}
 .et:first-child{margin-top:0}
 .conn{background:var(--sup2);border:1px solid var(--linha);border-radius:12px;padding:14px 15px;
       margin-bottom:9px;transition:.16s}
-.conn.on{border-color:#26404A}
+.conn.on{border-color:rgba(var(--ac-rgb),.30)}
 .ch{display:flex;align-items:center;gap:12px}
 .cbox{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
-      background:#1A202B;flex-shrink:0}
+      background:var(--sup2);flex-shrink:0}
 .cn{font-size:14px;font-weight:600}
-.cs{font-size:11px;font-weight:700;letter-spacing:.6px;display:flex;align-items:center;gap:6px;
+.cs{font-size:12px;font-weight:700;letter-spacing:.6px;display:flex;align-items:center;gap:6px;
     margin-top:2px;color:var(--fraco)}
 .conn.on .cs{color:var(--ok)}
 .cs .luz{width:5px;height:5px;border-radius:50%;background:currentColor}
-.chave{margin-left:auto;width:38px;height:22px;border-radius:12px;background:#232A36;
+.chave{margin-left:auto;width:38px;height:22px;border-radius:12px;background:var(--linha2);
        position:relative;flex-shrink:0;transition:.2s;cursor:pointer}
-.chave i{position:absolute;width:16px;height:16px;border-radius:50%;background:#5E6879;top:3px;
+.chave i{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--mudo);top:3px;
          left:3px;transition:.2s cubic-bezier(.32,.72,0,1)}
 .chave.on{background:var(--ok)}.chave.on i{left:19px;background:#fff}
-.cd{font-size:12.5px;color:var(--mudo);margin-top:10px;line-height:1.6}
+.cd{font-size:13px;color:var(--mudo);margin-top:10px;line-height:1.6}
 .cmais{margin-top:12px;display:none}.cmais.on{display:block}
-.clink{font-size:12.5px;color:var(--ac);margin-top:10px;font-weight:500}
+.clink{font-size:13px;color:var(--ac);margin-top:10px;font-weight:500}
 .loja{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .item{background:var(--sup2);border:1px solid var(--linha);border-radius:12px;padding:12px;
       display:flex;align-items:center;gap:10px;transition:.16s}
 .item:hover{border-color:var(--ac)}
 .item .cbox{width:32px;height:32px;border-radius:9px}
-.item b{font-size:12.5px;font-weight:600;display:block}
-.item i{font-size:11px;color:var(--fraco);font-style:normal}
+.item b{font-size:13px;font-weight:600;display:block}
+.item i{font-size:12px;color:var(--fraco);font-style:normal}
 .campo{margin-bottom:15px}
-.campo label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
-.campo .aj{display:block;font-size:11.5px;color:var(--fraco);margin-bottom:8px;line-height:1.5}
+.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.campo .aj{display:block;font-size:12px;color:var(--fraco);margin-bottom:8px;line-height:1.5}
 .campo input,.campo select,.campo textarea{width:100%;background:var(--bg);
   border:1px solid var(--linha);border-radius:10px;padding:10px 13px;color:var(--txt);
-  font-size:13.5px;outline:none;transition:.15s}
+  font-size:14px;outline:none;transition:.15s}
 .campo input:focus,.campo select:focus,.campo textarea:focus{border-color:#31445E}
 .campo textarea{min-height:110px;resize:vertical;line-height:1.65}
 .par{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -695,51 +806,51 @@ header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
     border:1px solid var(--linha2);color:var(--txt2);padding:10px 17px;border-radius:10px;
     font-size:13px;transition:.15s}
 .bt:hover{color:var(--txt);border-color:#3A4658;background:var(--sup2)}
-.bt.forte{background:var(--ac);color:#04140F;border:none;font-weight:600}
+.bt.forte{background:var(--ac);color:#0A0C11;border:none;font-weight:600}
 .bt.larga{width:100%}
 .fila{display:flex;gap:8px}
 .linha-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:11px;
             border:1px solid var(--linha);background:var(--sup2);margin-bottom:7px;
             transition:.15s;cursor:pointer}
 .linha-item:hover{border-color:var(--linha2)}
-.li-t{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.li-s{font-size:11.5px;color:var(--fraco);margin-top:1px}
+.li-t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-s{font-size:12px;color:var(--fraco);margin-top:1px}
 .li-x{margin-left:auto;color:var(--fraco);opacity:0;transition:.15s;padding:4px}
 .linha-item:hover .li-x{opacity:1}
 .li-x:hover{color:var(--erro)}
 .busca{width:100%;background:var(--sup2);border:1px solid var(--linha);border-radius:10px;
-       padding:11px 14px;color:var(--txt);font-size:13.5px;outline:none;margin-bottom:14px}
+       padding:11px 14px;color:var(--txt);font-size:14px;outline:none;margin-bottom:14px}
 .vazio2{color:var(--fraco);font-size:13px;padding:18px 0;text-align:center}
 .tracos{display:flex;flex-wrap:wrap;gap:8px}
 .traco{border:1px solid var(--linha);background:var(--sup2);color:var(--txt2);padding:8px 15px;
        border-radius:20px;font-size:13px;transition:.15s;display:flex;align-items:center;gap:7px}
-.traco.on{border-color:#2E5560;color:var(--txt);font-weight:500}
+.traco.on{border-color:rgba(var(--ac-rgb),.35);color:var(--txt);font-weight:500}
 .traco .ck{width:14px;height:14px;color:var(--ac);opacity:0}
 .traco.on .ck{opacity:1}
 .expl{font-size:12px;color:var(--fraco);line-height:1.6;margin-top:13px;padding:12px 14px;
       background:var(--sup2);border:1px solid var(--linha);border-radius:10px;
       border-left:2px solid var(--ac)}
 .aviso-risco{background:#1D1611;border:1px solid #4A3D1A;color:#E8C877;border-radius:10px;
-             padding:12px 14px;font-size:12.5px;line-height:1.6;margin-top:11px}
+             padding:12px 14px;font-size:13px;line-height:1.6;margin-top:11px}
 /* modelos */
 .mod{display:flex;align-items:center;gap:13px;padding:13px 14px;border-radius:12px;
      border:1px solid var(--linha);background:var(--sup2);margin-bottom:8px;
      cursor:pointer;transition:.16s;position:relative}
 .mod:hover{border-color:var(--linha2)}
-.mod.atual{border-color:#2A4A55;background:#12212A}
+.mod.atual{border-color:var(--linha2);background:rgba(var(--ac-rgb),.07)}
 .mod.ruim{opacity:.5}
 .modlogo{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;
          background:#11161F;flex-shrink:0}
 .modinfo{min-width:0;flex:1}
 .modnome{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
-.modmarca{font-size:10px;font-weight:700;letter-spacing:.8px;padding:2px 7px;
+.modmarca{font-size:11px;font-weight:700;letter-spacing:.8px;padding:2px 7px;
           border-radius:5px;background:#1B2330;color:var(--txt2)}
-.modsub{font-size:11.5px;color:var(--fraco);margin-top:2px;white-space:nowrap;
+.modsub{font-size:12px;color:var(--fraco);margin-top:2px;white-space:nowrap;
         overflow:hidden;text-overflow:ellipsis}
-.modtag{font-size:10px;font-weight:700;letter-spacing:.6px;padding:3px 9px;
+.modtag{font-size:11px;font-weight:700;letter-spacing:.6px;padding:3px 9px;
         border-radius:20px;flex-shrink:0;font-family:inherit}
 .modtag.uso{background:rgba(52,211,153,.14);color:var(--ok)}
-.modtag.usar{background:var(--ac);color:#04140F}
+.modtag.usar{background:var(--ac);color:#0A0C11}
 .modtag.erro{background:rgba(248,113,113,.14);color:var(--erro)}
 /* Os dois destinos, um ao lado do outro. A PLACA e a escolha certa quase
    sempre, entao ela vem primeira e cheia; AQUI fica com contorno, como a
@@ -757,22 +868,22 @@ button.modtag:active{transform:scale(.95)}
 button.modtag.usar{background:transparent;color:var(--ac);
   border:1px solid rgba(94,234,212,.4)}
 button.modtag.usar:hover{background:rgba(94,234,212,.1)}
-.ligando{background:var(--sup2);border:1px solid #2A4A55;border-radius:12px;
+.ligando{background:var(--sup2);border:1px solid var(--linha2);border-radius:12px;
          padding:14px 16px;margin-bottom:12px;display:none}
 .ligando.on{display:block;animation:sobe .25s ease both}
-.ligando .lt{display:flex;align-items:center;gap:9px;font-size:13.5px;
+.ligando .lt{display:flex;align-items:center;gap:9px;font-size:14px;
              font-weight:600;margin-bottom:10px}
 .ligando .barra{height:6px;background:var(--bg);border-radius:4px;overflow:hidden}
 .ligando .barra i{display:block;height:100%;border-radius:4px;
                   background:linear-gradient(90deg,var(--ac),var(--ac2));
                   transition:width .6s ease;width:0}
-.ligando .lm{font-size:11.5px;color:var(--fraco);margin-top:8px;line-height:1.6}
+.ligando .lm{font-size:12px;color:var(--fraco);margin-top:8px;line-height:1.6}
 .mstat{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}
 .mstat div{background:var(--sup2);border:1px solid var(--linha);border-radius:10px;padding:11px}
 .mstat b{display:block;font-size:15px;font-weight:600}
-.mstat span{font-size:11px;color:var(--fraco)}
+.mstat span{font-size:12px;color:var(--fraco)}
 .toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,14px);background:var(--sup2);
-       border:1px solid var(--linha2);padding:11px 20px;border-radius:11px;font-size:13.5px;
+       border:1px solid var(--linha2);padding:11px 20px;border-radius:11px;font-size:14px;
        z-index:70;opacity:0;transition:.26s;pointer-events:none;display:flex;align-items:center;
        gap:9px}
 .toast.on{opacity:1;transform:translate(-50%,0)}
@@ -785,7 +896,7 @@ button.modtag.usar:hover{background:rgba(94,234,212,.1)}
 
 /* A hora da conversa na lista lateral: some quando o mouse chega, para dar
    lugar ao lápis de renomear. */
-.lrec-q{flex-shrink:0;font-size:10.5px;color:var(--fraco);transition:.15s}
+.lrec-q{flex-shrink:0;font-size:11px;color:var(--fraco);transition:.15s}
 .lrec:hover .lrec-q{opacity:0;width:0;overflow:hidden}
 
 /* Trocar de conversa sem piscar. */
@@ -816,7 +927,7 @@ button.modtag.usar:hover{background:rgba(94,234,212,.1)}
 @media(max-width:620px){
   header{gap:8px}
   .marca b{font-size:15px}.marca i{display:none}
-  .chip{padding:0 10px;font-size:11.5px;max-width:112px}
+  .chip{padding:0 10px;font-size:12px;max-width:112px}
   .rolo{padding:18px 12px 4px}
   .base{padding:6px 12px 14px}
   .compor{border-radius:22px;padding:7px 8px 7px 7px}
@@ -825,7 +936,7 @@ button.modtag.usar:hover{background:rgba(94,234,212,.1)}
   .exemplos{flex-direction:column;align-items:stretch}
   .ex{text-align:left}
   .inicio{padding:6vh 0 0}
-  .inicio h2{font-size:21px}
+  .inicio h2{font-size:20px}
   .menu{left:12px!important;right:12px;min-width:0;width:auto}
   .gaveta{width:100%;max-width:100%}
   .nota{display:none}
@@ -842,7 +953,7 @@ button.modtag.usar:hover{background:rgba(94,234,212,.1)}
     padding:15px;text-align:center;margin-top:10px}
 .qr .url{font:15px ui-monospace,Consolas,monospace;color:var(--ac);font-weight:600;
          word-break:break-all;margin-bottom:8px}
-.qr .passo-m{font-size:12.5px;color:var(--txt2);text-align:left;line-height:1.7;
+.qr .passo-m{font-size:13px;color:var(--txt2);text-align:left;line-height:1.7;
              margin-top:10px}
 .qr .passo-m b{color:var(--txt)}
 
@@ -874,7 +985,7 @@ button.modtag.usar:hover{background:rgba(94,234,212,.1)}
    um mes ninguem sabe mais se pode apagar. */
 .ajuda-rapida{display:flex;align-items:center;gap:8px;max-width:730px;margin:0 auto 8px;color:var(--mudo);font-size:12px}
 .ajuda-rapida strong{color:var(--txt2)}
-.ajuda-rapida .estado-rapido{margin-left:auto;padding:4px 8px;border-radius:10px;background:var(--sup2);border:1px solid var(--linha);font-size:11px}
+.ajuda-rapida .estado-rapido{margin-left:auto;padding:4px 8px;border-radius:10px;background:var(--sup2);border:1px solid var(--linha);font-size:12px}
 
 
 /* ================================================================
@@ -924,13 +1035,13 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
   .loja{grid-template-columns:1fr}
   .par{grid-template-columns:1fr}
   .conn,.mod,.obra,.plano,.pedido{border-radius:14px}
-  .nota,.rodape{font-size:10px}
+  .nota,.rodape{font-size:11px}
   .rodape{margin-top:7px}
 }
 @media(max-width:380px){
   .marca b{font-size:14px}
   .chip{max-width:112px;padding:0 8px}
-  .chip span{font-size:10.5px}
+  .chip span{font-size:11px}
   /* O MICROFONE FICA, MESMO NO ESTREITO                    (17/09)
      Aqui havia `.compor .red,.compor .mic{display:none}`. A barra lateral
      do Chrome tem menos de 380px, entao o microfone sumia justamente na
@@ -949,10 +1060,80 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
   .gaveta,.lateral,.menu,.painel.on{transition:none!important}
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   CAMADA CORPORATIVA                                              (28/09)
+   Auditoria pela habilidade "Criacao de site (UI/UX)" do proprio Bigode:
+   · contraste AA (4,5:1): os cinzas de apoio subiram
+   · UM acento so (o verde da marca); azul, roxo e laranja sairam
+   · foco visivel no teclado (Tab) em todo botao e campo
+   · area de toque >= 44px em tela de toque
+   · menos efeito: sem malha quadriculada, halos mais discretos
+   · escala de texto: 11 / 12 / 13 / 14 / 15 / 16 / 18 / 20 / 24
+   Fica no fim, num bloco so: apagar este trecho devolve o visual antigo.
+   ══════════════════════════════════════════════════════════════════════ */
+:root{--mudo:#8B95A7;--fraco:#808A9C;--neon:var(--ac)}
+body::after{display:none}
+body::before{opacity:.45}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+button:focus:not(:focus-visible),a:focus:not(:focus-visible){outline:none}
+.lgrupo,.et{letter-spacing:1.2px;font-weight:600}
+.expl{color:var(--txt2);font-size:13px;line-height:1.6}
+.ic{display:inline-flex;align-items:center;vertical-align:-3px;margin-right:7px;color:var(--ac)}
+.ic svg{flex-shrink:0}
+.b3-card h4 .ic{margin-right:0}
+.em-ou{display:flex;align-items:center;gap:10px;margin:12px 0 8px;font-size:12px;color:var(--mudo)}
+.em-ou::before,.em-ou::after{content:"";flex:1;height:1px;background:var(--linha2)}
+.cel4{margin-top:12px}
+.cel4 .b3-passo b{display:grid;place-items:center}
+.cel4 .b3-passo b .ic{margin:0;color:#0A0C11}
+.cel4-grade{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.cel4-foto{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:6px;border-radius:10px;
+  background:var(--bg);border:1px dashed var(--linha2);color:var(--txt);font:inherit;cursor:pointer;text-align:left}
+.cel4-foto:hover{border-color:var(--ac)}
+.cel4-foto.ok{border-style:solid;border-color:rgba(var(--ac-rgb),.55)}
+.cel4-foto.ok .cel4-img .ic{display:none}
+.cel4-img .ic{margin:0;color:var(--mudo)}
+.cel4-foto b{font-size:12px;font-weight:600}
+.cel4-foto small{font-size:11px;color:var(--mudo)}
+.cel4-img{aspect-ratio:3/4;border-radius:7px;background:var(--sup2) center/cover no-repeat;display:grid;place-items:center;color:var(--mudo)}
+.cel4-dicas{font-size:13px;color:var(--txt2);margin-bottom:10px}
+.cel4-dicas summary{cursor:pointer;color:var(--txt);font-weight:500;margin-bottom:6px}
+.cel4-dicas ul{padding-left:18px;display:grid;gap:4px}
+.cel4-qual{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--txt2);margin-bottom:10px;cursor:pointer}
+.cel4-qual input{margin-top:3px}
+@media (max-width:620px){.cel4-grade{grid-template-columns:repeat(2,1fr)}.cel4-img{aspect-ratio:1}}
+.cl-modo.on small,.em-modo.on small{color:var(--txt2)}
+#logs-discreto summary{opacity:1!important;color:var(--txt2)}
+.rodape .lema{display:inline;margin:0;letter-spacing:1.1px}
+body:has(.gaveta.on) #logs-discreto{display:none}
+@media (max-width:760px){#logs-discreto{display:none}}
+.em-modo strong,.cl-modo strong{display:flex;align-items:center}
+.gcab h3{font-size:16px;font-weight:600;letter-spacing:.1px}
+.gcab{gap:12px}
+.bico{min-width:36px;min-height:36px;display:grid;place-items:center;border-radius:9px}
+.bico:hover{background:var(--sup2)}
+.cl-bt{font-weight:600}
+.cl-bt:hover:not(:disabled){filter:brightness(1.06)}
+input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
+@media (pointer:coarse){
+  .lit,.lrec,.lnovo,.tag,.bt,.cl-barra button,.cl-barra a,.ex{min-height:44px}
+  .mic,.env,.red,.bico{min-width:44px;min-height:44px}
+}
+@media (max-width:760px){
+  /* 16px nos campos: o iPhone nao da zoom sozinho ao tocar (antes isso era
+     resolvido proibindo o zoom da pagina inteira, o que prejudica quem enxerga pouco) */
+  input,textarea,select{font-size:16px!important}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
 </style>
 <!-- A captacao de voz, compartilhada com a Pipi. Vem ANTES do script da
      pagina para o `window.Voz` ja existir quando ele rodar. -->
 <script src="/voz.js"></script>
+<script src="/conversa.js"></script>
 </head>
 <body>
 
@@ -987,7 +1168,7 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
     <div id="listaRecentes"><div class="lvazio">Carregando…</div></div>
     <button class="lit" style="margin-top:4px" onclick="irPara('historico')">
       <span style="width:16px"></span>
-      <span style="font-size:12.5px;color:var(--fraco)">Ver todas as conversas</span></button>
+      <span style="font-size:13px;color:var(--fraco)">Ver todas as conversas</span></button>
   </div>
 
   <div class="lpe">
@@ -1031,16 +1212,25 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
        levanta a duvida de que talvez nao pudesse. -->
   <div class="ajuda-rapida" id="ajudaRapida"><span>●</span><strong id="ajudaEstado">Preparando o Bigode…</strong><span class="estado-rapido" id="estadoRapido">verificando</span></div>
   <div class="ctx" id="ctx"></div>
+  <!-- ATALHOS DO BLENDER (28/09): so aparecem com a conexao Blender ligada.
+       Cada botao escreve o pedido na caixa; nada e enviado sem voce. -->
+  <div class="ctx blender-bar" id="blenderBar" style="display:none"></div>
   <div class="compor">
     <button class="red" id="btMais" onclick="abrirMenu(event)" title="Anexar arquivo, projeto ou manual" aria-label="Anexar arquivo, projeto ou manual">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-    <textarea id="entrada" rows="1" placeholder="Escreva o que você precisa…" aria-label="Sua mensagem"></textarea>
+    <textarea id="entrada" rows="1" placeholder="Escreva sua mensagem…" aria-label="Sua mensagem"></textarea>
     <button class="mic" id="btMic" onclick="alternarVoz()" title="Falar em vez de digitar (Ctrl+Espaço)" aria-label="Falar em vez de digitar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="2" width="6" height="12" rx="3"/>
         <path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></button>
+    <!-- MODO CONVERSA (28/09): "Ei, Bigode" e ele responde falando -->
+    <button class="mic" id="btConversa" onclick="alternarConversa()" title="Modo conversa: diga “Ei, Bigode” e ele responde falando" aria-label="Modo conversa por voz">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></button>
     <button class="env" id="btEnviar" onclick="enviar()" title="Enviar" aria-label="Enviar mensagem">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1057,23 +1247,22 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
        parece importante. Deixando vazio, quando algo aparecer ali, e
        porque aconteceu alguma coisa. -->
   <div class="nota" id="nota"></div>
-  <div class="rodape">VENURE <span>·</span>
-    <a href="https://venure.com.br" target="_blank" rel="noopener">venure.com.br</a>
-    <span class="lema">Tecnologia que muda vidas</span>
-    <span class="direitos">© <span id="anoAtual">2026</span> Venure.
-      Bigode IA é uma marca da Venure. Todos os direitos reservados.<br>
-      Roda na sua máquina — suas conversas não saem daqui.</span></div>
+  <div class="rodape"><a href="https://venure.com.br" target="_blank" rel="noopener">Venure</a>
+    <span>·</span><span class="lema">Tecnologia que muda vidas</span>
+    <span class="direitos">© <span id="anoAtual">2026</span> Bigode IA · roda no seu computador; as conversas não saem daqui.</span></div>
 </div>
 
 </div><!-- /tronco -->
 
 <div class="menu" id="menu"></div>
 <input type="file" id="arquivoInput" style="display:none">
+<input type="file" id="blenderInput" multiple style="display:none"
+  accept=".glb,.gltf,.obj,.fbx,.stl,.ply,.svg,.png,.jpg,.jpeg,.webp,.json">
 
 <div class="veu" id="veu" onclick="fecharPainel()"></div>
 <aside class="gaveta" id="gaveta">
   <div class="gcab"><h3 id="tituloPainel">Painel</h3>
-    <button class="bico" onclick="fecharPainel()">
+    <button class="bico" onclick="fecharPainel()" aria-label="Fechar painel" title="Fechar (Esc)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
@@ -1150,7 +1339,7 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
     <div class="painel" id="pn-editar-hab">
       <div class="campo"><label id="hTituloEdit">Manual</label>
         <span class="aj">O cabeçalho entre --- controla nome, gatilhos e se está ativo</span>
-        <textarea id="hTexto" style="min-height:340px;font:12.5px/1.7 ui-monospace,Consolas,monospace"></textarea></div>
+        <textarea id="hTexto" style="min-height:340px;font:13px/1.7 ui-monospace,Consolas,monospace"></textarea></div>
       <div class="fila"><button class="bt forte" onclick="salvarHabilidade()">Salvar</button>
         <button class="bt" onclick="abrirPainel('habilidades')">Voltar</button>
         <button class="bt" onclick="apagarHabilidade()" style="margin-left:auto">Apagar</button></div>
@@ -1202,6 +1391,263 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
             Enviar formulário e comprar continuam pedindo sua autorização.</span></div>
         <button class="bt forte larga" onclick="salvarEsp()">Criar especialista</button>
       </div>
+    </div>
+
+    <div class="painel" id="pn-blender">
+      <div class="b3-status" id="b3Status"><i></i><span>Conferindo o Blender…</span></div>
+
+      <div class="b3-hero">
+        <div class="b3-passo"><b>1</b> O que você quer criar?</div>
+        <textarea id="b3Livre" rows="2" placeholder="Escreva como falaria com uma pessoa. Ex.: um gato laranja sentado"></textarea>
+        <div class="b3-passo"><b>2</b> Como quer que fique?</div>
+        <div class="b3-modos">
+          <label class="b3-modo"><input type="radio" name="b3Modo" value="detalhado" checked>
+            <span><strong>Detalhado</strong><small>Parece de verdade, com textura. Leva 1 a 3 min.</small></span></label>
+          <label class="b3-modo"><input type="radio" name="b3Modo" value="simples">
+            <span><strong>Rápido e simples</strong><small>Montado com bolas e cubos, estilo brinquedo. Segundos.</small></span></label>
+        </div>
+        <div class="b3-acoes">
+          <button class="bt forte larga" onclick="b3Criar()">Criar</button>
+          <button class="bt larga" onclick="b3Arquivo('foto3d')"><i class="ic" data-ic="camera"></i>Tenho foto(s) — criar a partir delas</button>
+          <div class="b3-nota" style="margin-top:2px">Dica: escolha <b>2 a 4 fotos do MESMO objeto</b> (frente, lado, costas) de uma vez — a forma sai muito mais fiel.
+            <label style="display:inline-flex;gap:5px;align-items:center;margin-left:6px"><input type="radio" name="b3Qual" value="normal" checked>normal</label>
+            <label style="display:inline-flex;gap:5px;align-items:center;margin-left:6px"><input type="radio" name="b3Qual" value="maxima">qualidade máxima (textura 2048)</label>
+            · Não gostou do resultado? escreva <i>"outra variação no blender"</i>.</div>
+        </div>
+        <div class="b3-nota">No modo <b>Detalhado</b> o Bigode tenta, nesta ordem: <b>1)</b> TRELLIS na sua conta Modal (melhor, aceita várias fotos) →
+          <b>2)</b> Hugging Face (limite grátis por dia) → <b>3)</b> o seu próprio PC (sem limite, qualidade menor) →
+          <b>4)</b> formas simples. Você não precisa fazer nada.
+          <div id="b3Local" style="margin-top:4px"></div></div>
+      </div>
+
+      <!-- FOTOGRAFAR PELO CELULAR (28/09): 4 lados do objeto -> TRELLIS com
+           varias vistas -> modelo 3D no Blender. A 1a foto (frente) define a
+           posicao em que o modelo fica de pe. -->
+      <div class="b3-hero cel4" id="cel4">
+        <div class="b3-passo"><b><i class="ic" data-ic="celular"></i></b> Fotografar pelo celular — 4 lados</div>
+        <div class="b3-nota" style="margin:0 0 10px">Quanto mais lados, mais fiel a forma e a textura.
+          Toque em cada quadro: no celular, a câmera abre direto.</div>
+        <div class="cel4-grade">
+          <button class="cel4-foto" data-lado="frente" onclick="celFoto(this)"><span class="cel4-img"><i class="ic" data-ic="camera"></i></span><b>1 · Frente</b><small>obrigatória</small></button>
+          <button class="cel4-foto" data-lado="lado-esquerdo" onclick="celFoto(this)"><span class="cel4-img"><i class="ic" data-ic="camera"></i></span><b>2 · Lado esquerdo</b><small>recomendada</small></button>
+          <button class="cel4-foto" data-lado="costas" onclick="celFoto(this)"><span class="cel4-img"><i class="ic" data-ic="camera"></i></span><b>3 · Costas</b><small>recomendada</small></button>
+          <button class="cel4-foto" data-lado="lado-direito" onclick="celFoto(this)"><span class="cel4-img"><i class="ic" data-ic="camera"></i></span><b>4 · Lado direito</b><small>recomendada</small></button>
+        </div>
+        <input type="file" id="celInput" accept="image/*" capture="environment" style="display:none">
+        <details class="cel4-dicas"><summary>Como fotografar para sair bem feito</summary>
+          <ul>
+            <li>Objeto <b>inteiro</b> na foto e no <b>centro</b>, com um pouco de folga nas bordas.</li>
+            <li>Mesma <b>distância</b> e mesma <b>altura</b> nas 4 fotos — gire o objeto ou ande ao redor dele.</li>
+            <li>Fundo <b>liso</b> (parede, lençol, folha grande) e <b>luz clara</b> sem sombra forte. Evite contraluz.</li>
+            <li>Sem flash em objeto brilhante; sem mão ou outro objeto na frente.</li>
+          </ul></details>
+        <label class="cel4-qual"><input type="checkbox" id="celMax" checked> Qualidade máxima (textura 2048 e mais detalhe na malha — ~1 min a mais)</label>
+        <button class="bt forte larga" id="celCriar" onclick="celCriar()" disabled>Tire pelo menos a foto de frente</button>
+        <div class="b3-nota" id="celLink" style="margin-top:8px"></div>
+      </div>
+
+      <details class="b3-mais">
+        <summary>Outras funções</summary>
+      <div class="et">CRIAR</div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="caixa"></i>Objeto pronto da biblioteca</h4>
+        <p>Busca um modelo 3D <b>real</b> numa biblioteca gratuita (Poly Haven) e coloca na cena.
+          Melhor opção para objetos comuns. <em>Ex.: cadeira de madeira, vaso com planta, barril.</em></p>
+        <div class="b3-linha"><input id="b3Bib" placeholder="O que você quer? ex.: cadeira de madeira">
+          <button class="bt forte" onclick="b3Enviar('coloque no blender '+b3Val('b3Bib')+' da biblioteca','b3Bib')">Colocar</button></div>
+      </div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="pessoa"></i>Pessoa realista</h4>
+        <p>Cria uma pessoa com corpo e rosto realistas. Preencha o básico. Para detalhes de rosto,
+          cole uma ficha JSON completa na conversa.</p>
+        <div class="b3-linha">
+          <select id="b3Sexo"><option value="male">Homem</option><option value="female">Mulher</option></select>
+          <input id="b3Idade" type="number" min="1" max="90" value="35" title="Idade" style="flex:0 0 70px">
+          <select id="b3Etnia"><option value="african">Negra / africana</option><option value="caucasian">Branca / europeia</option><option value="asian">Asiática</option></select>
+        </div>
+        <div class="b3-linha" style="margin-top:7px">
+          <select id="b3Cabelo"><option value="short">Cabelo curto</option><option value="afro">Afro</option><option value="long">Longo</option><option value="ponytail">Rabo de cavalo</option><option value="braid">Trança</option><option value="bob">Chanel</option><option value="bald">Careca</option></select>
+          <select id="b3Roupa"><option value="sim">Com roupa</option><option value="nao">Sem roupa</option></select>
+          <button class="bt forte" onclick="b3Pessoa()">Criar pessoa</button>
+        </div>
+      </div>
+
+      <div class="et">MUDAR O QUE JÁ EXISTE</div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="sol"></i>Céu e iluminação</h4>
+        <p>Troca o ambiente da cena: a luz e o reflexo passam a vir de um céu real.</p>
+        <div class="b3-linha"><select id="b3Ceu"><option value="por do sol">Pôr do sol</option><option value="studio">Estúdio (luz neutra)</option><option value="sky">Céu limpo de dia</option><option value="night">Noite</option><option value="forest">Floresta</option><option value="city">Cidade</option></select>
+          <button class="bt forte" onclick="b3Enviar('coloque no blender um hdri de '+b3Val('b3Ceu'))">Aplicar</button></div>
+      </div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="camadas"></i>Material em um objeto</h4>
+        <p>Veste um objeto com um material real (madeira, tijolo, metal, pedra…).
+          Veja o nome do objeto no Blender, na lista do canto superior direito.</p>
+        <div class="b3-linha"><input id="b3Mat" placeholder="Material: madeira">
+          <input id="b3MatObj" placeholder="Nome do objeto no Blender">
+          <button class="bt forte" onclick="b3Enviar('aplique no blender textura de '+b3Val('b3Mat')+' no objeto '+b3Val('b3MatObj'),'b3Mat')">Aplicar</button></div>
+      </div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="etiqueta"></i>Colocar uma imagem (rótulo, logo, foto)</h4>
+        <p>Escolha uma imagem. Se você informar o nome de um objeto, ela é aplicada nele (ex.: rótulo
+          na garrafa). Se deixar em branco, ela vira uma <b>placa em pé</b> na cena.</p>
+        <div class="b3-linha"><input id="b3RotObj" placeholder="Objeto (opcional)">
+          <button class="bt forte" onclick="b3Arquivo('rotulo')">Escolher imagem</button></div>
+      </div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="baixar"></i>Trazer um arquivo 3D ou um logo</h4>
+        <p>Importa modelos que você já tem: <b>.glb .obj .fbx .stl</b>. Um <b>.svg</b> (logo)
+          vira uma peça com volume, de 1 metro de largura.</p>
+        <div class="b3-linha"><input id="b3ImpAlt" placeholder="Altura final (opcional), ex.: 30 cm">
+          <button class="bt forte" onclick="b3Arquivo('importar')">Escolher arquivo</button></div>
+      </div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="regua"></i>Desenhos de referência (frente, lado, topo)</h4>
+        <p>Para modelar com a medida certa. Escolha 2 ou 3 imagens <b>nesta ordem: frente, lado, topo</b>.
+          Elas aparecem como fundo no Blender.</p>
+        <div class="b3-linha"><button class="bt forte larga" onclick="b3Arquivo('refs')">Escolher imagens</button></div>
+      </div>
+
+      <div class="et">CONFERIR E GUARDAR</div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="olho"></i>Ver como está a cena</h4>
+        <p>O Bigode tira uma foto da tela do Blender e diz o que vê e o que parece faltar.</p>
+        <button class="bt forte larga" onclick="b3Enviar('olhe a cena do blender e me diga o que falta')">Olhar a cena</button>
+      </div>
+      <div class="b3-card">
+        <h4><i class="ic" data-ic="salvar"></i>Salvar</h4>
+        <p><b>Projeto</b> salva o arquivo .blend (para continuar depois). <b>Imagem</b> salva um PNG
+          do que a câmera vê. Os dois vão para a pasta <em>producao_blender</em>.</p>
+        <div class="b3-linha"><input id="b3Nome" placeholder="Nome, ex.: garrafa_soul">
+          <button class="bt forte" onclick="b3Enviar('salve o projeto do blender como '+(b3Val('b3Nome')||'projeto'))">Salvar projeto</button>
+          <button class="bt" onclick="b3Enviar('salve um png da cena do blender')">Salvar imagem</button></div>
+      </div>
+      </details>
+      <div class="expl">Você também pode escrever direto na conversa, por exemplo:
+        <i>"crie um vaso de cerâmica azul no blender"</i> (detalhado) ou
+        <i>"crie um vaso simples no blender"</i> (rápido). Colar uma foto com <i>"crie isso no blender"</i> também funciona.</div>
+    </div>
+
+    <div class="painel" id="pn-estudio">
+      <div class="expl" style="margin-top:0">Separe uma música em partes (voz, bateria, baixo, outros instrumentos)
+        e monte uma <b>nova mixagem</b> mudando o volume de cada uma. Tudo roda no <b>seu PC</b>, nada vai para a internet.</div>
+      <div class="b3-status" id="emStatus"><i></i><span>Conferindo…</span></div>
+
+      <div class="cl-passo"><b>1</b> Escolha a música</div>
+      <div class="cl-solta" id="emSolta" onclick="$('emArq').click()">
+        <div id="emPrevia">Arraste o arquivo aqui ou <b>clique para escolher</b><br><small>MP3, WAV, FLAC ou OGG · até 150 MB</small></div>
+      </div>
+      <input type="file" id="emArq" accept=".mp3,.wav,.flac,.ogg,audio/*" style="display:none">
+      <div class="em-ou"><span>ou cole o link de um vídeo</span></div>
+      <input class="cl-campo" id="emUrl" type="url" inputmode="url" autocomplete="off"
+        placeholder="https://www.youtube.com/watch?v=…" aria-label="Link do vídeo" oninput="emUrlMudou()">
+      <div class="cl-aviso" id="emUrlAviso" style="margin-top:6px">YouTube, Instagram, SoundCloud, Vimeo e outros. O Bigode baixa só o áudio,
+        converte para MP3 e separa. Até 20 minutos. Use em vídeos seus, de quem autorizou, ou para estudo.</div>
+
+      <div class="cl-passo"><b>2</b> O que você quer separar?</div>
+      <div class="em-modos">
+        <button class="em-modo on" data-m="voz" onclick="emModo(this)"><strong><i class="ic" data-ic="mic"></i>Voz e instrumental</strong><small>Para karaokê ou tirar a voz. O mais rápido.</small></button>
+        <button class="em-modo" data-m="rapido" onclick="emModo(this)"><strong><i class="ic" data-ic="tambor"></i>4 partes</strong><small>Voz, bateria, baixo e outros.</small></button>
+        <button class="em-modo" data-m="seis" onclick="emModo(this)"><strong><i class="ic" data-ic="musica"></i>6 partes</strong><small>+ guitarra e piano (piano ainda é impreciso).</small></button>
+        <button class="em-modo" data-m="melhor" onclick="emModo(this)"><strong><i class="ic" data-ic="brilho"></i>4 partes, qualidade máxima</strong><small>Mais limpo, mas ~4x mais lento.</small></button>
+      </div>
+      <button class="cl-bt" id="emBt" onclick="emSeparar()">Separar agora</button>
+      <div class="cl-aviso">Uma música de 3 minutos leva de 2 a 6 minutos. Use em músicas suas, de clientes que
+        autorizaram, ou para estudo. Os arquivos ficam na pasta <b id="emPasta">Estudio</b>.</div>
+      <div class="cl-prog" id="emProg" style="display:none"></div>
+
+      <div id="emMesa" style="display:none">
+        <div class="cl-passo" style="margin-top:16px"><b>3</b> Mesa de mixagem — <span id="emNome"></span></div>
+        <div id="emFaixas"></div>
+        <div class="cl-barra" style="margin-top:12px">
+          <button class="on" onclick="emMixar('mp3')"><i class="ic" data-ic="fone"></i>Gerar mixagem (MP3)</button>
+          <button onclick="emMixar('wav')">Gerar em WAV (sem perda)</button>
+          <button onclick="emTocarTodas()">▶ Tocar todas juntas</button>
+          <button onclick="emPararTodas()">■ Parar</button>
+        </div>
+        <div id="emMixes"></div>
+      </div>
+
+      <div class="et" style="margin-top:22px">PROJETOS ANTERIORES</div>
+      <div class="cl-lista" id="emLista"><div class="vazio2">Carregando…</div></div>
+    </div>
+
+    <!-- MEMORIA DE FATOS (28/09): o que o Bigode lembra sobre voce -->
+    <div class="painel" id="pn-memoria">
+      <div class="expl" style="margin-top:0">Depois de cada conversa o Bigode anota o que <b>você disse</b> e vale
+        para o futuro — preferências, clientes, decisões de projeto. Na próxima pergunta ele usa só o que tem a ver.
+        Senhas, tokens e documentos <b>nunca</b> são anotados. Tudo fica no arquivo <b>memoria/fatos.json</b>, no seu PC.</div>
+      <label style="display:flex;align-items:center;gap:9px;margin:12px 0;font-size:14px;cursor:pointer">
+        <input type="checkbox" id="mfLigada" onchange="mfLigar(this.checked)"> Anotar e lembrar sozinho</label>
+      <div class="cl-passo"><b>+</b> Ensinar algo agora</div>
+      <div style="display:flex;gap:8px">
+        <input class="cl-campo" id="mfNovo" style="flex:1" placeholder="Ex.: Prefiro respostas curtas, com o código completo"
+          onkeydown="if(event.key==='Enter')mfAdicionar()">
+        <button class="cl-bt" style="width:auto;margin:0;padding:0 16px" onclick="mfAdicionar()">Guardar</button>
+      </div>
+      <div class="et" style="margin-top:20px">FATOS GUARDADOS <span id="mfConta"></span></div>
+      <div class="cl-lista" id="mfLista"><div class="vazio2">Carregando…</div></div>
+      <button class="tag" style="margin-top:14px;color:var(--erro)" onclick="mfApagarTudo()">Apagar tudo o que ele sabe</button>
+    </div>
+
+    <div class="painel" id="pn-clonar">
+      <div class="expl" style="margin-top:0">Mande um <b>print</b> de uma tela ou o <b>link</b> de um site.
+        O Bigode devolve os arquivos <b>index.html</b> e <b>style.css</b> prontos, que funcionam no celular e no computador.</div>
+
+      <div class="cl-passo"><b>1</b> O que você tem?</div>
+      <div class="cl-modos">
+        <button class="cl-modo on" id="clModoPrint" onclick="clModo('print')"><strong><i class="ic" data-ic="camera"></i>Um print (imagem)</strong>
+          <small>Recomendado. O Bigode olha a imagem e escreve o código parecido. Leva ~1 min.</small></button>
+        <button class="cl-modo" id="clModoLink" onclick="clModo('link')"><strong><i class="ic" data-ic="elo"></i>O link do site</strong>
+          <small>Copia o HTML e o CSS do próprio site. Segundos. Não funciona bem em sites feitos com JavaScript.</small></button>
+      </div>
+
+      <div id="clAreaPrint">
+        <div class="cl-passo"><b>2</b> Envie o print</div>
+        <div class="cl-solta" id="clSolta" onclick="$('clArq').click()">
+          <div id="clPrevia">Arraste a imagem aqui, <b>clique para escolher</b>,<br>ou copie o print e aperte <b>Ctrl+V</b> com este painel aberto.</div>
+        </div>
+        <input type="file" id="clArq" accept="image/*" style="display:none">
+        <textarea class="cl-campo" id="clDetalhes" rows="2" placeholder="Opcional: algo que a imagem não mostra. Ex.: a fonte é Montserrat; o botão é verde-água"></textarea>
+      </div>
+      <div id="clAreaLink" style="display:none">
+        <div class="cl-passo"><b>2</b> Cole o endereço</div>
+        <input class="cl-campo" id="clUrl" placeholder="https://www.exemplo.com.br">
+      </div>
+
+      <div class="cl-passo"><b>3</b> Dê um nome ao projeto</div>
+      <input class="cl-campo" id="clNome" placeholder="Ex.: landing-soul (opcional)">
+      <button class="cl-bt" id="clBt" onclick="clIniciar()">Clonar agora</button>
+      <div class="cl-aviso">Os arquivos ficam na pasta <b id="clPasta">Clones</b> dos seus projetos.
+        Use em sites seus, de clientes que autorizaram, ou para estudar o layout. Não publique cópia de site ou marca de terceiros.</div>
+
+      <div class="cl-prog" id="clProg" style="display:none"></div>
+
+      <div class="cl-res" id="clRes" style="display:none">
+        <div class="cl-passo"><b>4</b> Resultado</div>
+        <div class="cl-barra">
+          <button class="on" id="clVerCel" onclick="clTela(390)"><i class="ic" data-ic="celular"></i>Celular</button>
+          <button id="clVerPc" onclick="clTela(0)"><i class="ic" data-ic="monitor"></i>Computador</button>
+          <a id="clAbrir" target="_blank">Abrir em nova aba ↗</a>
+          <button onclick="clBaixar('index.html')">⬇ index.html</button>
+          <button onclick="clBaixar('style.css')">⬇ style.css</button>
+          <button onclick="clCopiar('index.html')">Copiar HTML</button>
+          <button onclick="clCopiar('style.css')">Copiar CSS</button>
+        </div>
+        <div class="cl-quadro" id="clQuadro"><iframe id="clFrame" title="Prévia do clone"></iframe></div>
+        <details class="cl-orig" id="clLado" style="display:none;margin-top:10px">
+          <summary style="cursor:pointer;font-size:13px"><i class="ic" data-ic="lupa"></i>Comparar com o print original</summary>
+          <img id="clOrig" alt="print original" style="width:100%;border-radius:8px;border:1px solid var(--linha);margin-top:8px">
+        </details>
+        <div class="cl-inc" id="clInc" style="display:none"></div>
+        <div class="cl-passo" style="margin-top:16px"><b>5</b> Quer mudar algo?</div>
+        <textarea class="cl-campo" id="clPedido" rows="2" placeholder="Escreva como falaria com um designer. Ex.: deixe o cabeçalho fixo no topo e o botão mais arredondado"></textarea>
+        <button class="cl-bt" id="clBtAjuste" onclick="clAjustar()">Aplicar ajuste</button>
+        <div class="cl-aviso">A versão anterior fica guardada na subpasta <i>versoes</i>.</div>
+      </div>
+
+      <div class="et" style="margin-top:22px">CLONES ANTERIORES</div>
+      <div class="cl-lista" id="clLista"><div class="vazio2">Carregando…</div></div>
     </div>
 
     <div class="painel" id="pn-artefatos">
@@ -1378,12 +1824,11 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
       <div class="expl" id="estadoExt">Verificando…</div>
 
       <div class="et">LIGAR NO CLAUDE</div>
-          </div>
-
-            <div class="expl" style="margin:2px 0 0;color:#f9a8d4">Seu estúdio visual, separado do Bigode.</div></div>
-        </div>
-        <div class="et" style="color:#f9a8d4">MOTOR DE IMAGEM</div>
-      </div>
+      <div class="expl" style="margin-top:0">O Claude Desktop pode usar o Bigode como ferramenta (arquivo
+        <code>mcp_servidor.py</code>). Em <code>%APPDATA%\Claude\claude_desktop_config.json</code>, dentro de
+        <code>"mcpServers"</code>, acrescente o item <b>"Bigode"</b> com <code>command</code> apontando para o
+        Python do Bigode (<code>%LOCALAPPDATA%\Bigode\python\python.exe</code>) e <code>args</code> com o caminho do
+        <code>mcp_servidor.py</code>. Depois feche o Claude pela bandeja (botão direito → Sair) e abra de novo.</div>
     </div>
 
   </div>
@@ -1407,6 +1852,7 @@ const LOGO={
  canva:'<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#00C4CC"/><path d="M15.4 14.6c-.9 1.3-2.2 2.1-3.5 2.1-1.9 0-3.1-1.5-3.1-3.6 0-3 2-6 4.3-6 1.1 0 1.8.7 1.8 1.6 0 .5-.2 1-.5 1.3-.2.2-.5.1-.5-.2 0-.6-.3-1-.8-1-1.2 0-2.5 2.2-2.5 4.3 0 1.3.6 2.1 1.6 2.1.9 0 1.8-.6 2.5-1.6.2-.3.6-.1.4.2z" fill="#fff"/></svg>',
  web:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg>',
  terminal:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#A3ACBB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m7 10 3 2.5L7 15M13 15h4"/></svg>',
+ blender:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5792A" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5 20.5 7v10L12 21.5 3.5 17V7z"/><path d="M3.5 7 12 11.5 20.5 7M12 11.5v10"/></svg>',
  mcp:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5 20.5 7v10L12 21.5 3.5 17V7z"/><path d="M12 7.5v9M8 9.5v5M16 9.5v5"/></svg>',
  api:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1"/><path d="M16 3h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-1"/></svg>',
  plug:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#A3ACBB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6M15 2v6"/><path d="M6 8h12v3.5a6 6 0 0 1-12 0Z"/><path d="M12 17.5V22"/></svg>'};
@@ -1423,9 +1869,13 @@ const MARCA={
  generico:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 0 0-3 3 3 3 0 0 0-2 5.2A3 3 0 0 0 9 19a3 3 0 0 0 3-1.5"/><path d="M12 5a3 3 0 0 1 3 3 3 3 0 0 1 2 5.2A3 3 0 0 1 15 19a3 3 0 0 1-3-1.5"/><path d="M12 5v14"/></svg>'};
 const marca=k=>MARCA[k]||MARCA.generico;
 const logo=k=>LOGO[k]||LOGO.plug;
-const IC={ok:'<path d="M20 6 9 17l-5-5"/>',girar:'<path d="M21 12a9 9 0 1 1-6.2-8.6"/>',
+const IC={camera:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',caixa:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',camadas:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/>',etiqueta:'<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1.5"/>',baixar:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',regua:'<path d="M21.3 8.7 8.7 21.3a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4L15.3 2.7a1 1 0 0 1 1.4 0l4.6 4.6a1 1 0 0 1 0 1.4z"/><path d="m7.5 10.5 2 2M10.5 7.5l2 2M4.5 13.5l2 2M13.5 4.5l2 2"/>',olho:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',salvar:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',elo:'<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',celular:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',monitor:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',lupa:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/>',tambor:'<ellipse cx="12" cy="8" rx="8" ry="3"/><path d="M4 8v8c0 1.7 3.6 3 8 3s8-1.3 8-3V8"/>',teclado:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 4v10M16 4v10M12 4v16M8 14v6M16 14v6"/>',brilho:'<path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',fone:'<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-7h3zM3 19a2 2 0 0 0 2 2h1v-7H3z"/>',memoria:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>',musica:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',codigo:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',ok:'<path d="M20 6 9 17l-5-5"/>',girar:'<path d="M21 12a9 9 0 1 1-6.2-8.6"/>',
  alerta:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+ /* alto-falante com as duas ondas: o botão de "leia isto para mim" */
+ falar:'<path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>'+
+       '<path d="M18.5 5.5a9 9 0 0 1 0 13"/>',
+ parar:'<rect x="6" y="6" width="12" height="12" rx="2"/>',
  pasta:'<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
  clipe:'<path d="M21.4 11.05 12.25 20.2a5 5 0 0 1-7.07-7.07l9.19-9.19a3.33 3.33 0 0 1 4.71 4.71l-9.2 9.19a1.67 1.67 0 0 1-2.36-2.36l8.49-8.48"/>',
  plug2:'<path d="M9 2v6M15 2v6"/><path d="M6 8h12v3.5a6 6 0 0 1-12 0Z"/><path d="M12 17.5V22"/>',
@@ -1464,6 +1914,7 @@ function toast(t,tipo){
 /* ---------- menu do + ---------- */
 const MENU=[
  ['clipe','Anexar um arquivo','Manda o conteúdo junto com a mensagem',()=>$('arquivoInput').click()],
+ ['clipe','Blender 3D','Criar, importar e ajustar projetos 3D',()=>abrirPainel('blender')],
  ['pasta','Trabalhar em um projeto','Fixa a pasta e as instruções',()=>abrirPainel('projetos')],
  ['livro','Manuais e habilidades','Ensine o jeito Venure de fazer',()=>abrirPainel('habilidades')],
  ['plug2','Conectar uma ferramenta','Google Drive, GitHub, Canva e outros',()=>abrirPainel('conexoes')],
@@ -1490,6 +1941,14 @@ document.addEventListener('click',e=>{if(!e.target.closest('#menu,#btMais'))fech
 
 $('arquivoInput').addEventListener('change',async e=>{
   const f=e.target.files[0]; if(!f)return;
+  /* IMAGEM NÃO SE LÊ COM f.text()                             (20/09)
+
+     Antes deste desvio, anexar um .png despejava os bytes binários do
+     arquivo dentro da caixa de texto — milhares de caracteres ilegíveis,
+     sem erro nenhum, e o modelo recebia aquilo como se fosse a pergunta.
+     Imagem vai para o olho do Bigode, não para o campo de texto. */
+  if(/^image\//.test(f.type||'')){ e.target.value=''; return verImagem(f); }
+
   if(f.size>400000)
     return toast('Esse arquivo é grande demais. O limite é 400 KB de texto.','erro');
 
@@ -1508,13 +1967,101 @@ $('arquivoInput').addEventListener('change',async e=>{
   nota.textContent=antes; e.target.value='';
 });
 
+/* ---------- o Bigode enxergando ---------- */
+/* Ctrl+V com um print na área de transferência. É como a pessoa REALMENTE
+   manda uma tela — ninguém salva em arquivo primeiro para depois anexar. */
+document.addEventListener('paste',ev=>{
+  /* Estudio aberto + link colado fora de um campo: vai direto para o campo do link */
+  const pnE=$('pn-estudio'), ae=document.activeElement;
+  if(pnE&&pnE.classList.contains('on')&&!(ae&&/INPUT|TEXTAREA/.test(ae.tagName))){
+    const t=((ev.clipboardData&&ev.clipboardData.getData('text'))||'').trim();
+    if(/^https?:\/\/\S+$/i.test(t)){ev.preventDefault();$('emUrl').value=t;emUrlMudou();$('emUrl').focus();return;}
+  }
+  const itens=(ev.clipboardData||{}).items||[];
+  for(const it of itens){
+    if(it.kind==='file'&&/^image\//.test(it.type||'')){
+      const arq=it.getAsFile();
+      if(arq&&clPainelAberto()){ ev.preventDefault(); clModo('print'); clUsarArquivo(arq); return; }
+      if(arq){ ev.preventDefault(); verImagem(arq); return; }
+    }
+  }
+});
+
+async function verImagem(arquivo){
+  if(arquivo.size>20000000)
+    return toast('Essa imagem é grande demais. O limite é 20 MB.','erro');
+
+  const nota=$('nota'), antes=nota.textContent;
+  nota.innerHTML='<span class="lendo-arq"><i></i>O Bigode está olhando a imagem…</span>';
+
+  /* A pergunta é o que já estiver escrito na caixa. Se não houver nada, o
+     endpoint usa a pergunta padrão dele — descrever e transcrever o texto.
+     Assim "que erro é esse?" + Ctrl+V funciona na ordem natural. */
+  const c=$('entrada');
+  const pergunta=(c.value||'').trim();
+
+  let dataURL;
+  try{
+    dataURL=await new Promise((ok,nao)=>{
+      const l=new FileReader();
+      l.onload=()=>ok(l.result); l.onerror=nao;
+      l.readAsDataURL(arquivo);
+    });
+  }catch(e){
+    nota.textContent=antes;
+    return toast('Não consegui ler essa imagem.','erro');
+  }
+
+  let r={};
+  try{
+    r=await(await fetch('/api/olhar',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imagem:dataURL,pergunta:pergunta,
+        /* "no blender", "em 3d", "modele": a imagem vira pecas 3D (28/09) */
+        modo:/blender|\b3d\b|modele|modelar|modelagem/i.test(pergunta)?'blender':''})})).json();
+  }catch(e){
+    nota.textContent=antes;
+    return toast('Não consegui falar com o Bigode.','erro');
+  }
+  nota.textContent=antes;
+
+  if(!r.ok){
+    if(r.desligado) return alert(r.erro||'A visão ainda não está publicada.');
+    return toast(r.erro||'Não consegui olhar a imagem.','erro');
+  }
+
+  /* O QUE ELE VIU ENTRA COMO TEXTO, E APARECE                 (20/09)
+
+     A descrição vai para a caixa de texto, visível, antes de ser enviada.
+     Poderia ir escondida junto com a mensagem — e aí, quando ele
+     descrevesse errado, a resposta sairia torta sem nada na tela
+     explicando por quê. Do jeito que está, você lê o que ele viu e pode
+     corrigir antes de mandar. */
+  if(/Monte no blender a referencia/i.test(r.texto||'')){
+    /* Imagem virou pecas 3D: a frase ja vem pronta para mandar. */
+    c.value=(r.texto||'').trim();
+  }else{
+  c.value=(pergunta?pergunta+'\n\n':'')+
+          'O que estou vendo na imagem (descrito pelo Bigode):\n'+
+          '```\n'+(r.texto||'').trim()+'\n```\n';
+  }
+  c.dispatchEvent(new Event('input')); c.focus();
+  toast('Imagem lida em '+(r.segundos||'?')+'s. Confira e mande.');
+}
+
 /* ---------- painel ---------- */
-const TITULOS={conexoes:'O que está conectado',projetos:'Meus projetos',
+const TITULOS={memoria:'Memória — o que ele sabe sobre você',estudio:'Estúdio musical — separar e mixar',clonar:'Clonar site — print ou link vira código',blender:'Blender 3D — o que o Bigode faz',conexoes:'O que está conectado',projetos:'Meus projetos',
  historico:'Conversas anteriores',personalidade:'Jeito de responder',
  ajustes:'Configurações',habilidades:'Meus manuais','editar-hab':'Editar manual',
  artefatos:'Arquivos que ele criou',programados:'Tarefas programadas',
  resultado:'Resultado da tarefa',especialistas:'Especialistas'};
 function abrirPainel(p){
+  if(p==='blender'){setTimeout(b3Status,0);setTimeout(celMostrarLink,0);}
+  $('gaveta').classList.toggle('larga',p==='clonar');
+  $('gaveta').classList.toggle('larga2',p==='estudio');
+  if(p==='estudio')setTimeout(emCarregar,0);
+  if(p==='memoria')setTimeout(mfCarregar,0);
+  if(p==='clonar')setTimeout(clCarregar,0);
   document.querySelectorAll('.painel').forEach(x=>x.classList.remove('on'));
   $('pn-'+p).classList.add('on'); $('tituloPainel').textContent=TITULOS[p]||p;
   $('veu').classList.add('on'); $('gaveta').classList.add('on');
@@ -1538,11 +2085,14 @@ function irPara(p){abrirPainel(p);fecharLateral();pintarNav(p);}
 const NAV=[
  ['pessoa',    'Especialistas','especialistas'],
  ['pasta',     'Projetos',     'projetos'],
- ['folha',     'Artefatos',    'artefatos'],
- ['livro',     'Skills',       'habilidades'],
+ ['folha',     'Arquivos',     'artefatos'],
+ ['livro',     'Manuais',      'habilidades'],
  ['plug2',     'Conexões',     'conexoes'],
+ ['codigo',    'Clonar site',  'clonar'],
+ ['musica',    'Estúdio musical','estudio'],
+ ['memoria',   'Memória',      'memoria'],
  ['calendario','Programados',  'programados'],
- ['pessoa',    'Personalizar', 'personalidade']];
+ ['lapis',     'Personalizar', 'personalidade']];
 
 let NAV_ATIVO='';
 function pintarNav(ativo){
@@ -1714,8 +2264,8 @@ async function carregarArtefatos(){
   $('listaArtefatos').innerHTML=lista.length?lista.map(a=>
     '<div class="linha-item" style="cursor:default"><div style="min-width:0;flex:1">'+
     '<div class="li-t">'+esc(a.nome)+
-    (a.existe?'':' <span style="color:var(--erro);font-size:11px">· não está mais lá</span>')+
-    (a.vezes>1?' <span style="color:var(--fraco);font-size:11px">· '+a.vezes+'×</span>':'')+
+    (a.existe?'':' <span style="color:var(--erro);font-size:12px">· não está mais lá</span>')+
+    (a.vezes>1?' <span style="color:var(--fraco);font-size:12px">· '+a.vezes+'×</span>':'')+
     '</div>'+
     '<div class="li-s" title="'+esc(a.caminho)+'">'+esc(a.pasta)+'</div>'+
     '<div class="li-s" style="color:var(--mudo);margin-top:4px">'+
@@ -1813,7 +2363,7 @@ async function verResultados(id){
     '<div class="li-s" style="color:'+(h.ok?'var(--ok)':'var(--erro)')+'">'+
     (h.ok?'RODOU':'NÃO RODOU')+' · '+esc((h.quando||'').replace('T',' ').slice(0,16))+
     (h.segundos?' · '+h.segundos+'s':'')+'</div>'+
-    '<div class="md" style="margin-top:9px;font-size:13.5px">'+md(h.texto||'')+'</div>'+
+    '<div class="md" style="margin-top:9px;font-size:14px">'+md(h.texto||'')+'</div>'+
     ((h.acoes&&h.acoes.length)?'<div class="li-s" style="margin-top:9px;color:var(--fraco)">'+
       esc(h.acoes.join(' · '))+'</div>':'')+
     '</div>').join('')||'<div class="vazio2">Sem resultados ainda.</div>';
@@ -1879,10 +2429,9 @@ document.addEventListener('click',e=>{
 });
 
 /* ---------- tela inicial ---------- */
-const EXEMPLOS=['Abra meu projeto e me diga o que tem dentro',
- 'Leia meu código e aponte os erros',
- 'Corrija este arquivo e me devolva completo',
- 'Meus repositórios no GitHub'];
+/* 28/09: o Fred pediu para tirar as quatro sugestoes da tela inicial.
+   Lista vazia = o bloco nem e desenhado. */
+const EXEMPLOS=[];
 function telaInicial(){
   // Aqui entra o gato de verdade, não o desenho: é a tela que você vê ao
   // abrir, e é o único lugar com espaço para ele aparecer inteiro.
@@ -1890,8 +2439,8 @@ function telaInicial(){
    '<img class="gato" src="/img/bigode.png" alt="" onerror="this.remove()">'+
    '<div class="vnome">BIGODE IA</div>'+
    '<h2>Como posso ajudar você hoje?</h2>'+
-   '<div class="exemplos">'+EXEMPLOS.map((e,i)=>
-     '<button class="ex" data-i="'+i+'">'+esc(e)+'</button>').join('')+'</div>'+
+   (EXEMPLOS.length?'<div class="exemplos">'+EXEMPLOS.map((e,i)=>
+     '<button class="ex" data-i="'+i+'">'+esc(e)+'</button>').join('')+'</div>':'')+
    painelHTML()+'</div>';
   pintarPainel();
   document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>{
@@ -2003,9 +2552,495 @@ async function status(){
   }
   pintarCtx();
 }
+/* ---------- Painel Blender 3D ---------- (28/09) */
+const b3Val=id=>(($(id)||{}).value||'').trim();
+function b3Criar(){
+  const o=b3Val('b3Livre');
+  if(!o)return toast('Escreva o que você quer criar.','erro');
+  const m=(document.querySelector('input[name=b3Modo]:checked')||{}).value;
+  b3Enviar((m==='simples'?'crie no blender (simples): ':'crie no blender (detalhado): ')+o,'b3Livre');
+}
+function b3Enviar(texto,limpar){
+  if(/ (da biblioteca|no objeto|blender) *$/.test(texto)&&!/[a-z0-9]/i.test(texto.replace(/coloque no blender|da biblioteca|aplique no blender textura de|no objeto|crie no blender/gi,''))){
+    return toast('Preencha o campo antes.','erro');
+  }
+  const c=$('entrada'); c.value=texto; c.dispatchEvent(new Event('input'));
+  if(limpar&&$(limpar))$(limpar).value='';
+  fecharPainel&&fecharPainel();
+  enviar();
+}
+function b3Pessoa(){
+  const cab={short:'short',afro:'afro',long:'long',ponytail:'ponytail',braid:'braid',bob:'bob',bald:'bald'}[b3Val('b3Cabelo')];
+  const ficha={demographics:{gender:b3Val('b3Sexo'),apparent_age:Number(b3Val('b3Idade'))||35,
+    ethnicity_features:b3Val('b3Etnia')},hair_system:{head_hair:{style:cab}}};
+  if(b3Val('b3Roupa')==='sim')ficha.wardrobe={type:'shirt'};
+  b3Enviar('crie no blender esta pessoa: '+JSON.stringify(ficha));
+}
+let b3Modo='';
+function b3Arquivo(modo){
+  b3Modo=modo;
+  const i=$('blenderInput');
+  i.accept={foto3d:'.png,.jpg,.jpeg,.webp',rotulo:'.png,.jpg,.jpeg,.webp',refs:'.png,.jpg,.jpeg,.webp',
+    importar:'.glb,.gltf,.obj,.fbx,.stl,.ply,.svg'}[modo]||'';
+  i.multiple=(modo==='refs'||modo==='foto3d');
+  i.click();
+}
+/* ---------- FOTOGRAFAR PELO CELULAR (28/09) ----------
+   Cada quadro guarda uma foto ja reduzida para 1600 px (JPEG 0,9): foto de
+   celular tem 3 a 12 MB e subir isso pelo Wi-Fi e o que mais demora. 1600 px
+   ainda sobra -- o TRELLIS trabalha com 518 px. */
+const CEL={fotos:{},alvo:null};
+function celFoto(bt){CEL.alvo=bt;$('celInput').value='';$('celInput').click();}
+function celReduzir(f,max){
+  return new Promise((ok,nao)=>{
+    const url=URL.createObjectURL(f),img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      ok({dados:c.toDataURL('image/jpeg',.9),w:img.naturalWidth,h:img.naturalHeight});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);nao(new Error('formato'));};
+    img.src=url;
+  });
+}
+$('celInput').addEventListener('change',async e=>{
+  const f=e.target.files[0],bt=CEL.alvo; if(!f||!bt)return;
+  let r;
+  try{r=await celReduzir(f,1600);}
+  catch(err){return toast('Não consegui abrir esta foto. No iPhone, use JPG (Ajustes → Câmera → Formatos → Mais compatível).','erro');}
+  if(Math.max(r.w,r.h)<600)toast('Foto pequena ('+r.w+'×'+r.h+'). Chegue mais perto para ter mais detalhe.','alerta');
+  CEL.fotos[bt.dataset.lado]=r.dados;
+  bt.classList.add('ok');
+  bt.querySelector('.cel4-img').style.backgroundImage='url('+r.dados+')';
+  bt.querySelector('small').textContent='tocar para refazer';
+  celAtualizar();
+});
+function celAtualizar(){
+  const n=Object.keys(CEL.fotos).length,b=$('celCriar');
+  b.disabled=!CEL.fotos.frente;
+  b.textContent=!CEL.fotos.frente?'Tire pelo menos a foto de frente'
+    :'Criar modelo 3D com '+n+(n>1?' fotos':' foto')+(n<4?' (4 fica melhor)':'');
+}
+async function celCriar(){
+  const ordem=['frente','lado-esquerdo','costas','lado-direito'].filter(l=>CEL.fotos[l]);
+  if(!ordem.length||ordem[0]!=='frente')return toast('Falta a foto de frente.','erro');
+  const b=$('celCriar'); b.disabled=true;
+  const carimbo=new Date().toISOString().replace(/\D/g,'').slice(0,14), caminhos=[];
+  for(const [i,lado] of ordem.entries()){
+    b.textContent='Enviando foto '+(i+1)+' de '+ordem.length+'…';
+    let r={};
+    try{
+      r=await(await fetch('/api/blender/arquivo',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({nome:'celular_'+carimbo+'_'+(i+1)+'_'+lado+'.jpg',dados:CEL.fotos[lado]})})).json();
+    }catch(err){r={ok:false};}
+    if(!r.ok){celAtualizar();return toast('Não consegui enviar a foto de '+lado.replace('-',' ')+'. Confira o Wi-Fi.','erro');}
+    caminhos.push(r.caminho);
+  }
+  const pedido='crie no blender um modelo identico destas fotos do mesmo objeto '+caminhos.join(' ')+
+    ($('celMax').checked?' com maxima qualidade':'');
+  CEL.fotos={};
+  document.querySelectorAll('.cel4-foto').forEach(x=>{x.classList.remove('ok');
+    x.querySelector('.cel4-img').style.backgroundImage='';
+    x.querySelector('small').textContent=x.dataset.lado==='frente'?'obrigatória':'recomendada';});
+  celAtualizar();
+  b3Enviar(pedido);
+}
+/* No computador, mostra o endereco para abrir no celular. */
+async function celMostrarLink(){
+  const el=$('celLink'); if(!el)return;
+  if(matchMedia('(pointer:coarse)').matches){el.textContent='';return;}
+  try{
+    const r=await(await fetch('/api/rede')).json();
+    if(r.ip)el.innerHTML='Está no computador? No celular (mesmo Wi-Fi), abra <b>http://'+esc(r.ip)+':'+esc(String(r.porta))+'</b> → Blender 3D.';
+  }catch(e){}
+}
+
+async function b3InstalarLocal(){
+  try{const r=await(await fetch('/api/blender/instalar_local',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
+    toast(r.ok?'Instalação começou. Pode continuar usando o Bigode.':'Não deu: '+(r.erro||''),r.ok?'':'erro');}
+  catch(e){toast('Não consegui falar com o Bigode.','erro');}
+  setTimeout(b3Status,1500);
+}
+async function b3Status(){
+  const el=$('b3Status'); if(!el)return;
+  try{
+    const r=await(await fetch('/api/blender/status')).json();
+    el.className='b3-status '+(r.no_ar?'ok':'off');
+    el.querySelector('span').textContent=r.no_ar
+      ?'Blender aberto e conectado. Pode usar.'
+      :'O Blender não está respondendo. Abra o Blender (o add-on MCP liga sozinho) e reabra este painel.';
+    const loc=$('b3Local');
+    if(loc){
+      const e=String(r.local||'');
+      loc.innerHTML=e==='instalado'?S(IC.ok,13)+' Gerador do seu PC: instalado e pronto.'
+        :e.startsWith('instalando')?S(IC.relogio,13)+' Gerador do seu PC: '+esc(e)+' (uma vez só).'
+        :e.startsWith('falhou')?S(IC.alerta,13)+' Gerador do seu PC: a instalação falhou ('+esc(e.slice(8,160))+'). '
+        :'Gerador do seu PC: ainda não instalado (se instala sozinho quando o Hugging Face falhar). ';
+      if(e!=='instalado'&&!e.startsWith('instalando'))
+        loc.insertAdjacentHTML('beforeend','<br><button class="bt" style="margin-top:6px" onclick="b3InstalarLocal()">Instalar agora (10 a 20 min, uma vez só)</button>');
+      if(e.startsWith('instalando'))setTimeout(b3Status,15000);
+    }
+  }catch(e){el.className='b3-status';el.querySelector('span').textContent='Não consegui conferir o Blender.';}
+}
+
+
+/* ---------- CLONAR SITE (28/09) ---------- */
+let CL={modo:'print',imagem:'',nome:'',job:'',largura:390};
+function clPainelAberto(){const p=$('pn-clonar');return p&&p.classList.contains('on')&&$('gaveta').classList.contains('on');}
+function clModo(m){
+  CL.modo=m;
+  $('clModoPrint').classList.toggle('on',m==='print'); $('clModoLink').classList.toggle('on',m==='link');
+  $('clAreaPrint').style.display=m==='print'?'':'none'; $('clAreaLink').style.display=m==='link'?'':'none';
+}
+function clUsarArquivo(arq){
+  if(!arq||!/^image\//.test(arq.type||''))return toast('Escolha uma imagem (PNG ou JPG).','erro');
+  if(arq.size>20000000)return toast('Imagem grande demais (máx. 20 MB).','erro');
+  const r=new FileReader();
+  r.onload=()=>{CL.imagem=r.result;
+    $('clPrevia').innerHTML='<img src="'+r.result+'" alt="print">Imagem pronta. Clique para trocar.';
+    if(!$('clNome').value&&arq.name&&arq.name!=='image.png')
+      $('clNome').value=arq.name.replace(/\.[^.]+$/,'').slice(0,40);};
+  r.readAsDataURL(arq);
+}
+(function(){
+  const z=$('clSolta'),i=$('clArq'); if(!z)return;
+  i.onchange=()=>{if(i.files[0])clUsarArquivo(i.files[0]);i.value='';};
+  ['dragenter','dragover'].forEach(e=>z.addEventListener(e,ev=>{ev.preventDefault();z.classList.add('sobre');}));
+  ['dragleave','drop'].forEach(e=>z.addEventListener(e,ev=>{ev.preventDefault();z.classList.remove('sobre');}));
+  z.addEventListener('drop',ev=>{const f=ev.dataTransfer.files[0];if(f)clUsarArquivo(f);});
+})();
+async function clIniciar(){
+  let url,corpo;
+  if(CL.modo==='print'){
+    if(!CL.imagem)return toast('Envie o print primeiro.','erro');
+    url='/api/clonar/print'; corpo={imagem:CL.imagem,nome:$('clNome').value,detalhes:$('clDetalhes').value};
+  }else{
+    const u=$('clUrl').value.trim(); if(!u)return toast('Cole o endereço do site.','erro');
+    url='/api/clonar/link'; corpo={url:u,nome:$('clNome').value};
+  }
+  $('clBt').disabled=true; $('clRes').style.display='none';
+  try{
+    const r=await(await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)})).json();
+    if(!r.ok)throw new Error(r.erro||'não consegui começar');
+    CL.nome=r.nome; clAcompanhar(r.id);
+  }catch(e){$('clBt').disabled=false;toast('Não deu: '+e.message,'erro');}
+}
+async function clAjustar(){
+  const p=$('clPedido').value.trim(); if(!p)return toast('Escreva o que quer mudar.','erro');
+  $('clBtAjuste').disabled=true;
+  try{
+    const r=await(await fetch('/api/clonar/ajustar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:CL.nome,pedido:p})})).json();
+    if(!r.ok)throw new Error(r.erro||'não consegui começar');
+    clAcompanhar(r.id,true);
+  }catch(e){$('clBtAjuste').disabled=false;toast('Não deu: '+e.message,'erro');}
+}
+function clAcompanhar(id,ajuste){
+  CL.job=id; const pr=$('clProg'); pr.style.display='';
+  pr.innerHTML='<div class="at"><span class="gira"></span>Começando…</div>';
+  pr.scrollIntoView({behavior:'smooth',block:'center'});
+  const passo=async()=>{
+    if(CL.job!==id)return;
+    let s; try{s=await(await fetch('/api/clonar/status?id='+id)).json();}catch(e){return setTimeout(passo,3000);}
+    const lista='<ol>'+(s.etapas||[]).map(e=>'<li>'+esc(e)+'</li>').join('')+'</ol>';
+    if(s.estado==='rodando'){
+      pr.innerHTML='<div class="at"><span class="gira"></span>'+esc(s.etapa||'Trabalhando')+' · '+(s.segundos||0)+'s</div>'+lista;
+      return setTimeout(passo,2500);
+    }
+    $('clBt').disabled=false; $('clBtAjuste').disabled=false;
+    if(s.estado==='erro'){
+      pr.innerHTML='<div class="at" style="color:var(--erro)">'+S(IC.alerta,13)+' Não deu certo</div><div style="margin-top:6px">'+esc(s.erro||'')+'</div>'+lista;
+      return;
+    }
+    pr.innerHTML='<div class="at" style="color:var(--ok)">'+S(IC.ok,13)+' Pronto em '+(s.segundos||0)+'s</div>'+
+      '<div style="margin-top:4px;font-size:12px;color:var(--fraco)">Feito por: '+esc(s.motor||'-')+'<br>Pasta: '+esc(s.pasta||'')+'</div>';
+    if(ajuste)$('clPedido').value='';
+    clMostrar(s.nome,s.incertezas||[],s.aviso||'');
+    clCarregar();
+  };
+  passo();
+}
+function clUrlDe(nome,arq){return '/clones/'+encodeURIComponent(nome)+'/'+(arq||'index.html');}
+function clMostrar(nome,inc,aviso){
+  CL.nome=nome; $('clRes').style.display='';
+  $('clFrame').src=clUrlDe(nome)+'?t='+Date.now(); $('clAbrir').href=clUrlDe(nome);
+  const o=$('clOrig'); o.onload=()=>{$('clLado').style.display='';}; o.onerror=()=>{$('clLado').style.display='none';};
+  o.src=clUrlDe(nome,'print.png')+'?t='+Date.now();
+  const itens=(aviso?[aviso]:[]).concat(inc.filter(x=>x!==aviso));
+  $('clInc').style.display=itens.length?'':'none';
+  $('clInc').innerHTML='<b>Pontos que o Bigode não teve certeza</b> — confira no original:<ul>'+
+    itens.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>';
+  clTela(CL.largura);
+  $('clRes').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function clTela(l){CL.largura=l; $('clQuadro').style.width=l?l+'px':'100%';
+  $('clVerCel').classList.toggle('on',!!l); $('clVerPc').classList.toggle('on',!l);}
+async function clTexto(arq){return await(await fetch(clUrlDe(CL.nome,arq))).text();}
+async function clBaixar(arq){
+  const t=await clTexto(arq); const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([t],{type:arq.endsWith('.css')?'text/css':'text/html'}));
+  a.download=arq; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+async function clCopiar(arq){
+  try{await navigator.clipboard.writeText(await clTexto(arq));toast(arq+' copiado.');}
+  catch(e){toast('Não consegui copiar. Use o botão de baixar.','erro');}
+}
+async function clCarregar(){
+  try{
+    const d=await(await fetch('/api/clonar/lista')).json();
+    if(d.pasta)$('clPasta').textContent=d.pasta;
+    const l=d.clones||[];
+    $('clLista').innerHTML=l.length?l.map(c=>'<div class="it"><span>'+esc(c.nome)+' <small>· '+esc(c.quando)+
+      '</small></span><button class="bt" onclick="clMostrar(\''+esc(c.nome).replace(/'/g,"")+'\',[],\'\')">Ver</button></div>').join('')
+      :'<div class="vazio2">Nenhum clone ainda.</div>';
+  }catch(e){$('clLista').innerHTML='<div class="vazio2">Não consegui listar.</div>';}
+}
+
+
+/* ---------- ESTUDIO MUSICAL (28/09) ---------- */
+let EM={arquivo:null,modo:'voz',nome:'',partes:[],job:''};
+const EM_ROTULO={voz:'Voz',bateria:'Bateria',baixo:'Baixo',outros:'Outros',guitarra:'Guitarra',piano:'Piano',instrumental:'Instrumental'};
+function emModo(el){document.querySelectorAll('.em-modo').forEach(b=>b.classList.remove('on'));el.classList.add('on');EM.modo=el.dataset.m;}
+function emUrl(nome,arq){return '/estudio/'+encodeURIComponent(nome)+'/'+encodeURIComponent(arq);}
+(function(){
+  const z=$('emSolta'),i=$('emArq'); if(!z)return;
+  const usar=f=>{ if(!f)return; if(f.size>150*1024*1024)return toast('Arquivo grande demais (máx. 150 MB).','erro');
+    EM.arquivo=f; $('emPrevia').innerHTML=S(IC.musica,15)+' <b>'+esc(f.name)+'</b> ('+(f.size/1048576).toFixed(1)+' MB). Clique para trocar.'; };
+  i.onchange=()=>{usar(i.files[0]);i.value='';};
+  ['dragenter','dragover'].forEach(e=>z.addEventListener(e,ev=>{ev.preventDefault();z.classList.add('sobre');}));
+  ['dragleave','drop'].forEach(e=>z.addEventListener(e,ev=>{ev.preventDefault();z.classList.remove('sobre');}));
+  z.addEventListener('drop',ev=>usar(ev.dataTransfer.files[0]));
+})();
+/* ---------- MEMORIA DE FATOS (28/09) ---------- */
+const MF_TIPO={preferencia:'preferência',pessoal:'pessoal',projeto:'projeto',decisao:'decisão',contato:'contato',outro:''};
+async function mfCarregar(){
+  let d={fatos:[],ligada:true};
+  try{d=await(await fetch('/api/fatos')).json();}catch(e){}
+  $('mfLigada').checked=!!d.ligada;
+  const L=d.fatos||[];
+  $('mfConta').textContent=L.length?'('+L.length+')':'';
+  $('mfLista').innerHTML=L.length?L.map(f=>
+    '<div class="it"><span>'+esc(f.texto)+
+    (f.projeto?' <small>· projeto '+esc(f.projeto)+'</small>':'')+
+    (MF_TIPO[f.tipo]?' <small>· '+MF_TIPO[f.tipo]+'</small>':'')+'</span>'+
+    '<button class="tag" onclick="mfEditar(\''+f.id+'\')" title="Corrigir">'+S(IC.lapis,13)+'</button>'+
+    '<button class="tag" onclick="mfApagar(\''+f.id+'\')" title="Esquecer">'+S(IC.lixo,13)+'</button></div>').join('')
+    :'<div class="vazio2">Ainda nada. Converse normalmente — ou ensine algo acima.</div>';
+  window.__MF=L;
+}
+async function mfPost(acao,corpo){
+  try{return await(await fetch('/api/fatos/'+acao,{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo||{})})).json();}
+  catch(e){return {ok:false};}
+}
+async function mfAdicionar(){
+  const t=$('mfNovo').value.trim(); if(!t)return;
+  const r=await mfPost('adicionar',{texto:t,tipo:'preferencia'});
+  if(r.ok){$('mfNovo').value='';toast(r.repetido?'Ele já sabia — atualizei.':'Guardado.');}
+  mfCarregar();
+}
+async function mfEditar(id){
+  const f=(window.__MF||[]).find(x=>x.id===id); if(!f)return;
+  const t=prompt('Corrija o que ele sabe (vazio = esquecer):',f.texto);
+  if(t===null)return;
+  await mfPost('editar',{id:id,texto:t}); mfCarregar();
+}
+async function mfApagar(id){ await mfPost('apagar',{id:id}); toast('Esquecido.'); mfCarregar(); }
+async function mfApagarTudo(){
+  if(!confirm('Apagar TUDO o que o Bigode sabe sobre você? Não dá para desfazer.'))return;
+  await mfPost('apagar_tudo'); mfCarregar();
+}
+async function mfLigar(v){ await mfPost('ligar',{ligada:v});
+  toast(v?'Memória ligada.':'Memória desligada — ele não anota nem usa mais.'); }
+/* Depois da resposta o servidor confere, em segundo plano, se há algo para
+   lembrar. A tela pergunta algumas vezes e mostra "Anotei: …" na fala. */
+function conferirMemoria(f,desde){
+  let n=0;
+  const olhar=async()=>{
+    n++;
+    try{
+      const r=await(await fetch('/api/fatos/ultimas?desde='+encodeURIComponent(desde||0))).json();
+      if(r.itens&&r.itens.length){
+        const d=document.createElement('div');
+        d.className='nota-memoria';
+        d.style.cssText='margin-top:8px;font-size:12px;color:var(--mudo);cursor:pointer';
+        d.innerHTML=S(IC.memoria,12)+' '+r.itens.map(i=>esc(
+          (i.acao==='anotei'?'Anotei: ':i.acao==='atualizei'?'Atualizei: ':'Esqueci: ')+i.texto)).join(' · ');
+        d.title='Ver o que ele sabe'; d.onclick=()=>irPara('memoria');
+        f.appendChild(d); return;
+      }
+    }catch(e){}
+    if(n<5)setTimeout(olhar,n*3000);
+  };
+  setTimeout(olhar,2500);
+}
+
+async function emCarregar(){
+  try{
+    const d=await(await fetch('/api/estudio/lista')).json();
+    if(d.pasta)$('emPasta').textContent=d.pasta;
+    const st=$('emStatus'), m=String(d.motor||'');
+    st.className='b3-status '+(m==='instalado'?'ok':'off');
+    st.querySelector('span').textContent=m==='instalado'?(d.pronto?'Pronto para separar.':'Pronto. Na primeira separação ele baixa o separador (~1 min).')
+      :m.startsWith('instalando')?'O motor local está sendo instalado ('+m+'). Aguarde.'
+      :'O motor local ainda não está instalado: abra o painel Blender 3D e clique em "Instalar agora".';
+    const l=d.projetos||[];
+    $('emLista').innerHTML=l.length?l.map(p=>'<div class="it"><span>'+esc(p.nome)+' <small>· '+esc(p.quando||'')+' · '+(p.partes||[]).length+' partes</small></span>'+
+      '<button class="bt" onclick=\'emAbrir('+JSON.stringify(p).replace(/'/g,"&#39;")+')\'>Abrir</button></div>').join(''):'<div class="vazio2">Nenhum projeto ainda.</div>';
+  }catch(e){$('emLista').innerHTML='<div class="vazio2">Não consegui listar.</div>';}
+}
+function emUrlMudou(){
+  const u=$('emUrl').value.trim();
+  $('emBt').textContent=u?'Baixar e separar':'Separar agora';
+}
+async function emSeparar(){
+  const url=($('emUrl')||{}).value?.trim()||'';
+  if(url){
+    if(!/^https?:\/\//i.test(url))return toast('O link precisa começar com https://','erro');
+    $('emBt').disabled=true; const pr=$('emProg'); pr.style.display='';
+    pr.innerHTML='<div class="at"><span class="gira"></span>Lendo o link…</div>';
+    try{
+      const r=await(await fetch('/api/estudio/separar',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({url,modo:EM.modo})})).json();
+      if(!r.ok)throw new Error(r.erro||'não consegui começar');
+      $('emUrl').value='';emUrlMudou();
+      EM.job=r.id; return emAcompanhar(r.id);
+    }catch(e){$('emBt').disabled=false;pr.innerHTML='<div class="at" style="color:var(--erro)">'+S(IC.alerta,13)+' '+esc(e.message)+'</div>';return;}
+  }
+  if(!EM.arquivo)return toast('Escolha a música ou cole um link.','erro');
+  $('emBt').disabled=true; const pr=$('emProg'); pr.style.display='';
+  pr.innerHTML='<div class="at"><span class="gira"></span>Enviando o arquivo…</div>';
+  const dados=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(EM.arquivo);});
+  try{
+    const r=await(await fetch('/api/estudio/separar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome_arquivo:EM.arquivo.name,dados,modo:EM.modo})})).json();
+    if(!r.ok)throw new Error(r.erro||'não consegui começar');
+    EM.job=r.id; emAcompanhar(r.id);
+  }catch(e){$('emBt').disabled=false;pr.innerHTML='<div class="at" style="color:var(--erro)">'+S(IC.alerta,13)+' '+esc(e.message)+'</div>';}
+}
+function emAcompanhar(id){
+  const pr=$('emProg');
+  const passo=async()=>{
+    if(EM.job!==id)return;
+    let s; try{s=await(await fetch('/api/estudio/status?id='+id)).json();}catch(e){return setTimeout(passo,3000);}
+    if(s.estado==='rodando'){pr.innerHTML='<div class="at"><span class="gira"></span>'+esc(s.etapa||'Trabalhando')+' · '+(s.segundos||0)+'s</div>';return setTimeout(passo,3000);}
+    $('emBt').disabled=false;
+    if(s.estado==='erro'){pr.innerHTML='<div class="at" style="color:var(--erro)">'+S(IC.alerta,13)+' Não deu certo</div><div style="margin-top:6px;font-size:12px">'+esc(s.erro||'')+'</div>';return;}
+    pr.innerHTML='<div class="at" style="color:var(--ok)">'+S(IC.ok,13)+' Separado em '+(s.segundos||0)+'s</div>';
+    emAbrir({nome:s.nome,partes:s.partes||[],mixes:[]}); emCarregar();
+  };
+  passo();
+}
+function emAbrir(p){
+  EM.nome=p.nome; EM.partes=p.partes||[];
+  $('emMesa').style.display=''; $('emNome').textContent=p.nome;
+  $('emFaixas').innerHTML=EM.partes.map(k=>'<div class="em-faixa"><b>'+(EM_ROTULO[k]||esc(k))+'</b>'+
+    '<audio controls preload="none" src="'+emUrl(p.nome,k+'.mp3')+'" data-k="'+esc(k)+'"></audio>'+
+    '<input type="range" min="0" max="200" value="100" data-k="'+esc(k)+'" oninput="emVol(this)">'+
+    '<span class="v" id="emv-'+esc(k)+'">100%</span></div>').join('');
+  emListarMixes(p.mixes||[]);
+  $('emMesa').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function emVol(el){const v=+el.value;$('emv-'+el.dataset.k).textContent=v?v+'%':'mudo';
+  const a=document.querySelector('#emFaixas audio[data-k="'+el.dataset.k+'"]'); if(a)a.volume=Math.min(1,v/200*1);}
+function emTocarTodas(){const as=[...document.querySelectorAll('#emFaixas audio')];as.forEach(a=>{a.currentTime=0;});as.forEach(a=>a.play().catch(()=>{}));}
+function emPararTodas(){document.querySelectorAll('#emFaixas audio').forEach(a=>a.pause());}
+function emListarMixes(l){$('emMixes').innerHTML=(l||[]).map(m=>'<div class="em-faixa"><b>'+S(IC.fone,14)+' '+esc(m)+'</b><audio controls preload="none" src="'+emUrl(EM.nome,m)+'"></audio>'+
+  '<a class="bt" href="'+emUrl(EM.nome,m)+'" download="'+esc(m)+'">Baixar</a><span></span></div>').join('');}
+async function emMixar(formato){
+  const vol={}; document.querySelectorAll('#emFaixas input[type=range]').forEach(r=>vol[r.dataset.k]=(+r.value)/100);
+  toast('Gerando a mixagem…');
+  try{
+    const r=await(await fetch('/api/estudio/mixar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:EM.nome,volumes:vol,formato})})).json();
+    if(!r.ok)throw new Error(r.erro||'falhou');
+    toast('Mixagem pronta: '+r.arquivo);
+    const d=await(await fetch('/api/estudio/lista')).json();
+    const p=(d.projetos||[]).find(x=>x.nome===EM.nome); emListarMixes(p?p.mixes:[r.arquivo]);
+  }catch(e){toast('Não deu: '+e.message,'erro');}
+}
+
+/* ---------- Blender: atalhos e anexos ---------- (28/09) */
+const ATALHOS_BLENDER=[
+ ['Da biblioteca','coloque no blender uma cadeira de madeira da biblioteca'],
+ ['Céu / luz','coloque no blender um hdri de por do sol'],
+ ['Textura','aplique no blender textura de madeira no objeto '],
+ ['Foto → 3D fiel','crie no blender um modelo identico da imagem'],
+ ['Pessoa realista','crie no blender esta pessoa: {"demographics":{"gender":"male","apparent_age":40,"ethnicity_features":"african"},"hair_system":{"head_hair":{"style":"short"}},"wardrobe":{"type":"shirt"}}'],
+ ['Importar arquivo',null],
+ ['Olhar a cena','olhe a cena do blender e me diga o que falta'],
+ ['Salvar .blend','salve o projeto do blender como ']];
+function pintarBlender(){
+  /* Antes: 8 botoezinhos sem explicacao. Agora: um botao que diz o que e,
+     e abre um painel onde cada acao explica o que faz.        (28/09) */
+  const bar=$('blenderBar'); if(!bar)return;
+  const on=CX&&CX.blender&&CX.blender.ativa;
+  bar.style.display=on?'flex':'none';
+  if(!on)return;
+  bar.innerHTML='<button class="b3-abrir" onclick="abrirPainel(\'blender\')">'+
+    (LOGO.blender||'')+'<span><b>Blender 3D</b> — criar ou mudar algo em 3D</span>'+
+    '<span class="seta">abrir ›</span></button>';
+}
+const lerBase64=f=>new Promise((ok,nao)=>{const l=new FileReader();
+  l.onload=()=>ok(l.result);l.onerror=nao;l.readAsDataURL(f);});
+$('blenderInput').addEventListener('change',async e=>{
+  const arqs=[...e.target.files]; e.target.value=''; if(!arqs.length)return;
+  const nota=$('nota'), antes=nota.textContent, c=$('entrada');
+  const linhas=[], imagens=[];
+  for(const f of arqs){
+    const ext=(f.name.split('.').pop()||'').toLowerCase();
+    if(ext==='json'){
+      linhas.push('Monte no blender esta ficha:\n'+(await f.text()));
+      continue;
+    }
+    if(f.size>80000000){toast(f.name+' passa de 80 MB.','erro');continue;}
+    nota.innerHTML='<span class="lendo-arq"><i></i>Enviando '+esc(f.name)+'…</span>';
+    let r={};
+    try{
+      r=await(await fetch('/api/blender/arquivo',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({nome:f.name,dados:await lerBase64(f)})})).json();
+    }catch(err){r={ok:false,erro:'Não consegui enviar.'};}
+    if(!r.ok){toast(r.erro||'Falhou ao enviar '+f.name,'erro');continue;}
+    if(['png','jpg','jpeg','webp'].includes(ext))imagens.push(r.caminho);
+    else linhas.push('Importe no blender o arquivo '+r.caminho);
+  }
+  nota.textContent=antes;
+  /* Veio do painel: o botao ja disse o que fazer com o arquivo */
+  if(b3Modo&&(imagens.length||linhas.length)){
+    const modo=b3Modo; b3Modo='';
+    const alt=b3Val('b3ImpAlt');
+    let pedido='';
+    if(modo==='foto3d'&&imagens[0])pedido=(imagens.length>1?'crie no blender um modelo identico destas fotos do mesmo objeto '+imagens.slice(0,4).join(' '):'crie no blender um modelo identico da imagem '+imagens[0])+(document.querySelector('input[name=b3Qual]:checked')?.value==='maxima'?' com maxima qualidade':'');
+    else if(modo==='rotulo'&&imagens[0])pedido='Aplique no blender a imagem '+imagens[0]+' como rotulo'+
+      (b3Val('b3RotObj')?' no objeto '+b3Val('b3RotObj'):'');
+    else if(modo==='refs'&&imagens.length)pedido='Use no blender como referencia — '+
+      imagens.slice(0,3).map((p,i)=>['frente','lado','topo'][i]+': '+p).join(' ')+' altura 1 m';
+    else if(modo==='importar'&&linhas.length)pedido=linhas[0]+(alt?' com '+alt:'');
+    if(pedido){nota.textContent=antes;return b3Enviar(pedido);}
+  }
+  if(imagens.length>1){
+    /* 2 ou 3 imagens = vistas ortograficas, na ordem frente, lado, topo */
+    const nomes=['frente','lado','topo'];
+    linhas.push('Use no blender como referencia — '+
+      imagens.slice(0,3).map((p,i)=>nomes[i]+': '+p).join(' ')+' altura 1 m');
+  }else if(imagens.length===1){
+    linhas.push('Aplique no blender a imagem '+imagens[0]+' como rotulo no objeto ');
+  }
+  if(linhas.length){
+    c.value=(c.value?c.value.trim()+'\n':'')+linhas.join('\n');
+    c.dispatchEvent(new Event('input')); c.focus();
+    toast('Arquivo pronto. Confira o pedido e mande.');
+  }
+});
+
 async function pintarCtx(){
   try{
     CX=await(await fetch('/api/conexoes')).json();
+    try{pintarBlender();}catch(e){}
     const on=Object.values(CX).filter(v=>typeof v==='object'&&v.ativa);
     let h='';
     // O que MUDA a resposta vem primeiro e com destaque: especialista e
@@ -2147,8 +3182,78 @@ function acoesFala(f,quem,indice){
   if(quem==='eu'){criar(IC.lapis,'Editar',()=>{
     const i=+f.dataset.idx,t=historico[i]?historico[i].content:textoDe(f);
     truncar(f,i);const c=$('entrada');c.value=t;c.dispatchEvent(new Event('input'));c.focus();});}
-  else{criar(IC.refazer,'Refazer',()=>{const i=+f.dataset.idx;truncar(f,i);responder();});}
+  else{
+    criar(IC.refazer,'Refazer',()=>{const i=+f.dataset.idx;truncar(f,i);responder();});
+    /* OUVIR                                                    (20/09)
+
+       O botão aparece SEMPRE, mesmo sem a voz publicada — e ao clicar,
+       explica o que falta. A alternativa seria escondê-lo quando não há
+       endereço, e "não aparece" é indistinguível de "não existe": foi
+       exatamente assim que os botões da placa sumiram em 18/09, e ninguém
+       descobriu olhando a tela. */
+    criar(IC.falar,'Ouvir',b=>ouvirFala(f,b));
+  }
   f.appendChild(barra);
+}
+
+/* ---------- o Bigode falando ---------- */
+/* Um áudio de cada vez. Sem isto, clicar em "Ouvir" em três respostas
+   diferentes toca as três juntas — e a pessoa acha que o computador
+   enlouqueceu em vez de perceber que foi ela que clicou três vezes. */
+let TOCANDO=null;
+
+function pararFala(){
+  if(!TOCANDO) return;
+  try{ TOCANDO.audio.pause(); }catch(e){}
+  if(TOCANDO.botao){
+    TOCANDO.botao.innerHTML=S(IC.falar,13)+'Ouvir';
+    TOCANDO.botao.classList.remove('feito');
+  }
+  TOCANDO=null;
+}
+
+async function ouvirFala(f,b){
+  /* Clicar de novo no mesmo botão para. É o que todo tocador faz, e é o
+     primeiro reflexo de quem se arrependeu do clique. */
+  if(TOCANDO&&TOCANDO.botao===b) return pararFala();
+  pararFala();
+
+  const texto=textoDe(f).trim();
+  if(!texto) return toast('Não há texto para ler.','alerta');
+
+  b.innerHTML=S(IC.girar,13)+'Gerando…';
+  let r={};
+  try{
+    r=await(await fetch('/api/falar',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({texto:texto})})).json();
+  }catch(e){
+    b.innerHTML=S(IC.falar,13)+'Ouvir';
+    return toast('Não consegui falar com o Bigode.','erro');
+  }
+
+  b.innerHTML=S(IC.falar,13)+'Ouvir';
+  if(!r.ok){
+    /* Falta de configuração vira um alerta com o comando, não um toast que
+       some em 3 segundos — o Fred precisa poder copiar o que rodar. */
+    if(r.desligado) return alert(r.erro||'A voz ainda não está publicada.');
+    return toast(r.erro||'Não consegui gerar o áudio.','erro');
+  }
+
+  let audio;
+  try{
+    audio=new Audio('data:audio/wav;base64,'+r.wav);
+  }catch(e){ return toast('O navegador não aceitou o áudio.','erro'); }
+
+  TOCANDO={audio:audio,botao:b};
+  b.innerHTML=S(IC.parar,13)+'Parar';
+  b.classList.add('feito');
+  audio.onended=()=>{ if(TOCANDO&&TOCANDO.audio===audio) pararFala(); };
+  audio.onerror=()=>{ pararFala(); toast('O áudio não tocou.','erro'); };
+  audio.play().catch(()=>{
+    pararFala();
+    toast('O navegador bloqueou o som. Clique na página e tente de novo.','alerta');
+  });
 }
 
 function painelTrabalho(f){
@@ -2290,6 +3395,7 @@ async function enviar(){
   if(ESTADO==='carregando')
     return toast('Ainda está ligando. Sua mensagem continua aqui.','alerta');
   c.value='';c.style.height='28px';
+  if(window.Conversa&&Conversa.ativo())Conversa.preparar();
   const fu=novaFala('eu','Você'); bloco(fu).innerHTML=md(texto);
   historico.push({role:'user',content:texto});
   acoesFala(fu,'eu',historico.length-1);
@@ -2436,7 +3542,11 @@ async function responder(){
            virar falha silenciosa — que é o outro extremo, igualmente
            ruim.                                                       */
         try{
-        if(ev.tipo==='texto'){tirar();acc+=ev.texto;bloco(f).innerHTML=md(acc);rolar();}
+        if(ev.tipo==='texto'){tirar();acc+=ev.texto;bloco(f).innerHTML=md(acc);rolar();
+          if(window.Conversa)Conversa.trecho(ev.texto);}
+        else if(ev.tipo==='memoria'){conferirMemoria(f,ev.desde);}
+        else if(ev.tipo==='estudio'){abrirPainel('estudio');EM.job=ev.id;
+          $('emProg').style.display='';$('emBt').disabled=true;emAcompanhar(ev.id);}
         else if(ev.tipo==='novo_bloco'){acc='';const d=document.createElement('div');
           d.className='md';f.appendChild(d);}
         /* O servidor rejeitou a resposta: foi escrita sem consultar nada.
@@ -2449,7 +3559,7 @@ async function responder(){
            vazio, e a resposta descartada continuava na tela — seguida da
            versão nova. Parecia gagueira; era o descarte errando o alvo. */
         else if(ev.tipo==='descartar'){
-          acc='';
+          acc='';if(window.Conversa)Conversa.descartar();
           f.querySelectorAll('.md').forEach(x=>x.remove());
         }
         // A linha viva NAO some quando chega uma acao: ela vira o rotulo do que
@@ -2511,7 +3621,7 @@ async function responder(){
           const d=document.createElement('div');
           d.style.cssText='margin:10px 0 2px;padding:10px 12px;border-radius:10px;'+
             'background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.35);'+
-            'color:#d97706;font-size:12.5px;line-height:1.5;display:flex;gap:9px;align-items:flex-start';
+            'color:#d97706;font-size:13px;line-height:1.5;display:flex;gap:9px;align-items:flex-start';
           d.innerHTML='<span style="flex-shrink:0;margin-top:1px">'+S(IC.alerta,15)+'</span>'+
             '<span>'+esc(ev.texto)+'</span>';
           f.appendChild(d);rolar();}
@@ -2522,7 +3632,7 @@ async function responder(){
           const d=document.createElement('div');
           d.style.cssText='margin:12px 0 4px;padding:12px 14px;border-radius:10px;'+
             'background:rgba(194,59,34,.10);border:1px solid rgba(194,59,34,.40);'+
-            'color:#e06a4e;font-size:12.5px;line-height:1.55;display:flex;gap:10px;align-items:flex-start';
+            'color:#e06a4e;font-size:13px;line-height:1.55;display:flex;gap:10px;align-items:flex-start';
           d.innerHTML='<span style="flex-shrink:0;margin-top:1px">'+S(IC.alerta,15)+'</span>'+
             '<span><b style="display:block;margin-bottom:3px;letter-spacing:.02em">ATENÇÃO — NÃO CONFERI</b>'+
             esc(ev.texto)+'</span>';
@@ -2536,7 +3646,7 @@ async function responder(){
             const d=document.createElement('div');
             d.style.cssText='margin:10px 0 2px;padding:9px 12px;border-radius:10px;'+
               'background:rgba(34,139,90,.08);border:1px solid rgba(34,139,90,.28);'+
-              'color:#4a9d78;font-size:11.5px;line-height:1.5';
+              'color:#4a9d78;font-size:12px;line-height:1.5';
             /* O SELO DIZIA MAIS DO QUE SABIA                      (18/09)
 
                Era "VERIFICADO — resposta baseada em: projetos". Mas o
@@ -2568,7 +3678,7 @@ async function responder(){
         // Discreto, no rodapé. Só aparece o detalhe ao passar o mouse.
         else if(ev.tipo==='medicao'){
           const d=document.createElement('div');
-          d.style.cssText='margin:8px 0 2px;font-size:11px;color:var(--fraco);'+
+          d.style.cssText='margin:8px 0 2px;font-size:12px;color:var(--fraco);'+
             'display:flex;gap:10px;flex-wrap:wrap;align-items:center;cursor:default';
           /* ═══ UM NÚMERO FALTANDO DERRUBAVA A CONVERSA ═══════ (18/09)
 
@@ -2630,6 +3740,7 @@ async function responder(){
   }
   tirar();ocupado=false;abortador=null;
   document.body.classList.remove('trabalhando');
+  if(window.Conversa)Conversa.fimDaResposta();
   // A faixa do Chrome sai AQUI, no fim do turno, aconteca o que acontecer:
   // resposta pronta, erro de rede ou "parar" no meio. Faixa presa na tela
   // seria pior do que faixa nenhuma -- ela diz que ele esta mexendo agora.
@@ -2705,7 +3816,7 @@ async function carregarProjetos(){
   $('listaProj').innerHTML=PROJ.length?PROJ.map(p=>
     '<div class="linha-item" data-id="'+p.id+'"><div style="min-width:0">'+
     '<div class="li-t">'+esc(p.nome)+(projetoAtivo&&projetoAtivo.id===p.id?
-      ' <span style="color:var(--ac);font-size:11px">· em uso</span>':'')+'</div>'+
+      ' <span style="color:var(--ac);font-size:12px">· em uso</span>':'')+'</div>'+
     '<div class="li-s">'+esc(p.diretorio||'sem pasta')+'</div></div>'+
     '<button class="li-x">'+S(IC.lixo,15)+'</button></div>').join('')
     :'<div class="vazio2">Nenhum projeto ainda.</div>';
@@ -2747,8 +3858,8 @@ async function carregarConn(){
       (c.ativa?(c.tipo==='mcp'?'LIGADO · PRONTO PARA USAR':'CONECTADO'):'DESLIGADO')+'</div></div>'+
       '<div class="chave'+(c.ativa?' on':'')+'"><i></i></div></div>'+
       '<div class="cd">'+esc(c.info||c.endereco||'')+(c.tem_token?' · chave salva':'')+
-      (c.ativa&&c.custo?'<div style="margin-top:7px;font-size:11px;color:var(--fraco)">'+
-        'ocupa '+c.custo+' tokens em toda mensagem</div>':'')+'</div>'+
+      (c.ativa&&c.custo?'<div style="margin-top:7px;font-size:12px;color:var(--fraco)">'+
+        c.custo+' tokens por mensagem</div>':'')+'</div>'+
       (k==='arquivos'?'<button class="bt larga" style="margin-top:11px" '+
         'onclick="sincronizar(event)">Reler meus projetos</button>':'')+
       ((k==='github'||c.removivel)?'<button class="clink">Configurar</button>':'')+
@@ -2807,7 +3918,7 @@ async function carregarHabilidades(){
   $('listaHab').innerHTML=d.habilidades.length?d.habilidades.map(h=>
     '<div class="linha-item" data-id="'+h.id+'"><div style="min-width:0">'+
     '<div class="li-t">'+esc(h.nome)+(h.ativa?'':
-      ' <span style="color:var(--fraco);font-size:11px">· desligado</span>')+'</div>'+
+      ' <span style="color:var(--fraco);font-size:12px">· desligado</span>')+'</div>'+
     '<div class="li-s">'+esc(h.quando||'sem palavras-chave')+'</div></div></div>').join('')
     :'<div class="vazio2">Nenhum manual ainda. Crie o primeiro abaixo.</div>';
   document.querySelectorAll('#listaHab .linha-item').forEach(el=>
@@ -2899,10 +4010,45 @@ async function salvarDominios(){
   const r=await(await fetch('/api/dominios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dominios:DOMINIOS})})).json();
   DOMINIOS=r.dominios||DOMINIOS;pintarDominios();toast('Domínios salvos.');
 }
+/* A TELA TEM DE DIZER QUAL DAS DUAS MEMÓRIAS ESTÁ EM USO      (20/09)
+
+   Com a placa ligada existem DUAS famílias de coleção: as antigas
+   (`seguros`) e as novas (`seguros__placa`). Somar todas dobrava o número.
+   E, logo depois de ligar a placa e antes de reindexar, o total certo é
+   ZERO — e "0 blocos indexados" sem mais nada é indistinguível de "a
+   memória quebrou". Foi essa confusão exata que já custou uma rodada.
+
+   Então: o número é só o da memória EM USO, e a linha diz qual é ela e o
+   que fazer quando está vazia. */
 async function carregarChroma(){
   try{const d=await(await fetch('/api/chroma/status')).json();
-    const total=Object.values(d.colecoes||{}).reduce((a,b)=>a+b,0);
-    $('chromaStatus').textContent=d.ativo?'ChromaDB ativo · '+total+' blocos indexados · '+d.caminho:(d.erro||'ChromaDB indisponível');
+    if(!d.ativo){
+      $('chromaStatus').textContent=d.erro||'ChromaDB indisponível';
+      return;
+    }
+    const emUso=Object.entries(d.colecoes||{})
+      .filter(([k])=>!/\(antiga\)$/.test(k))
+      .reduce((a,[,v])=>a+(v||0),0);
+    const naPlaca=d.motor==='placa';
+    const p=d.placa||{};
+
+    let linha=(naPlaca?'Memória na placa (bge-m3)':'Memória local')+
+              ' · '+emUso+' blocos';
+    if(naPlaca){
+      const antigos=Object.entries(d.colecoes||{})
+        .filter(([k])=>/\(antiga\)$/.test(k))
+        .reduce((a,[,v])=>a+(v||0),0);
+      if(antigos) linha+=' · '+antigos+' guardados na memória antiga';
+      linha+=p.ranqueador?' · filtro final ligado':' · SEM filtro final';
+      if(!emUso) linha+=' — FALTA REINDEXAR: rode LIGAR_TUDO.bat indexar';
+    }else if(p.ultimo_erro){
+      /* A placa está configurada e não entrou. Dizer por quê aqui poupa
+         a caçada: sem isto, o sintoma seria só "memória local" de novo. */
+      /* String() e não esc(): isto vai para textContent, que já não
+         interpreta HTML. Escapar aqui faria aparecer &amp; na tela. */
+      linha+=' · a placa não entrou ('+String(p.ultimo_erro).slice(0,90)+')';
+    }
+    $('chromaStatus').textContent=linha+' · '+d.caminho;
   }catch(e){$('chromaStatus').textContent='ChromaDB indisponível nesta máquina.';}
 }
 async function indexarChroma(){
@@ -3046,6 +4192,14 @@ async function pintarModelos(){
     const ligando=x.atual&&ESTADO==='carregando'&&PROVEDOR_ATUAL!=='modal';
     const p=x.placa;
 
+    /* SÓ NA PLACA: sem botão AQUI                            (20/09)
+
+       O guru de 32B não tem arquivo nesta máquina, e não deve ter — são
+       20 GB que ela não roda. Mostrar "AQUI" nele seria oferecer um
+       caminho que termina em erro, e o Fred clicaria: botão que parece
+       pronto e não está é pior que botão nenhum. */
+    const soPlaca=!!x.so_na_placa;
+
     let botoes;
     if(ruim){
       botoes='<span class="modtag erro">INCOMPLETO</span>';
@@ -3054,8 +4208,11 @@ async function pintarModelos(){
     }else{
       botoes=(p?'<button class="modtag placa" data-perfil="'+esc(p.perfil)+'"'+
                 (p.publicado?'':' data-falta="1"')+'>'+
-                (p.publicado?'NA PLACA':'PLACA ⚙')+'</button>':'')+
-             (x.atual&&LIGADO?'<span class="modtag uso">EM USO</span>'
+                (p.publicado?'NA PLACA':'PLACA')+'</button>':'')+
+             (soPlaca?'<span class="modtag" style="background:transparent;'+
+                      'color:var(--fraco);border:1px dashed var(--borda)">'+
+                      'SÓ NA PLACA</span>'
+              :x.atual&&LIGADO?'<span class="modtag uso">EM USO</span>'
               :ligando?'<span class="modtag uso">LIGANDO…</span>'
                       :'<button class="modtag usar" data-local="1">AQUI</button>');
     }
@@ -3064,8 +4221,10 @@ async function pintarModelos(){
       esc(x.id)+'" data-gb="'+(x.gb||0)+'"><div class="modlogo">'+marca(x.logo)+'</div>'+
       '<div class="modinfo"><div class="modnome">'+esc(x.nome)+
       '<span class="modmarca">'+esc(x.familia)+'</span></div>'+
-      '<div class="modsub">'+x.gb+' GB · '+PERFIL(x)+' · '+
-      (AREA[x.especialidade]||'')+(x.quantizacao?' · '+esc(x.quantizacao):'')+'</div>'+
+      '<div class="modsub">'+(soPlaca
+        ? (p&&p.placa_tipo?esc(p.placa_tipo)+' na Modal':'na nuvem')
+        : x.gb+' GB · '+PERFIL(x)+' · '+(AREA[x.especialidade]||''))+
+      (x.quantizacao?' · '+esc(x.quantizacao):'')+'</div>'+
       '<div class="modsub" style="opacity:.6;margin-top:2px">'+
         esc(naPlaca?'rodando na placa da Modal':(x.nota||''))+'</div></div>'+
       '<div class="modbotoes">'+botoes+'</div></div>';
@@ -3228,8 +4387,45 @@ if(window.Voz){
     enviar: wav => fetch('/api/transcrever',{method:'POST',
       headers:{'Content-Type':'audio/wav'},body:wav}).then(r=>r.json())
       .catch(()=>({ok:false})),
-    aoTerminar: ()=>{ window.__porVoz=true; },
+    aoTerminar: ()=>{ window.__porVoz=true;
+      if(window.Conversa)Conversa.aoTranscrever(); },
+    aoFalhar: ()=>{ if(window.Conversa)Conversa.aoFalharPergunta(); },
   });
+}
+/* ---------- MODO CONVERSA (28/09) ----------
+   "Ei, Bigode" -> bip -> você pergunta -> ele responde FALANDO, frase por
+   frase, enquanto escreve. Toda a lógica mora no conversa.js.            */
+if(window.Conversa){
+  Conversa.ligar({
+    botao: $('btConversa'),
+    faixa: ()=>$('ctx')?.parentNode || document.body,
+    whisperLigado: ()=>!!(VOZ&&VOZ.disponivel),
+    transcrever: wav => fetch('/api/transcrever',{method:'POST',
+      headers:{'Content-Type':'audio/wav'},body:wav}).then(r=>r.json())
+      .catch(()=>({ok:false})),
+    enviarAgora: texto=>{
+      if(ocupado)return false;
+      if(texto!=null)$('entrada').value=texto;
+      enviar();
+      return ocupado;
+    },
+    parar: ()=>pararResposta(),
+  });
+}
+function alternarConversa(){
+  if(!window.Conversa)return toast('Recarregue a página (Ctrl+F5).','alerta');
+  let visto=false; try{visto=localStorage.getItem('bigode_conversa_aviso')==='1';}catch(e){}
+  if(!Conversa.ativo()&&!visto){
+    alert('MODO CONVERSA\n\n1. Diga “Ei, Bigode” (pode emendar a pergunta).\n'+
+      '2. Depois do bip, pergunte. Ele encerra sozinho quando você calar.\n'+
+      '3. A resposta é lida em voz alta enquanto é escrita. Esc cala.\n\n'+
+      'Privacidade: para ouvir a palavra “Bigode”, a aba normal usa o reconhecimento '+
+      'do Chrome (o áudio da escuta passa pelo Google). Na barra lateral, ou se o Chrome '+
+      'recusar, a escuta vai para o seu Whisper na Modal. A pergunta vai sempre para o '+
+      'seu Whisper quando ele está ligado.\n\nClique no fone de novo para desligar.');
+    try{localStorage.setItem('bigode_conversa_aviso','1');}catch(e){}
+  }
+  Conversa.alternar();
 }
 function alternarVoz(){
   /* Se o ditado do Chrome esta no ar, ele e quem para -- senao um toque
@@ -3344,6 +4540,15 @@ status();verificarVoz();setInterval(status,9000);
 
 /* A barra lateral e o primeiro que aparece: nao espera nada carregar. */
 pintarNav('');
+document.querySelectorAll('i.ic[data-ic]').forEach(e=>{e.innerHTML=S(IC[e.dataset.ic]||'',16);});
+/* Leitor de tela: todo campo precisa de nome. Onde o rotulo e um <label>
+   solto ao lado (sem for=), o texto dele vira o aria-label do campo. */
+document.querySelectorAll('input,select,textarea').forEach(c=>{
+  if(c.getAttribute('aria-label')||c.labels&&c.labels.length||c.type==='hidden')return;
+  const bx=c.closest('.campo,label,div'); const l=bx&&bx.querySelector('label');
+  const t=(l&&l.textContent.trim())||c.placeholder||c.title||'';
+  if(t)c.setAttribute('aria-label',t.slice(0,80));
+});
 carregarRecentes();
 // Os recentes se atualizam sozinhos de vez em quando -- se voce conversar no
 // celular, o notebook percebe. Intervalo folgado de proposito: e uma lista
@@ -3353,12 +4558,12 @@ setInterval(()=>{if(!document.hidden&&!ocupado)carregarRecentes();},45000);
 
 <style>
 #logs-discreto{position:fixed;right:12px;bottom:12px;z-index:90;color:inherit}
-#logs-discreto summary{list-style:none;cursor:pointer;opacity:.28;font-size:11px;padding:6px 8px;border-radius:9px;background:rgba(10,15,20,.55);border:1px solid rgba(255,255,255,.12)}
+#logs-discreto summary{list-style:none;cursor:pointer;opacity:.28;font-size:12px;padding:6px 8px;border-radius:9px;background:rgba(10,15,20,.55);border:1px solid rgba(255,255,255,.12)}
 #logs-discreto summary::-webkit-details-marker{display:none}
 #logs-discreto[open] summary{opacity:.9}
 #logs-caixa{width:min(680px,calc(100vw - 24px));max-height:52vh;overflow:auto;margin-top:7px;padding:10px;border-radius:12px;background:rgba(8,12,18,.96);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 35px rgba(0,0,0,.4)}
 #logs-caixa button{padding:6px 9px;border:1px solid rgba(255,255,255,.2);border-radius:7px;color:inherit;background:rgba(255,255,255,.08);cursor:pointer}
-#logs-texto{white-space:pre-wrap;word-break:break-word;font:11px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d7f5df;margin:8px 0 0}
+#logs-texto{white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d7f5df;margin:8px 0 0}
 </style>
 <details id="logs-discreto"><summary>diagnóstico</summary><div id="logs-caixa"><button type="button" onclick="carregarLogsBigode()">Atualizar logs</button><pre id="logs-texto">Clique em “Atualizar logs” para consultar os últimos eventos.</pre></div></details>
 <script>

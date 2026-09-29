@@ -138,8 +138,17 @@
     return buf;
   }
 
+  /* Quem chamou (o modo conversa) precisa saber que nao veio texto, para
+     voltar a esperar o "Ei, Bigode" em vez de ficar parado.   (28/09) */
+  function falhou(motivo) {
+    const cfg = estado.cfg || {};
+    if (cfg.aoFalhar) { try { cfg.aoFalhar(motivo); } catch (e) {} }
+  }
+
   /* ---------- gravar ---------- */
-  async function comecar() {
+  async function comecar(opcoes) {
+    if (estado.gravando) return;
+    const semFalaMs = (opcoes && opcoes.semFalaMs) || 0;   // modo conversa: desiste se ninguém falar
     const cfg = estado.cfg;
 
     /* O navegador só entrega microfone em "contexto seguro": https, ou
@@ -152,6 +161,7 @@
           + 'libera em https ou em localhost -- abra o Bigode por '
           + 'http://localhost:7000.');
       setTimeout(() => faixa(null), 7000);
+      falhou('sem-microfone');
       return;
     }
 
@@ -179,6 +189,7 @@
         : 'Não consegui usar o microfone. Clique no cadeado na barra de '
           + 'endereço e permita o microfone para este endereço.');
       setTimeout(() => faixa(null), 7000);
+      falhou('permissao');
       return;
     }
 
@@ -214,6 +225,7 @@
         encerrar(true); return;
       }
       if (agora - comecou > MAXIMO_MS) { encerrar(true); return; }
+      if (semFalaMs && !houveFala && agora - comecou > semFalaMs) { encerrar(false); return; }
 
       faixa(houveFala ? 'Ouvindo… pare de falar que eu encerro sozinho.'
                       : 'Pode falar.', nivel);
@@ -234,12 +246,13 @@
     try { estado.fluxo.getTracks().forEach(t => t.stop()); } catch (e) {}
     try { estado.ctx.close(); } catch (e) {}
 
-    if (!transcrever) { faixa(null); return; }
+    if (!transcrever) { faixa(null); falhou('parado'); return; }
 
     const total = estado.amostras.reduce((s, a) => s + a.length, 0);
     if (total < estado.taxa * MINIMO_S) {
       faixa('Não ouvi nada. O microfone certo está selecionado?');
       setTimeout(() => faixa(null), 3500);
+      falhou('silencio');
       return;
     }
 
@@ -259,6 +272,7 @@
     if (!texto) {
       faixa('Não entendi. Tente falar um pouco mais perto do microfone.');
       setTimeout(() => faixa(null), 3500);
+      falhou('nao-entendi');
       return;
     }
 
@@ -274,13 +288,18 @@
   raiz.Voz = {
     ligar(cfg) {
       estado.cfg = cfg;
-      if (cfg.botao) cfg.botao.addEventListener('click', () => raiz.Voz.alternar());
+      /* 28/09: o botao do Bigode ja tem onclick="alternarVoz()". Somar
+         outro ouvinte fazia UM clique ligar duas gravacoes ao mesmo tempo. */
+      if (cfg.botao && !cfg.botao.getAttribute('onclick'))
+        cfg.botao.addEventListener('click', () => raiz.Voz.alternar());
       /* Ctrl+Espaço: a mesma tecla nas três telas. */
       document.addEventListener('keydown', ev => {
         if (ev.ctrlKey && ev.code === 'Space') { ev.preventDefault(); raiz.Voz.alternar(); }
       });
     },
     alternar() { estado.gravando ? encerrar(true) : comecar(); },
+    ouvir(opcoes) { return comecar(opcoes); },
+    util: { juntar: juntar, montarWav: montarWav },
     parar() { encerrar(false); },
     gravando() { return estado.gravando; },
   };

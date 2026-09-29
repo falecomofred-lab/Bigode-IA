@@ -59,6 +59,22 @@ PROJETOS = [
         "fontes": ["bigode-fonte.png", "bigode.png", "bigode.jpg"],
         # O verde da marca do Bigode, o mesmo --ac do index.html.
         "fundo": (157, 192, 139),
+        # SO A CARA, NAO O GATO INTEIRO                            (20/09)
+        #
+        # A foto da Pipi ja e um close do rosto. A do Bigode e o gato
+        # sentado, de corpo inteiro. Sem este recorte os dois icones ficam
+        # em escalas diferentes: um rosto e um bichinho. A 16 px o de corpo
+        # inteiro vira uma mancha preta e branca sem cara nenhuma.
+        #
+        # Os quatro numeros sao FRACOES do tamanho da foto, nesta ordem:
+        # esquerda, topo, direita, base. (0.30, 0, 1, 0.35) = pega os 35%
+        # de cima e os 70% da direita, que e onde esta a cabeca.
+        #
+        # Para conferir sem adivinhar: o script grava
+        # web/img/bigode-cabeca.png com o recorte. Abra esse arquivo. Se a
+        # orelha estiver cortada, aumente o terceiro numero; se sobrar peito,
+        # diminua o quarto.
+        "cabeca": (0.30, 0.00, 1.00, 0.35),
     },
     {
         "nome": "Pipi IA",
@@ -93,6 +109,19 @@ def recortar_no_bicho(img):
     return img.crop(caixa) if caixa else img
 
 
+def recortar_cabeca(img, caixa_rel):
+    """Fica so com a parte da foto onde esta a cabeca.
+
+    Recebe fracoes em vez de pixels de proposito: assim trocar a foto por
+    outra de tamanho diferente nao quebra o recorte.
+    """
+    if not caixa_rel:
+        return img
+    e, t, d, b = caixa_rel
+    L, A = img.size
+    return img.crop((int(L * e), int(A * t), int(L * d), int(A * b)))
+
+
 def quadrado(img, folga=0.08):
     """Poe a imagem num quadrado, centralizada, com uma folga em volta.
 
@@ -117,10 +146,11 @@ def cantos(img, raio_rel=0.22):
     return saida
 
 
-def montar(fonte, cor_fundo, lado):
+def montar(fonte, cor_fundo, lado, cabeca=None):
     bicho = Image.open(fonte)
     bicho = bicho.convert("RGBA")
     bicho = recortar_no_bicho(bicho)
+    bicho = recortar_cabeca(bicho, cabeca)
     bicho = quadrado(bicho)
 
     # Redimensiona ANTES de compor, e com LANCZOS: reduzir depois de colar
@@ -159,9 +189,20 @@ def main():
         print("  foto  : %s" % fonte.name)
         print("  fundo : rgb%s" % (proj["fundo"],))
 
+        cabeca = proj.get("cabeca")
+        if cabeca:
+            print("  corte : so a cabeca %s" % (cabeca,))
+            # A PROVA DO RECORTE, EM ARQUIVO
+            # O icone de 16 px e pequeno demais para julgar se o corte ficou
+            # bom. Este arquivo existe para ser aberto e olhado.
+            previa = Image.open(fonte).convert("RGBA")
+            previa = recortar_cabeca(recortar_no_bicho(previa), cabeca)
+            previa.save(pasta / "bigode-cabeca.png", "PNG")
+            print("          confira em %s" % (pasta / "bigode-cabeca.png"))
+
         feitos = []
         for lado in TAMANHOS:
-            img = montar(fonte, proj["fundo"], lado)
+            img = montar(fonte, proj["fundo"], lado, cabeca)
             for prefixo in ("icone", "favicon"):
                 destino = pasta / ("%s-%d.png" % (prefixo, lado))
                 img.save(destino, "PNG", optimize=True)
@@ -170,7 +211,7 @@ def main():
         # O .ico com varios tamanhos dentro: e o que o Windows usa no
         # atalho e o que o Chrome pede sozinho em /favicon.ico, sem olhar
         # o <head> da pagina.
-        base = montar(fonte, proj["fundo"], 256)
+        base = montar(fonte, proj["fundo"], 256, cabeca)
         base.save(pasta / "favicon.ico", "ICO",
                   sizes=[(s, s) for s in (16, 32, 48, 64, 128, 256)])
 

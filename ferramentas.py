@@ -410,6 +410,11 @@ def buscar(termo="", pasta="", **_):
 
 
 def escrever_arquivo(caminho="", conteudo="", **_):
+    # .blend e binario do Blender. Escrever texto nele cria um arquivo
+    # quebrado com nome bonito -- foi o que aconteceu com gato_laranja.blend.
+    if str(caminho).lower().endswith(".blend"):
+        return ("Nao escrevo arquivo .blend como texto: ele sairia quebrado. "
+                "Para salvar o projeto do Blender use blender_salvar.")
     if _sensivel(caminho):
         return "NEGADO: arquivo de configuração ou credencial protegido."
     if not _permitido(caminho):
@@ -1096,6 +1101,14 @@ def ligada_navegador():
     return True
 
 
+def ligada_conexao(chave, padrao=True):
+    """A conexao `chave` esta ligada em conexoes.json? (usada pelo cerebro.py)"""
+    item = _conexoes().get(chave)
+    if isinstance(item, dict):
+        return bool(item.get("ativa", padrao))
+    return padrao
+
+
 def _no_navegador(**_):
     """Executada pela extensao do Chrome. O cerebro.py intercepta antes daqui."""
     return ("A extensao do Chrome nao esta conectada. Abra o painel do Bigode no "
@@ -1153,6 +1166,105 @@ def _desenhar(descricao="", formato="", nome="", modelo="", negativo="",
         descricao=descricao, formato=formato, nome=nome, modelo=modelo,
         negativo=negativo, passos=passos, guidance=guidance, semente=semente,
         pasta_saida=pasta_saida)
+
+
+# BLENDER - modelagem 3D pelo add-on oficial "MCP" do Blender   (28/09)
+#
+#   O import fica DENTRO de cada funcao pelo mesmo motivo do _desenhar:
+#   quem nao tem Blender nao pode ver o ferramentas.py cair por isso.
+def _blender(funcao, **argumentos):
+    try:
+        import blender
+    except Exception as erro:
+        return "O modulo blender.py nao carregou (%s)." % erro
+    return getattr(blender, funcao)(**argumentos)
+
+
+def blender_cena(**_):
+    return _blender("blender_cena")
+
+
+def blender_executar(codigo="", **_):
+    return _blender("blender_executar", codigo=codigo)
+
+
+def blender_carrinho(cor="", **_):
+    return _blender("blender_carrinho", cor=cor)
+
+
+def blender_imagem(nome="", **_):
+    return _blender("blender_imagem", nome=nome)
+
+
+def blender_mascote(texto="", cor="", animar="sim", pose="em_pe", magro="nao", **_):
+    return _blender("blender_mascote", texto=texto, cor=cor, animar=animar,
+                    pose=pose, magro=magro)
+
+
+def blender_montar(pecas="", projeto="", animar="", **_):
+    return _blender("blender_montar", pecas=pecas, projeto=projeto or "Projeto Bigode",
+                    animar=animar)
+
+
+def _recurso(funcao, **argumentos):
+    try:
+        import blender_recursos
+    except Exception as erro:
+        return "O modulo blender_recursos.py nao carregou (%s)." % erro
+    return getattr(blender_recursos, funcao)(**argumentos)
+
+
+def blender_biblioteca(busca="", tipo="modelo", objeto="", **_):
+    return _recurso("blender_biblioteca", busca=busca, tipo=tipo, objeto=objeto)
+
+
+def blender_importar(caminho="", altura="", **_):
+    return _recurso("blender_importar", caminho=caminho, altura=altura or 0)
+
+
+def blender_referencias(frente="", lado="", topo="", altura="", **_):
+    return _recurso("blender_referencias", frente=frente, lado=lado, topo=topo,
+                    altura=altura or 2.0)
+
+
+def blender_textura(caminho="", objeto="", **_):
+    return _recurso("blender_textura", caminho=caminho, objeto=objeto)
+
+
+def blender_gerar_3d(caminho="", altura="", **_):
+    return _recurso("blender_gerar_3d", caminho=caminho, altura=altura or 0)
+
+
+def blender_humano(ficha="", **_):
+    try:
+        import blender_humano as h
+    except Exception as erro:
+        return "O modulo blender_humano.py nao carregou (%s)." % erro
+    return h.blender_humano(ficha=ficha)
+
+
+def blender_instalar_humano(**_):
+    try:
+        import blender_humano as h
+    except Exception as erro:
+        return "O modulo blender_humano.py nao carregou (%s)." % erro
+    return h.instalar()
+
+
+def blender_salvar(nome="", **_):
+    return _blender("blender_salvar", nome=nome)
+
+
+def blender_olhar(pergunta="", **_):
+    return _blender("blender_olhar", pergunta=pergunta)
+
+
+def blender_referencia(projeto="", **_):
+    return _blender("blender_referencia", projeto=projeto)
+
+
+def blender_objeto(forma="", cor="", animacao="", **_):
+    return _blender("blender_objeto", forma=forma, cor=cor, animacao=animacao)
 
 
 def usar_habilidade(nome="", **_):
@@ -1245,6 +1357,85 @@ CATALOGO = {
                                "paisagem, story, capa. Descreva com "
                                "riqueza de detalhe - luz, angulo, estilo, "
                                "cores - que o resultado melhora muito."},
+
+    # blender - executadas dentro do Blender aberto (add-on MCP, porta 9876)
+    "blender_cena":     {"fn": blender_cena,     "escrita": False, "args": "",
+                         "desc": "Le a cena aberta no Blender: colecoes, objetos, "
+                                 "tipo e posicao. Use SEMPRE antes de alterar a cena."},
+    "blender_executar": {"fn": blender_executar, "escrita": True, "args": "codigo",
+                         "desc": "Executa codigo Python (bpy) dentro do Blender para "
+                                 "criar ou alterar objetos, materiais, luz, camera. "
+                                 "Para devolver dados, preencha a variavel result "
+                                 "com um dict. Ex: result = {'n': len(bpy.data.objects)}"},
+    # blender_carrinho saiu do catalogo do modelo em 28/09: pedido de GATO
+    # virou carrinho laranja duas vezes. O carrinho continua no atalho
+    # direto ("crie um carrinho azul no blender").
+    "blender_mascote":  {"fn": blender_mascote,  "escrita": True,
+                         "args": "texto, cor, animar, pose, magro",
+                         "desc": "Cria no Blender um macaco cartoon de CORPO INTEIRO "
+                                 "(cabeca, camisa, bracos, pernas, rabo) com texto "
+                                 "na camisa e animacao de pular e acenar. Use para "
+                                 "personagem/mascote/macaco com corpo ou camisa."},
+    "blender_montar":   {"fn": blender_montar,   "escrita": True,
+                         "args": "pecas, projeto, animar",
+                         "desc": "Monta QUALQUER projeto 3D no Blender a partir de "
+                                 "uma lista JSON de pecas, sem escrever Python. "
+                                 "Tipos: cubo, esfera, cilindro, cone, rosca, macaco, "
+                                 "plano, membro (cilindro de 'de' ate 'ate'), texto. "
+                                 "Z e para cima, frente e -Y, 1 = 1 metro. Ex: "
+                                 "[{\"tipo\":\"esfera\",\"pos\":[0,0,0.5],"
+                                 "\"escala\":[1,1,1],\"cor\":\"branco\"}]. "
+                                 "Leia antes usar_habilidade('blender-3d')."},
+    "blender_biblioteca": {"fn": blender_biblioteca, "escrita": True,
+                         "args": "busca, tipo, objeto",
+                         "desc": "Busca na biblioteca GRATUITA Poly Haven e coloca no "
+                                 "Blender: tipo 'modelo' (objeto 3D real: cadeira, "
+                                 "planta, pedra...), 'hdri' (ceu/luz de ambiente) ou "
+                                 "'textura' (madeira, tijolo... aplicada no objeto). "
+                                 "Prefira isto a montar com formas simples."},
+    "blender_importar": {"fn": blender_importar, "escrita": True, "args": "caminho, altura",
+                         "desc": "Importa arquivo .glb .gltf .obj .fbx .stl .ply ou .svg "
+                                 "(SVG vira placa com volume). altura em metros e opcional."},
+    "blender_referencias": {"fn": blender_referencias, "escrita": True,
+                         "args": "frente, lado, topo, altura",
+                         "desc": "Coloca imagens de frente/lado/topo como fundo no "
+                                 "Blender para modelar com as proporcoes certas."},
+    "blender_textura":  {"fn": blender_textura, "escrita": True, "args": "caminho, objeto",
+                         "desc": "Aplica uma imagem PNG/JPG (rotulo, estampa, textura) "
+                                 "num objeto do Blender."},
+    "blender_gerar_3d": {"fn": blender_gerar_3d, "escrita": True, "args": "caminho, altura",
+                         "desc": "Transforma uma IMAGEM num modelo 3D de verdade (malha "
+                                 "com textura, TRELLIS.2) e importa. Sem caminho usa a "
+                                 "ultima imagem colada. Leva 1 a 3 minutos."},
+    "blender_humano":   {"fn": blender_humano, "escrita": True, "args": "ficha",
+                         "desc": "Cria uma PESSOA realista no Blender (MPFB/MakeHuman) a "
+                                 "partir de uma ficha JSON: sexo, idade, etnia, rosto "
+                                 "(mandibula, nariz, labios, macas), cabelo, roupa. "
+                                 "Ficha sem sexo/idade ajusta a pessoa anterior."},
+    "blender_instalar_humano": {"fn": blender_instalar_humano, "escrita": True, "args": "",
+                         "desc": "Instala uma vez o gerador de humanos gratuito (MPFB + "
+                                 "assets CC0, ~310 MB) no Blender."},
+    "blender_salvar":   {"fn": blender_salvar,   "escrita": True, "args": "nome",
+                         "desc": "Salva o projeto aberto no Blender como .blend de "
+                                 "verdade na pasta producao_blender. NUNCA use "
+                                 "escrever_arquivo para .blend."},
+    "blender_olhar":    {"fn": blender_olhar,    "escrita": False, "args": "pergunta",
+                         "desc": "OLHA a cena do Blender (tira uma imagem e usa a "
+                                 "visao) e descreve o que existe, cores, posicoes e "
+                                 "o que parece errado. Use para conferir o que "
+                                 "montou e antes de continuar um projeto."},
+    "blender_referencia": {"fn": blender_referencia, "escrita": True, "args": "projeto",
+                         "desc": "Monta no Blender a ultima imagem de referencia que "
+                                 "o Fred colou (foto de produto, desenho, print). "
+                                 "A visao ja transformou a imagem em pecas."},
+    "blender_objeto":   {"fn": blender_objeto,   "escrita": True,
+                         "args": "forma, cor, animacao",
+                         "desc": "Cria no Blender uma forma pronta: macaco, cubo, "
+                                 "esfera, cilindro, cone ou rosca, com cor e "
+                                 "animacao opcional: girar, pular, tudo ou nenhuma."},
+    "blender_imagem":   {"fn": blender_imagem,   "escrita": True, "args": "nome",
+                         "desc": "Salva um PNG da vista da camera do Blender na "
+                                 "pasta producao_blender e devolve o caminho."},
 
     # navegador - executadas pela extensao do Chrome
     "navegador_ver":      {"fn": _no_navegador, "escrita": False, "args": "",
@@ -1351,6 +1542,40 @@ PARAMETROS = {
                           "guidance": "Orientacao; normalmente 3.5",
                           "semente": "Numero para repetir o resultado (opcional)",
                           "pasta_saida": "Pasta do projeto liberada (opcional)"},
+    "blender_cena":      {},
+    "blender_executar":  {"codigo": "Codigo Python completo usando bpy"},
+    "blender_carrinho":  {"cor": "vermelho, azul, verde, amarelo, laranja, preto, "
+                                 "branco, prata, roxo ou rosa"},
+    "blender_imagem":    {"nome": "Nome do arquivo PNG, sem extensao (opcional)"},
+    "blender_mascote":   {"texto": "Texto da camisa, ex: Projetosoul.com.br (opcional)",
+                          "cor": "Cor da camisa (opcional)",
+                          "animar": "sim ou nao",
+                          "pose": "em_pe ou meditando (sentado, pernas cruzadas, flutuando)",
+                          "magro": "sim ou nao"},
+    "blender_montar":    {"pecas": "Lista JSON de pecas: tipo, nome, pos [x,y,z], "
+                                   "escala [x,y,z], rot [graus], cor, e para membro: "
+                                   "de, ate, raio; para texto: texto, tamanho",
+                          "projeto": "Nome do projeto (repetir o nome recomeca do zero)",
+                          "animar": "flutuar, girar, pular ou vazio"},
+    "blender_salvar":    {"nome": "Nome do arquivo, sem .blend (opcional)"},
+    "blender_humano":    {"ficha": "Ficha JSON da pessoa"},
+    "blender_instalar_humano": {},
+    "blender_biblioteca": {"busca": "O que procurar, ex: cadeira de madeira",
+                           "tipo": "modelo, hdri ou textura",
+                           "objeto": "Para textura: nome do objeto (vazio = selecionado)"},
+    "blender_importar":  {"caminho": "Caminho completo do arquivo 3D ou SVG",
+                          "altura": "Altura final em metros (opcional)"},
+    "blender_referencias": {"frente": "Caminho da imagem de frente", "lado": "Caminho da imagem de lado",
+                            "topo": "Caminho da imagem de cima", "altura": "Altura do objeto em metros"},
+    "blender_textura":   {"caminho": "Caminho da imagem PNG/JPG", "objeto": "Nome do objeto (opcional)"},
+    "blender_gerar_3d":  {"caminho": "Caminho da imagem (vazio = ultima colada)",
+                          "altura": "Altura final em metros (opcional)"},
+    "blender_olhar":     {"pergunta": "O que conferir na cena (opcional)"},
+    "blender_referencia": {"projeto": "Nome do projeto (opcional)"},
+    "blender_objeto":    {"forma": "macaco, cubo, esfera, cilindro, cone ou rosca",
+                          "cor": "vermelho, azul, verde, amarelo, laranja, preto, "
+                                 "branco, prata, roxo ou rosa (opcional)",
+                          "animacao": "girar, pular, tudo ou nenhuma"},
     "navegador_ver":     {},
     "navegador_ir":      {"url": "Endereco completo"},
     "navegador_clicar":  {"numero": "Numero do elemento na lista"},
@@ -1394,6 +1619,10 @@ OBRIGATORIOS = {
     "raio_x": ["caminho"],
     "memoria": ["consulta"], "github_ler": ["repo"], "web_buscar": ["consulta"],
     "gerar_imagem": ["descricao"],
+    "blender_executar": ["codigo"], "blender_objeto": ["forma"],
+    "blender_biblioteca": ["busca"], "blender_importar": ["caminho"],
+    "blender_textura": ["caminho"],
+    "blender_montar": ["pecas"],
     "navegador_ir": ["url"], "navegador_clicar": ["numero"],
     "navegador_escrever": ["numero", "texto"], "navegador_teclar": ["tecla"],
     "navegador_digitar": ["texto"],
@@ -1416,6 +1645,12 @@ GRUPOS = {
     "web":        ("web_buscar", "web_ler"),
     "terminal":   ("rodar_comando",),
     "desenho":    ("gerar_imagem",),
+    "blender":    ("blender_cena", "blender_executar", "blender_carrinho",
+                   "blender_imagem", "blender_objeto", "blender_mascote",
+                   "blender_montar", "blender_olhar", "blender_referencia",
+                   "blender_salvar", "blender_biblioteca", "blender_importar",
+                   "blender_referencias", "blender_textura", "blender_gerar_3d",
+                   "blender_humano", "blender_instalar_humano"),
 }
 
 GATILHOS_GRUPO = {
@@ -1452,6 +1687,11 @@ GATILHOS_GRUPO = {
                    "banner", "thumbnail", "capa para", "poster", "pôster",
                    "anuncio", "anúncio", "logo para", "wallpaper",
                    "papel de parede", "foto de", "renderiza", "mockup"),
+    # Blender: fala de 3D. "carro"/"carrinho" entram porque o pedido real foi
+    # "crie um carrinho estilo miniatura" -- sem a palavra Blender na frase.
+    "blender":    ("blender", "3d", "modelo 3d", "modelar", "modelagem",
+                   "cena", "objeto 3d", "malha", "mesh", "bpy", "render",
+                   "carrinho", "miniatura", "hot wheels", "hotwheels"),
 }
 
 
@@ -1537,6 +1777,7 @@ def ativas():
         chroma_tem_conteudo = False
 
     saida = {}
+    blender_no_ar = None    # testa a porta uma vez so por chamada
     for nome, dados in CATALOGO.items():
         if nome == "buscar_no_chroma" and not chroma_tem_conteudo:
             continue
@@ -1555,6 +1796,20 @@ def ativas():
             continue
         if nome == "rodar_comando" and not ligada("terminal", False):
             continue
+        # Blender: so entra se a conexao estiver ligada E o Blender aberto.
+        # Oferecer ferramenta que so responde "Blender fechado" gasta tokens
+        # e ensina o modelo a tentar o que nao existe (mesma licao do desenho).
+        if nome.startswith("blender_"):
+            if not ligada("blender", True):
+                continue
+            if blender_no_ar is None:
+                try:
+                    import blender
+                    blender_no_ar = blender.no_ar()
+                except Exception:
+                    blender_no_ar = False
+            if not blender_no_ar:
+                continue
         # Desenho: entra no catalogo se HOUVER quem desenhe.
         #
         # A ideia original continua certa: oferecer uma ferramenta que so
@@ -1642,7 +1897,14 @@ def executar(nome, argumentos):
 #
 #   O PNG vai para a pasta producao\ da Pipi, que existe para isso. Nao
 #   sobrescreve nada: cada arquivo nasce com nome proprio.
-SEM_AUTORIZACAO = {"gerar_imagem"}
+# Mesmo raciocinio para o carrinho e o PNG do Blender: so mexem na cena
+# aberta / gravam um arquivo novo na pasta producao_blender. O
+# blender_executar CONTINUA pedindo autorizacao: roda codigo livre.
+SEM_AUTORIZACAO = {"gerar_imagem", "blender_carrinho", "blender_imagem",
+                   "blender_objeto", "blender_mascote", "blender_montar",
+                   "blender_referencia", "blender_biblioteca", "blender_importar",
+                   "blender_referencias", "blender_textura", "blender_gerar_3d",
+                   "blender_humano"}
 
 
 def exige_autorizacao(nome):

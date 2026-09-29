@@ -75,3 +75,8 @@ _quarentena-*/
 desktop.ini
 Thumbs.db
 .DS_Store
+
+config.json.bak
+*.bak
+config.json
+conexoes.json

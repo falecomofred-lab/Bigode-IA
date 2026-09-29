@@ -14,7 +14,10 @@ echo.
 
 rem Python: preferir o Python portatil do projeto.
 set "PY="
-if exist "%ROOT%python\python.exe" set "PY=%ROOT%python\python.exe"
+rem 1o: copia LOCAL no disco C: (28/09). Rodar o Python de dentro do Google
+rem Drive deixava tudo lento: um simples "pip" levava mais de 50 s para comecar.
+if exist "%LOCALAPPDATA%\Bigode\python\python.exe" set "PY=%LOCALAPPDATA%\Bigode\python\python.exe"
+if not defined PY if exist "%ROOT%python\python.exe" set "PY=%ROOT%python\python.exe"
 if not defined PY if exist "G:\Outros computadores\USB e dispositivos externos\Pen IA\Cerebro\python\python.exe" set "PY=G:\Outros computadores\USB e dispositivos externos\Pen IA\Cerebro\python\python.exe"
 if not defined PY if exist "%ROOT%..\Pen IA\Cerebro\python\python.exe" set "PY=%ROOT%..\Pen IA\Cerebro\python\python.exe"
 if not defined PY for /f "delims=" %%P in ('where python 2^>nul') do if not defined PY set "PY=%%P"
@@ -59,9 +62,29 @@ rem
 rem   Se o perfil escolhido ainda nao estiver configurado, o motor_perfil
 rem   avisa e NAO troca nada -- o Bigode abre com o que ja estava valendo,
 rem   em vez de nao abrir.
+rem
+rem   SOBRE O PERFIL `guru` (32B), QUE EXISTIU POR UM DIA     (22/09)
+rem       Foi retirado. Era sugestao minha, nao pedido seu, e a prioridade
+rem       sempre foi o DeepSeek e o Qwen -- os dois que ja funcionavam.
+rem       Nao ha mais nada aqui que aponte para ele.
 rem ---------------------------------------------------------------------
 if not defined BIGODE_PERFIL set "BIGODE_PERFIL=codigo"
 "%PY%" "%ROOT%motor_perfil.py" %BIGODE_PERFIL%
+echo.
+
+rem ---------------------------------------------------------------------
+rem O QUE ESTA LIGADO ALEM DO MOTOR                           (22/09)
+rem
+rem   Ouvir, falar, ver e a memoria na placa sao pecas SEPARADAS do motor
+rem   de texto, cada uma no seu app da Modal. Elas podem estar desligadas
+rem   sem o Bigode reclamar de nada -- e ai a pessoa usa o dia inteiro sem
+rem   saber que metade do que ela pediu nao esta valendo.
+rem
+rem   Este resumo le so o config.json: nao acorda placa nenhuma, nao soma
+rem   segundos a partida. Ele diz "esta configurado", nao "esta funcionando"
+rem   -- quem prova isso e o LIGAR_TUDO.bat, que testa de verdade.
+rem ---------------------------------------------------------------------
+"%PY%" "%ROOT%LIGAR_TUDO.py" resumo
 echo.
 
 set "PROVARQ=%TEMP%\bigode_provedor.txt"

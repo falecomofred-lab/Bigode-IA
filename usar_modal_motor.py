@@ -122,7 +122,19 @@ def main():
     #   Qual perfil esta sendo configurado vem da variavel BIGODE_PERFIL,
     #   a mesma que o `modal deploy` ja usa. Sem ela, "conversa".
     perfil = (os.environ.get("BIGODE_PERFIL") or "conversa").strip().lower()
-    if perfil not in ("conversa", "codigo"):
+    # A LISTA VEM DA TABELA                                     (20/09)
+    #   Era ("conversa", "codigo") na mao. Com BIGODE_PERFIL=guru isto
+    #   silenciosamente voltava para "conversa" -- e o endereco do guru era
+    #   gravado no lugar do Qwen, sem nenhum aviso. Duas listas da mesma
+    #   coisa sempre acabam discordando.
+    try:
+        from perfis_modal import PERFIS as _TABELA
+        conhecidos = set(_TABELA)
+    except Exception:
+        conhecidos = {"conversa", "codigo"}
+    if perfil not in conhecidos:
+        print("\n  [!] BIGODE_PERFIL=%r nao esta na tabela. Usando 'conversa'."
+              % perfil)
         perfil = "conversa"
 
     cfg = dict(_ler())

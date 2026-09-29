@@ -185,6 +185,42 @@ async function garantirScript(abaId) {
 }
 
 async function executarNaPagina(acao, args) {
+  /* ABRIR SITE nao depende de haver outra aba (28/09).
+     O erros.log mostrou o Bigode desistindo de abrir venure.com.br so porque
+     a unica aba era a dele. Para "ir", se nao houver aba de site, abre uma
+     aba NOVA -- a tela do Bigode continua onde esta. */
+  if (acao === 'ir') {
+    let url = String(args.url || '').trim();
+    if (/^[a-zA-Z]:[\\/]/.test(url) || /^file:/i.test(url))
+      return 'Isso é um arquivo do computador, não um site: ' + url;
+    if (!/^https?:\/\//.test(url)) url = 'https://' + url;
+    let alvo = await abaAtiva();
+    if (!alvo || ehOProprioBigode(alvo.url) || ehPaginaInterna(alvo.url)) {
+      alvo = await chrome.tabs.create({ url, active: true });
+    } else {
+      await chrome.tabs.update(alvo.id, { url });
+    }
+    await new Promise(ok => {
+      const ouvir = (id, info) => {
+        if (id === alvo.id && info.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(ouvir); ok();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(ouvir);
+      setTimeout(() => { chrome.tabs.onUpdated.removeListener(ouvir); ok(); }, 20000);
+    });
+    await garantirScript(alvo.id);
+    try {
+      const leitura = await chrome.tabs.sendMessage(alvo.id, {
+        tipo: 'cerebro-acao', acao: 'ver', args: {}
+      });
+      return 'Abri ' + url + '. Esta é a página que apareceu:\n\n' +
+        (leitura?.resultado || '(não consegui ler a página)');
+    } catch (e) {
+      return 'Abri ' + url + ', mas não consegui ler o conteúdo desta página ainda.';
+    }
+  }
+
   const aba = await abaAtiva();
   if (!aba) return 'Não encontrei uma aba ativa no Chrome para trabalhar.';
 

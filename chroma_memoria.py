@@ -248,9 +248,51 @@ def _blocos(conteudo: str, tamanho: int = 1800, sobreposicao: int = 250):
         inicio = max(inicio + 1, fim - sobreposicao)
 
 
-def _colecao(cliente, nome: str):
+# ══════════════════════════════════════════════════════════════════════
+# DUAS MEMÓRIAS QUE NÃO SE MISTURAM                       (20/09/2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+#   Indexar é transformar texto em números. Modelos diferentes produzem
+#   números diferentes para o MESMO texto -- não é questão de precisão, é
+#   outra língua. Comparar um vetor do modelo pequeno do ChromaDB com um do
+#   bge-m3 não dá erro: dá uma lista de resultados aleatórios, com aparência
+#   perfeitamente normal.
+#
+#   Esse é o pior tipo de defeito que existe neste projeto, e já apareceu
+#   com outros nomes hoje: a busca respondendo com confiança a pergunta
+#   errada.
+#
+#   O conserto é não deixar acontecer. As coleções da placa moram em nomes
+#   próprios (`seguros__placa`), ao lado das antigas. As duas convivem,
+#   ninguém é sobrescrito, e desligar a placa devolve exatamente o
+#   comportamento de antes -- com os 8.113 blocos velhos intactos.
+SUFIXO_PLACA = "__placa"
+
+
+def _motor_da_memoria() -> str:
+    """'placa' quando o modal_memoria está configurado; senão 'local'."""
+    try:
+        import placa_memoria
+        return "placa" if placa_memoria.ligada() else "local"
+    except Exception:
+        # Sem o arquivo, ou com ele quebrado, a memória continua local. O
+        # motivo vai para quem perguntar em `situacao()`, não para o prompt.
+        return "local"
+
+
+def _nome_colecao(nome: str, motor: str = "") -> str:
+    base = _normalizar_nome(nome)
+    if (motor or _motor_da_memoria()) != "placa":
+        return base
+    # 63 é o teto do ChromaDB para nome de coleção. Cortar a base ANTES de
+    # somar o sufixo, e não depois, senão o sufixo é que some -- e aí as
+    # duas memórias voltam a cair no mesmo lugar, calado.
+    return base[:63 - len(SUFIXO_PLACA)] + SUFIXO_PLACA
+
+
+def _colecao(cliente, nome: str, motor: str = ""):
     return cliente.get_or_create_collection(
-        name=_normalizar_nome(nome),
+        name=_nome_colecao(nome, motor),
         metadata={"hnsw:space": "cosine"},
     )
 
@@ -264,7 +306,8 @@ def indexar_dominios() -> dict:
     except RuntimeError as erro:
         return {"ok": False, "erro": str(erro), "colecoes": {}, "erros": [str(erro)]}
     dominios = dominios_configurados()
-    resumo = {"colecoes": {}, "erros": []}
+    motor = _motor_da_memoria()
+    resumo = {"colecoes": {}, "erros": [], "motor": motor}
     for nome, item in dominios.items():
         if not item.get("ativo", True):
             continue
@@ -294,10 +337,36 @@ def indexar_dominios() -> dict:
                 })
         if ids:
             for inicio in range(0, len(ids), 64):
+                lote_docs = docs[inicio:inicio + 64]
+                extra = {}
+                if motor == "placa":
+                    import placa_memoria
+                    vetores = placa_memoria.embutir(lote_docs)
+                    if vetores is None:
+                        # PARAR É O CERTO AQUI, E CUSTA EXPLICAR POR QUÊ
+                        #
+                        #   A tentação é cair para o modelo local e seguir.
+                        #   Mas isto é uma coleção `__placa`: metade dos
+                        #   blocos ficaria numa língua de números e metade
+                        #   noutra, dentro do mesmo índice. A busca não daria
+                        #   erro -- daria resultado errado, para sempre, e
+                        #   ninguém desconfiaria.
+                        #
+                        #   Meio índice envenenado é pior que índice nenhum.
+                        motivo = placa_memoria.ultimo_erro() or "sem detalhe"
+                        resumo["erros"].append(
+                            "a placa parou de responder no meio do domínio "
+                            "'%s' (%s). Nada foi gravado pela metade: "
+                            "religue a placa e rode a indexação de novo."
+                            % (nome, motivo))
+                        resumo["ok"] = False
+                        return resumo
+                    extra["embeddings"] = vetores
                 colecao.add(
                     ids=ids[inicio:inicio + 64],
-                    documents=docs[inicio:inicio + 64],
+                    documents=lote_docs,
                     metadatas=metadados[inicio:inicio + 64],
+                    **extra,
                 )
         resumo["colecoes"][nome] = {
             "pastas": item.get("pastas", []),
@@ -313,6 +382,66 @@ def _id_bloco(arquivo: Path, numero: int) -> str:
     return hashlib.sha1(f"{arquivo.resolve()}::{numero}".encode("utf-8")).hexdigest()
 
 
+# ══════════════════════════════════════════════════════════════════════
+# UM SÓ LUGAR QUE SABE PERGUNTAR AO ÍNDICE               (20/09/2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+#   `buscar_no_chroma` e `contexto_relevante` faziam a mesma consulta, cada
+#   uma com a sua cópia do código. Enquanto as duas usavam `query_texts`,
+#   isso era só repetição chata.
+#
+#   Com a placa deixa de ser: numa coleção `__placa`, `query_texts` faz o
+#   ChromaDB embutir a pergunta com o modelo pequeno DELE e comparar com
+#   vetores do bge-m3. Línguas diferentes. O resultado sai bonito, ordenado,
+#   e errado -- e só a cópia que eu tivesse lembrado de consertar estaria
+#   certa.
+#
+#   Então: uma função. Quem pergunta ao índice passa por aqui.
+def _perguntar(cliente, nome: str, consulta: str, quantos: int,
+               motor: str, vetor=None):
+    """Devolve [(distancia, nome, doc, meta), ...] de uma coleção."""
+    col = _colecao(cliente, nome, motor)
+    if col.count() == 0:
+        return []
+
+    if motor == "placa":
+        if vetor is None:
+            # Sem o vetor da pergunta não há como consultar esta coleção, e
+            # deixar o ChromaDB embutir sozinho seria o erro descrito acima.
+            return []
+        dados = col.query(query_embeddings=[vetor], n_results=quantos,
+                          include=["documents", "metadatas", "distances"])
+    else:
+        dados = col.query(query_texts=[consulta], n_results=quantos,
+                          include=["documents", "metadatas", "distances"])
+
+    docs = (dados.get("documents") or [[]])[0]
+    metas = (dados.get("metadatas") or [[]])[0]
+    distancias = (dados.get("distances") or [[]])[0]
+    return [(float(d or 0), nome, doc, meta or {})
+            for doc, meta, d in zip(docs, metas, distancias)]
+
+
+def _preparar_busca(consulta: str):
+    """(motor, vetor_da_pergunta). Cai para 'local' se a placa não vier.
+
+    Cair é o comportamento certo: as coleções antigas continuam no disco,
+    então a busca local responde. Pior seria não responder nada porque a
+    nuvem estava dormindo.
+    """
+    motor = _motor_da_memoria()
+    if motor != "placa":
+        return "local", None
+    try:
+        import placa_memoria
+        vetor = placa_memoria.embutir_consulta(consulta)
+    except Exception:
+        vetor = None
+    if vetor is None:
+        return "local", None
+    return "placa", vetor
+
+
 def buscar_no_chroma(consulta: str, colecao: str = "", limite: int = 5) -> str:
     consulta = str(consulta or "").strip()
     if not consulta:
@@ -322,22 +451,13 @@ def buscar_no_chroma(consulta: str, colecao: str = "", limite: int = 5) -> str:
     except RuntimeError as erro:
         return str(erro)
     nomes = [colecao] if colecao and colecao != "todas" else colecoes_ativas()
+    motor, vetor = _preparar_busca(consulta)
     resultados = []
     for nome in nomes:
         try:
-            col = _colecao(cliente, nome)
-            if col.count() == 0:
-                continue
-            dados = col.query(
-                query_texts=[consulta],
-                n_results=min(max(int(limite), 1), 10),
-                include=["documents", "metadatas", "distances"],
-            )
-            docs = (dados.get("documents") or [[]])[0]
-            metas = (dados.get("metadatas") or [[]])[0]
-            distancias = (dados.get("distances") or [[]])[0]
-            for doc, meta, distancia in zip(docs, metas, distancias):
-                resultados.append((float(distancia or 0), nome, doc, meta or {}))
+            resultados.extend(_perguntar(
+                cliente, nome, consulta,
+                min(max(int(limite), 1), 10), motor, vetor))
         except Exception as erro:
             return f"Falha ao consultar a coleção {nome}: {erro}"
     if not resultados:
@@ -380,34 +500,85 @@ def contexto_relevante(consulta: str, colecao: str = "", limite: int = 3):
     except Exception as erro:
         _avisar_quebrado(erro)
         return "", []
+    # ══════════════════════════════════════════════════════════════════
+    # BUSCAR LARGO, CORTAR FINO                          (20/09/2026)
+    # ══════════════════════════════════════════════════════════════════
+    #
+    #   Antes: pedia 3 blocos e mandava os 3 para o modelo. O índice só sabe
+    #   dizer "parecido" -- e com 8.113 blocos SEMPRE existem três trechos
+    #   parecidos com qualquer pergunta. Se a resposta estava no 7º lugar,
+    #   ela nunca chegava, e o modelo respondia com o que sobrou.
+    #
+    #   Isso é o "responde bonito a pergunta errada" que você sentiu como
+    #   resposta rasa. Não era o modelo: era o material.
+    #
+    #   Agora: pede 20 por coleção, junta tudo, e um segundo modelo lê a
+    #   pergunta JUNTO com cada candidato para dizer qual responde. Aí sim
+    #   ficam os `limite` melhores.
+    #
+    #   Sem a placa nada disso acontece e o caminho antigo continua valendo,
+    #   linha por linha. Este trecho não pode piorar o que já existe.
     nomes = [colecao] if colecao and colecao != "todas" else colecoes_ativas()
-    fontes = []
-    blocos = []
+    motor, vetor = _preparar_busca(consulta)
+
+    ranqueador = None
+    try:
+        import placa_memoria
+        if placa_memoria.ranqueador_ligado():
+            ranqueador = placa_memoria
+    except Exception:
+        ranqueador = None
+
+    # `ranqueador.CANDIDATOS` e não `placa_memoria.CANDIDATOS`: se o import
+    # acima falhar, o nome `placa_memoria` nem existe, e o NameError cairia
+    # dentro da conversa.
+    quantos = (ranqueador.CANDIDATOS if ranqueador
+               else min(max(int(limite), 1), 10))
+
+    candidatos = []
     falhas = []
     for nome in nomes:
         try:
-            col = _colecao(cliente, nome)
-            if col.count() == 0:
-                continue
-            dados = col.query(
-                query_texts=[consulta],
-                n_results=min(max(int(limite), 1), 10),
-                include=["documents", "metadatas", "distances"],
-            )
-            docs = (dados.get("documents") or [[]])[0]
-            metas = (dados.get("metadatas") or [[]])[0]
-            distancias = (dados.get("distances") or [[]])[0]
-            for doc, meta, distancia in zip(docs, metas, distancias):
-                if float(distancia or 1) > 0.65:
-                    continue
-                meta = meta or {}
-                caminho = str(meta.get("caminho", ""))
-                fontes.append(caminho or f"{nome}:{meta.get('titulo', '')}")
-                blocos.append(
-                    f"[{nome} | {meta.get('titulo', '')} | distância {float(distancia or 0):.4f}]\n{doc}"
-                )
+            candidatos.extend(_perguntar(cliente, nome, consulta, quantos,
+                                         motor, vetor))
         except Exception as erro:
             falhas.append(f"{nome}: {erro}")
+
+    fontes = []
+    blocos = []
+
+    # None = "o ranqueador não respondeu". Lista vazia = "ele respondeu, e
+    # disse que nenhum destes serve". A diferença importa: com `if not
+    # escolhidos` os dois casos caíam no filtro por distância, e aí os
+    # trechos que o ranqueador tinha acabado de REPROVAR voltavam para o
+    # prompt pela porta dos fundos -- desfazendo exatamente o que ele fez.
+    escolhidos = None
+    if ranqueador and candidatos:
+        ordem = ranqueador.ranquear(consulta,
+                                    [c[2] for c in candidatos],
+                                    quantos=max(int(limite), 1))
+        if ordem is not None:
+            # A nota do bge-reranker é um logit: acima de zero quer dizer
+            # "este trecho responde". Abaixo, ele está dizendo que não --
+            # e responder "não achei nada sobre isso na sua memória" é uma
+            # resposta melhor do que três trechos que não respondem.
+            escolhidos = [(candidatos[i], nota)
+                          for i, nota in ordem if nota >= 0.0]
+    if escolhidos is None:
+        # Sem ranqueador, ou ele fora do ar: o corte por distância de antes.
+        escolhidos = [(c, None) for c in candidatos
+                      if float(c[0] or 1) <= 0.65]
+        escolhidos.sort(key=lambda p: p[0][0])
+
+    for (distancia, nome, doc, meta), nota in escolhidos[:max(int(limite), 1)]:
+        meta = meta or {}
+        caminho = str(meta.get("caminho", ""))
+        fontes.append(caminho or f"{nome}:{meta.get('titulo', '')}")
+        medida = (f"relevância {nota:.2f}" if nota is not None
+                  else f"distância {float(distancia or 0):.4f}")
+        blocos.append(
+            f"[{nome} | {meta.get('titulo', '')} | {medida}]\n{doc}"
+        )
     if not blocos and falhas:
         # ISTO IA PARA DENTRO DO PROMPT DO MODELO               (17/09)
         #
@@ -456,11 +627,28 @@ def status() -> dict:
         "caminho": str(caminho_chroma()),
         "colecoes": {},
         "erro": "",
+        # Qual das duas memórias está em uso agora, e como anda a placa.
+        # Sem isto, "0 blocos" não diz se falta indexar ou se a placa está
+        # apontando para a coleção nova, ainda vazia.
+        "motor": _motor_da_memoria(),
+        "placa": {},
     }
     try:
+        import placa_memoria
+        resultado["placa"] = placa_memoria.situacao()
+    except Exception as erro:
+        resultado["placa"] = {"ligada": False, "ultimo_erro": str(erro)[:200]}
+    try:
         cliente = _cliente()
+        motor = resultado["motor"]
         for nome in colecoes_ativas():
-            resultado["colecoes"][nome] = _colecao(cliente, nome).count()
+            col = _colecao(cliente, nome, motor)
+            resultado["colecoes"][nome] = col.count()
+            if motor == "placa":
+                # O número da memória antiga continua visível: é o que
+                # mostra que nada foi perdido na troca.
+                resultado["colecoes"][nome + " (antiga)"] = \
+                    _colecao(cliente, nome, "local").count()
         resultado["ativo"] = True
     except Exception as erro:
         resultado["erro"] = str(erro)

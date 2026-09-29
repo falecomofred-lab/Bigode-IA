@@ -153,7 +153,45 @@ imagem = (
     .entrypoint([])
     .pip_install("huggingface_hub[hf_transfer]==0.28.1")
     # hf_transfer acelera o download unico da construcao.
-    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
+    # O PERFIL TEM DE VIAJAR PARA DENTRO DA IMAGEM             (21/09)
+    #
+    #   `$env:BIGODE_PERFIL="guru"` vale no PowerShell do Fred. Dentro do
+    #   contêiner da Modal esse valor NÃO existe: a Modal reimporta este
+    #   arquivo lá, `os.environ.get("BIGODE_PERFIL")` volta vazio, e a
+    #   linha 94 cai no padrão "conversa".
+    #
+    #   O resultado foi um defeito que não parece defeito nenhum:
+    #
+    #     . o nome do Volume é calculado AQUI     -> bigode-modelos-guru
+    #     . o modelo a baixar é escolhido LÁ      -> o Qwen 7B
+    #
+    #   Ou seja: o app chamado `bigode-guru` baixou e serviu o Qwen de 7B,
+    #   sem erro, sem aviso, com o nome do guru. Só apareceu porque o
+    #   `volume ls` mostrou o nome do arquivo -- se eu tivesse olhado só o
+    #   tamanho, ou confiado no deploy verde, teria passado.
+    #
+    #   Gravar o perfil na imagem faz o valor escolhido no deploy ser o
+    #   mesmo que o contêiner lê, no build e na hora de servir.
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "BIGODE_PERFIL": PERFIL})
+    # O perfis_modal.py PRECISA ESTAR DENTRO DA IMAGEM          (20/09)
+    #
+    #   O `run_function` logo abaixo roda na maquina de build da Modal, e
+    #   para rodar ela importa este arquivo inteiro -- inclusive a linha
+    #   `from perfis_modal import PERFIS`. Sem o arquivo la dentro:
+    #
+    #       File "/root/modal_motor.py", line 103, in <module>
+    #           from perfis_modal import PERFIS
+    #       ModuleNotFoundError: No module named 'perfis_modal'
+    #
+    #   `copy=True` e o que importa: sem ele o arquivo so aparece quando o
+    #   container ja esta rodando, e aqui a necessidade e ANTES, na hora de
+    #   construir a imagem.
+    #
+    #   Isto nao era preciso quando a tabela morava dentro deste arquivo.
+    #   Separar os dois consertou a tela do Bigode e criou esta pendencia
+    #   do outro lado -- que so apareceu hoje porque so hoje um perfil novo
+    #   obrigou um build novo.
+    .add_local_python_source("perfis_modal", copy=True)
     .run_function(_baixar, volumes={MODELOS: volume})
 )
 
@@ -161,7 +199,12 @@ app = modal.App(APP, image=imagem)
 
 
 @app.function(
-    gpu="L4",
+    # A PLACA VEM DO PERFIL                                    (20/09)
+    #   Era "L4" fixo. Com o perfil `guru` (32B, ~20 GB de pesos) isso
+    #   viraria um container que sobe, tenta carregar, estoura a memória da
+    #   placa e morre -- em loop, cobrando, sem dizer que o problema era
+    #   tamanho. O .get mantém L4 para quem não declarou nada.
+    gpu=_P.get("placa", "L4"),
     volumes={MODELOS: volume},
     secrets=[modal.Secret.from_name("bigode-token")],
     timeout=60 * 60,
@@ -172,7 +215,17 @@ app = modal.App(APP, image=imagem)
 # Um container, varios pedidos. O llama-server aguenta -- e sem isto a Modal
 # subiria uma placa nova para cada aba aberta.
 @modal.concurrent(max_inputs=8)
-@modal.web_server(PORTA, startup_timeout=300)
+# O TEMPO DE ARRANQUE É POR TAMANHO DE MODELO               (20/09)
+#
+#   Eram 300 s fixos, calibrados no Qwen de 4,7 GB, que sobe em menos de um
+#   minuto. O guru tem 20 GB: ler isso do Volume e mapear na placa não cabe
+#   em 5 minutos na primeira vez.
+#
+#   O sintoma de estourar não é uma mensagem clara: é HTTP 503 no endereço,
+#   que parece "o app não existe" e manda republicar -- consertando a coisa
+#   errada. Um número calibrado num modelo e aplicado a outro é o mesmo tipo
+#   de engano que o comentário sobre a ordem das pastas já custou.
+@modal.web_server(PORTA, startup_timeout=900)
 def servidor():
     chave = (os.environ.get("BIGODE_TOKEN") or "").strip()
     if not chave:
@@ -204,4 +257,5 @@ def servidor():
         # rota, mas quando pedir o servidor ja entende.
         "--jinja",
     ])
-    print("Perfil: %s  ->  %s" % (PERFIL, _P["nota"]))
+    print("Perfil: %s  (%s)  ->  %s"
+          % (PERFIL, _P.get("placa", "L4"), _P["nota"]))

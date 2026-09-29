@@ -92,6 +92,21 @@ TRAVA_AQUECER = threading.Lock()
 # Configuracao
 # ==========================================================================
 
+def _gerador_local_estado():
+    try:
+        import gerador_local_3d as _g
+        return _g.estado()
+    except Exception:
+        return "indisponivel"
+
+
+def _blender_no_ar():
+    try:
+        import blender as _b
+        return bool(_b.no_ar())
+    except Exception:
+        return False
+
 def ler(caminho, padrao=""):
     try:
         return Path(caminho).read_text(encoding="utf-8-sig", errors="ignore")
@@ -771,8 +786,15 @@ def montar_system(pergunta, colecao=""):
 
     fontes_chroma = []
     if cfg.get("injetar_chroma", True):
-        contexto_chroma, fontes_chroma = chroma_memoria.contexto_relevante(
-            pergunta, colecao_alvo, int(cfg.get("memorias_por_pergunta", 3)))
+        # Em 13/09 o ChromaDB respondeu "Could not connect to tenant
+        # default_tenant" e isso DERRUBOU a conversa inteira. Memoria e
+        # ajuda, nao requisito: se ela falhar, o Bigode responde sem ela.
+        try:
+            contexto_chroma, fontes_chroma = chroma_memoria.contexto_relevante(
+                pergunta, colecao_alvo, int(cfg.get("memorias_por_pergunta", 3)))
+        except Exception as erro_chroma:
+            anotar_erro("[chroma] memoria indisponivel nesta pergunta", erro_chroma)
+            contexto_chroma, fontes_chroma = "", []
         if contexto_chroma:
             partes.append(
                 "# MEMORIA SEMANTICA DO CHROMADB\n\n"
@@ -917,6 +939,38 @@ def extensao_conhecida():
 
 
 def pedir_ao_navegador(nome, args, evento, espera=90):
+    """Envolve a chamada ao Chrome com duas correcoes tiradas do erros.log
+    (28/09):
+      1. O modelo mandava ABRIR NO NAVEGADOR um arquivo do PC
+         (navegador_ir "G:\\...\\carrinho_azul.png") e esperava 30 s por nada.
+      2. Quando o Chrome nao abria o site (so a aba do Bigode aberta,
+         extensao dormindo, 90 s sem resposta), a conversa travava. Agora,
+         para ABRIR SITE, o Bigode le a pagina direto pela internet."""
+    args = args or {}
+    if nome == "navegador_ir":
+        url = str(args.get("url") or "").strip().strip('"')
+        if re.match(r"^[a-zA-Z]:[\\/]", url) or url.lower().startswith("file:"):
+            return ("Isso e um ARQUIVO do computador do Fred, nao um site: %s\n"
+                    "Nao abra no navegador. Para texto/codigo use ler_arquivo; para "
+                    "imagem, diga ao Fred onde ela esta salva." % url)
+        espera = min(espera, 45)
+    resultado = _pedir_ao_navegador_bruto(nome, args, evento, espera)
+    if nome == "navegador_ir" and isinstance(resultado, str) and (
+            "[INSTRUCAO AO ASSISTENTE" in resultado
+            or resultado.startswith(("A única aba", "Só encontrei páginas internas",
+                                     "Não encontrei uma aba"))):
+        motivo = resultado.split("[INSTRUCAO")[0].strip()
+        try:
+            texto = ferramentas.web_ler(str(args.get("url") or ""))
+            if texto and not texto.lower().startswith(("erro", "nao consegui", "não consegui")):
+                return ("O Chrome nao abriu a pagina (%s). Li o site direto pela internet, "
+                        "sem o navegador:\n\n%s" % (motivo[:200], texto))
+        except Exception:
+            pass
+    return resultado
+
+
+def _pedir_ao_navegador_bruto(nome, args, evento, espera=90):
     """Manda a acao para a extensao do Chrome e espera o resultado.
 
     O caminho da entrega mudou, e vale registrar por que. Antes, a acao ia
@@ -1167,6 +1221,14 @@ class Medidor:
                 self.arquivos_escritos.append(alvo)
         elif nome in ("terminal", "rodar_comando", "executar"):
             self.comandos.append(str(args.get("comando", ""))[:120])
+        elif nome.startswith("blender_"):
+            # Mexer na cena do Blender E evidencia: o resultado veio do
+            # Blender de verdade. Sem isto o selo "NAO CONFERI" caia em
+            # cima de um carrinho que acabou de ser montado.   (28/09)
+            if nome == "blender_cena":
+                self.arquivos_lidos.append("cena do Blender")
+            else:
+                self.arquivos_escritos.append("cena do Blender")
         elif nome in ("web_buscar", "web_ler", "github_ler", "github_repos"):
             # Faltava contar isto. Uma resposta inteira baseada em pesquisa na
             # internet nao contava como verificada -- o selo so olhava arquivo
@@ -2557,6 +2619,10 @@ def _perfis_da_placa():
             "perfil": perfil,
             "app": dados.get("app", ""),
             "nota": dados.get("nota", ""),
+            "placa_tipo": dados.get("placa", "L4"),
+            "so_na_placa": bool(dados.get("so_na_placa")),
+            "nome_bonito": str(dados.get("nota", "")).split("·")[0].strip(),
+            "janela": dados.get("janela", 0),
             # "publicado" = ja tem endereco guardado aqui. Nao consulta a
             # Modal: isto roda a cada abertura de tela, e uma chamada de
             # rede por cartao deixaria o painel lento por nada.
@@ -2564,6 +2630,100 @@ def _perfis_da_placa():
                                   or "").strip()),
         }
     return saida
+
+
+# ══════════════════════════════════════════════════════════════════════
+# FALAR E ENXERGAR                                       (20/09/2026)
+# ══════════════════════════════════════════════════════════════════════
+#
+#   As duas passam pela Modal e as duas seguem a mesma regra dos outros
+#   acréscimos deste projeto: se a placa não estiver lá, a conversa continua
+#   igual. Nenhuma das duas pode derrubar um pedido.
+#
+#   O servidor fica no meio, e não o navegador falando direto com a Modal,
+#   por um motivo só: a senha. Mandá-la para dentro do JavaScript da página
+#   seria publicá-la -- qualquer aba aberta leria. Ela fica no config.json,
+#   no disco, e quem sai daqui para a internet é o Python.
+def _endereco_da_placa(chave, campo="url"):
+    """(url, token) do bloco `chave` do config.json, ou ("", "")."""
+    bloco = config().get(chave) or {}
+    if not isinstance(bloco, dict) or not bloco.get("ligada", True):
+        return "", ""
+    return (str(bloco.get(campo) or "").strip(),
+            str(bloco.get("token") or "").strip())
+
+
+def _pedir_a_placa(url, corpo, espera):
+    """POST em JSON. Devolve o dicionário, ou {"ok": False, "erro": ...}.
+
+    Nunca levanta: quem chama está dentro de um pedido do navegador, e uma
+    exceção aqui vira "o motor derrubou a conexão" na tela -- culpando a
+    peça errada, como já aconteceu com o ChromaDB em 13/09.
+    """
+    import json as _json
+    import urllib.request
+    try:
+        pedido = urllib.request.Request(
+            url, data=_json.dumps(corpo).encode("utf-8"),
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(pedido, timeout=espera) as r:
+            return _json.loads(r.read().decode("utf-8", "ignore"))
+    except Exception as erro:
+        anotar_erro("[placa] %s" % url[:70], erro)
+        return {"ok": False,
+                "erro": "%s: %s" % (type(erro).__name__, str(erro)[:200])}
+
+
+def falar_na_placa(texto, velocidade=None):
+    """Texto -> {"ok": True, "wav": base64}. O botão de alto-falante."""
+    texto = (texto or "").strip()
+    if not texto:
+        return {"ok": False, "erro": "sem texto"}
+
+    url, token = _endereco_da_placa("fala_modal")
+    if not url or not token:
+        return {"ok": False, "desligado": True,
+                "erro": ("A voz do Bigode ainda não está publicada. "
+                         "No PowerShell, na pasta do Cerebro:\n\n"
+                         "    python -m modal deploy modal_fala.py\n"
+                         "    python usar_modal_fala.py")}
+
+    # O TETO É DO ENDPOINT, E ELE RECUSA EM VEZ DE CORTAR
+    #   4000 caracteres são uns 4 minutos de fala. Resposta maior que isso
+    #   ninguém ouve inteira de qualquer jeito -- e cortar calado é o defeito
+    #   que a Pipi já cometeu com o prompt.
+    if len(texto) > 4000:
+        texto = texto[:3990] + " …"
+
+    corpo = {"token": token, "texto": texto}
+    try:
+        if velocidade is not None:
+            corpo["velocidade"] = float(velocidade)
+    except Exception:
+        pass
+    return _pedir_a_placa(url, corpo, 120)
+
+
+def olhar_na_placa(imagem_b64, pergunta=""):
+    """Uma imagem e uma pergunta -> a descrição em texto."""
+    imagem_b64 = (imagem_b64 or "").strip()
+    if not imagem_b64:
+        return {"ok": False, "erro": "sem imagem"}
+    # O navegador manda `data:image/png;base64,AAAA…`. O endpoint quer só a
+    # parte depois da vírgula.
+    if imagem_b64.startswith("data:"):
+        _, _, imagem_b64 = imagem_b64.partition(",")
+
+    url, token = _endereco_da_placa("olho_modal")
+    if not url or not token:
+        return {"ok": False, "desligado": True,
+                "erro": ("A visão do Bigode ainda não está publicada. "
+                         "No PowerShell, na pasta do Cerebro:\n\n"
+                         "    python -m modal deploy modal_olho.py\n"
+                         "    python usar_modal_olho.py")}
+
+    return _pedir_a_placa(url, {"token": token, "imagem": imagem_b64,
+                                "pergunta": pergunta or ""}, 180)
 
 
 def estado_da_placa():
@@ -2580,15 +2740,56 @@ def modelos_com_placa():
     placa = _perfis_da_placa()
     atual = estado_da_placa()
     lista = listar_modelos()
+    usados = set()
     for item in lista:
         chave = str(item.get("arquivo") or "").lower()
         # `arquivo` vem sem extensao (stem); os perfis guardam com .gguf.
         achado = placa.get(chave + ".gguf") or placa.get(chave)
         if not achado:
             continue
+        usados.add(chave + ".gguf")
         item["placa"] = achado
         item["na_placa_agora"] = (atual["provedor"] == "modal"
                                   and atual["perfil"] == achado["perfil"])
+
+    # ══════════════════════════════════════════════════════════════════
+    # OS QUE SÓ EXISTEM NA PLACA                          (20/09/2026)
+    # ══════════════════════════════════════════════════════════════════
+    #
+    #   A lista acima nasce de varrer as pastas por arquivos .gguf. O perfil
+    #   `guru` (32B) não tem arquivo nenhum no disco do Fred, e não deve ter:
+    #   são 20 GB que esta máquina não roda de jeito nenhum.
+    #
+    #   Sem este trecho, o cartão dele simplesmente não apareceria -- e o
+    #   sintoma seria idêntico ao do bug de 18/09, quando os botões da placa
+    #   sumiram por um import calado. "Não aparece" não distingue "não
+    #   existe" de "está escondido"; por isso o cartão é construído aqui, de
+    #   propósito, em vez de depender do disco.
+    for chave, dados in placa.items():
+        if chave in usados or not dados.get("so_na_placa"):
+            continue
+        lista.append({
+            "id": "placa:" + dados["perfil"],
+            "nome": dados.get("nome_bonito") or dados["perfil"],
+            "arquivo": chave[:-5] if chave.endswith(".gguf") else chave,
+            "gb": 0,
+            "quantizacao": "Q4_K_M",
+            "papel": "principal",
+            "especialidade": "",
+            "ferramentas_nativas": True,
+            "incompleto": False,
+            "atual": False,
+            "so_na_placa": True,
+            # `familia` e `logo` existem porque a tela lê os dois sem
+            # perguntar se vieram: sem eles o cartão mostraria a palavra
+            # "undefined" ao lado do nome.
+            "familia": "Qwen",
+            "logo": "qwen",
+            "nota": dados.get("nota", ""),
+            "placa": dados,
+            "na_placa_agora": (atual["provedor"] == "modal"
+                               and atual["perfil"] == dados["perfil"]),
+        })
     return lista
 
 
@@ -2604,7 +2805,20 @@ def ligar_na_placa(perfil):
     do config mudar, muda num lugar.
     """
     perfil = (perfil or "").strip().lower()
-    if perfil not in ("conversa", "codigo"):
+    # A LISTA VEM DA TABELA, E NAO ESCRITA AQUI                 (20/09)
+    #
+    #   Era ("conversa", "codigo"), na mao. Ao acrescentar o perfil `guru`
+    #   em perfis_modal.py, o botao dele apareceria na tela -- a tela le a
+    #   tabela -- e o clique seria recusado aqui com "perfil desconhecido".
+    #   Duas listas da mesma coisa sempre acabam discordando; e a segunda
+    #   que ninguem lembra de atualizar.
+    try:
+        import perfis_modal
+        conhecidos = set(perfis_modal.PERFIS)
+    except Exception as erro:
+        anotar_erro("[placa] nao consegui ler perfis_modal.py", erro)
+        conhecidos = {"conversa", "codigo"}
+    if perfil not in conhecidos:
         return {"ok": False, "msg": "perfil desconhecido: %r" % perfil}
 
     guardados = ((config().get("modal") or {}).get("perfis") or {})
@@ -2905,7 +3119,7 @@ class Handler(BaseHTTPRequestHandler):
     LIVRES = ("/login", "/health", "/api/health", "/api/login/estado", "/api/login/entrar",
               "/api/login/criar", "/auth/", "/icone", "/manifest.json",
               "/sw.js", "/apple-touch-icon", "/favicon", "/img/",
-              "/venure.css", "/voz.js",
+              "/venure.css", "/voz.js", "/conversa.js",
               # Travado, o login tambem pode nao responder. Diagnostico que
               # exige login nao serve para diagnosticar travamento.
               "/api/diagnostico")
@@ -3010,13 +3224,13 @@ class Handler(BaseHTTPRequestHandler):
         #   Livre de login como o CSS: a tela carrega o script antes de
         #   existir sessao, e um 401 aqui apareceria como "Voz is not
         #   defined" no console, que nao explica nada.
-        if rota == "/voz.js":
-            arq = BASE / "web" / "voz.js"
+        if rota in ("/voz.js", "/conversa.js"):
+            arq = BASE / "web" / rota.lstrip("/")
             if arq.is_file():
                 return self._enviar(200,
                                     "application/javascript; charset=utf-8",
                                     arq.read_bytes())
-            return self._enviar(404, "text/plain", b"voz.js nao encontrado")
+            return self._enviar(404, "text/plain", b"arquivo js nao encontrado")
 
         if rota.startswith("/img/"):
             nome = rota[5:]
@@ -3043,6 +3257,33 @@ class Handler(BaseHTTPRequestHandler):
 
         if not self._autorizado():
             return self._ir_para("/login")
+
+        # Audios do estudio musical (players da tela)                  (28/09)
+        if rota.startswith("/estudio/"):
+            import urllib.parse as _up
+            import estudio_musical as _est
+            partes = _up.unquote(rota[len("/estudio/"):]).split("/", 1)
+            alvo = _est.arquivo(partes[0], partes[1] if len(partes) > 1 else "")
+            if not alvo:
+                return self._enviar(404, "text/plain; charset=utf-8", "arquivo nao encontrado".encode())
+            tipos = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".flac": "audio/flac",
+                     ".ogg": "audio/ogg", ".m4a": "audio/mp4"}
+            return self._enviar(200, tipos.get(alvo.suffix.lower(), "application/octet-stream"),
+                                alvo.read_bytes())
+
+        # Arquivos dos clones de site (a tela mostra a previa num iframe)  (28/09)
+        if rota.startswith("/clones/"):
+            import urllib.parse as _up
+            import clonar_site as _clone
+            partes = _up.unquote(rota[len("/clones/"):]).split("/", 1)
+            alvo = _clone.arquivo(partes[0], partes[1] if len(partes) > 1 else "index.html")
+            if not alvo:
+                return self._enviar(404, "text/plain; charset=utf-8", "arquivo nao encontrado".encode())
+            tipos = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
+                     ".png": "image/png", ".txt": "text/plain; charset=utf-8",
+                     ".jpg": "image/jpeg"}
+            return self._enviar(200, tipos.get(alvo.suffix.lower(), "application/octet-stream"),
+                                alvo.read_bytes())
 
         if rota.startswith("/api/pesquisa/job/"):
             job = pesquisa_profunda.obter(rota.rsplit("/", 1)[-1])
@@ -3159,6 +3400,25 @@ class Handler(BaseHTTPRequestHandler):
             "/api/artefatos": lambda: self._json({
                 "artefatos": agenda.artefatos()}),
             "/api/conexoes": lambda: self._json(conexoes_publicas()),
+            "/api/fatos": lambda: self._json({
+                "fatos": __import__("memoria_fatos").listar(),
+                "ligada": __import__("memoria_fatos").ligada()}),
+            "/api/fatos/ultimas": lambda: self._json(
+                __import__("memoria_fatos").ultimas(self._param("desde") or 0)),
+            "/api/estudio/status": lambda: self._json(
+                __import__("estudio_musical").status(self._param("id"))),
+            "/api/estudio/lista": lambda: self._json({
+                "projetos": __import__("estudio_musical").listar(),
+                "pasta": str(__import__("estudio_musical").pasta_estudio()),
+                "pronto": __import__("estudio_musical").pronto(),
+                "motor": __import__("gerador_local_3d").estado()}),
+            "/api/clonar/status": lambda: self._json(
+                __import__("clonar_site").status(self._param("id"))),
+            "/api/clonar/lista": lambda: self._json({
+                "clones": __import__("clonar_site").listar(),
+                "pasta": str(__import__("clonar_site").pasta_clones())}),
+            "/api/blender/status": lambda: self._json({"no_ar": _blender_no_ar(),
+                                                       "local": _gerador_local_estado()}),
             "/api/dominios": lambda: self._json({
                 "dominios": chroma_memoria.dominios_configurados()}),
             "/api/chroma/status": lambda: self._json(chroma_memoria.status()),
@@ -3444,6 +3704,108 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/modelo/placa":
             return self._enviar(200, *self._json(
                 ligar_na_placa(str(dados.get("perfil") or ""))))
+        if rota == "/api/falar":
+            return self._enviar(200, *self._json(
+                falar_na_placa(str(dados.get("texto") or ""),
+                               dados.get("velocidade"))))
+        if rota in ("/api/clonar/print", "/api/clonar/link", "/api/clonar/ajustar"):
+            # CLONAR SITE: print ou link -> index.html + style.css   (28/09)
+            try:
+                import clonar_site as _clone
+                _reserva = lambda _p: chamar_modelo(
+                    [{"role": "user", "content": _p}], lambda _a: None,
+                    com_ferramentas=False)[0]
+                if rota.endswith("print"):
+                    r_cl = _clone.clonar_print(str(dados.get("imagem") or ""),
+                                               str(dados.get("nome") or ""),
+                                               str(dados.get("detalhes") or ""), _reserva)
+                elif rota.endswith("link"):
+                    r_cl = _clone.clonar_link(str(dados.get("url") or ""),
+                                              str(dados.get("nome") or ""), _reserva)
+                else:
+                    r_cl = _clone.ajustar(str(dados.get("nome") or ""),
+                                          str(dados.get("pedido") or ""), _reserva)
+                return self._enviar(200, *self._json(r_cl))
+            except Exception as erro_cl:
+                anotar_erro("[clonar site]", erro_cl)
+                return self._enviar(200, *self._json({"ok": False, "erro": str(erro_cl)}))
+        if rota.startswith("/api/fatos/"):
+            # MEMORIA DE FATOS (28/09): o painel Memoria ve, corrige e apaga.
+            import memoria_fatos as _mf
+            acao_f = rota.rsplit("/", 1)[-1]
+            if acao_f == "adicionar":
+                r_f = _mf.adicionar(dados.get("texto", ""), dados.get("tipo", "outro"))
+            elif acao_f == "editar":
+                r_f = _mf.editar(str(dados.get("id") or ""), dados.get("texto", ""))
+            elif acao_f == "apagar":
+                r_f = _mf.apagar(str(dados.get("id") or ""))
+            elif acao_f == "apagar_tudo":
+                r_f = _mf.apagar_tudo()
+            elif acao_f == "ligar":
+                ligada_f = bool(dados.get("ligada", True))
+                salvar_config({"memoria_fatos": ligada_f})
+                r_f = {"ok": True, "ligada": ligada_f}
+            else:
+                r_f = {"ok": False, "erro": "acao desconhecida"}
+            return self._enviar(200, *self._json(r_f))
+        if rota in ("/api/estudio/separar", "/api/estudio/mixar"):
+            # ESTUDIO MUSICAL: separar instrumentos e mixar      (28/09)
+            try:
+                import estudio_musical as _est
+                if rota.endswith("separar") and str(dados.get("url") or "").strip():
+                    r_est = _est.separar_url(str(dados.get("url")), str(dados.get("modo") or "voz"),
+                                             str(dados.get("nome") or ""))
+                elif rota.endswith("separar"):
+                    r_est = _est.separar(str(dados.get("nome_arquivo") or ""), str(dados.get("dados") or ""),
+                                         str(dados.get("modo") or "rapido"), str(dados.get("nome") or ""))
+                else:
+                    r_est = _est.mixar(str(dados.get("nome") or ""), dados.get("volumes") or {},
+                                       str(dados.get("formato") or "mp3"))
+                return self._enviar(200, *self._json(r_est))
+            except Exception as erro_est:
+                anotar_erro("[estudio musical]", erro_est)
+                return self._enviar(200, *self._json({"ok": False, "erro": str(erro_est)}))
+        if rota == "/api/blender/instalar_local":
+            # Botao do painel: instala o gerador 3D do PC agora   (28/09)
+            try:
+                import gerador_local_3d as _g3
+                return self._enviar(200, *self._json({"ok": True,
+                                                      "texto": _g3.instalar_em_segundo_plano()}))
+            except Exception as erro_g3:
+                return self._enviar(200, *self._json({"ok": False, "erro": str(erro_g3)}))
+        if rota == "/api/blender/arquivo":
+            # Anexo 3D/SVG/imagem de referencia vindo da tela   (28/09)
+            try:
+                import blender_recursos as _rec_arq
+                return self._enviar(200, *self._json(_rec_arq.receber_arquivo(
+                    dados.get("nome"), dados.get("dados"))))
+            except Exception as erro_arq:
+                return self._enviar(200, *self._json({"ok": False, "erro": str(erro_arq)}))
+        if rota == "/api/olhar":
+            # Toda imagem colada fica guardada: "crie isso no blender"
+            # funciona mesmo digitado DEPOIS de colar.            (28/09)
+            try:
+                import blender as _blender_img
+                _blender_img.guardar_imagem(str(dados.get("imagem") or ""))
+            except Exception:
+                pass
+            # IMAGEM -> BLENDER                               (28/09)
+            # Com o texto falando de Blender/3D, a visao nao descreve: ela
+            # decompoe a imagem em pecas e o blender.py guarda a referencia.
+            # O Fred confere o texto na caixa e manda; o atalho monta.
+            if str(dados.get("modo") or "") == "blender" and \
+                    ferramentas.ligada_conexao("blender"):
+                try:
+                    import blender as _blender
+                    return self._enviar(200, *self._json(
+                        _blender.referencia_da_imagem(
+                            str(dados.get("imagem") or ""),
+                            str(dados.get("pergunta") or ""))))
+                except Exception as erro_b:
+                    anotar_erro("[blender referencia]", erro_b)
+            return self._enviar(200, *self._json(
+                olhar_na_placa(str(dados.get("imagem") or ""),
+                               str(dados.get("pergunta") or ""))))
         if rota == "/api/sincronizar":
             return self._sincronizar()
         if rota == "/api/memoria":
@@ -3509,6 +3871,15 @@ class Handler(BaseHTTPRequestHandler):
         texto_esp, regras_esp = especialistas.montar(dados.get("especialista", ""))
         if texto_esp:
             system += texto_esp
+
+        # MEMORIA DE FATOS (28/09): o que o Fred ja disse e vale para esta
+        # pergunta. Vai no FIM do system, depois do especialista (cache).
+        try:
+            import memoria_fatos
+            system += memoria_fatos.bloco_para_prompt(
+                pergunta, str(dados.get("especialista") or ""), str(dados.get("projeto") or ""))
+        except Exception as erro_fatos:
+            anotar_erro("[memoria de fatos] leitura", erro_fatos)
 
         mensagens = [{"role": "system", "content": system}] + historico
 
@@ -3684,6 +4055,139 @@ class Handler(BaseHTTPRequestHandler):
         medidor = Medidor(pergunta=pergunta,
                           modelo=(PROVEDOR.atual() or {}).get("nome", ""),
                           projeto=projeto.get("nome", "") if projeto else "")
+
+        # ── ESTUDIO MUSICAL POR LINK ─────────────────────────── (28/09)
+        # "separe a voz deste video https://youtu.be/..." -> baixa o audio,
+        # vira MP3 e separa. Nao passa pelo modelo: e um pedido de acao.
+        try:
+            import estudio_musical as _est
+            _link_est = _est.achar_link(pergunta)
+            if _link_est and re.search(
+                    r"separ|karaok|instrumental|tir\w* a voz|s[oó] a voz|sem a voz|est[uú]dio musical|"
+                    r"stems?\b|fati[ae]|acapell|a capell|\bmp3\b", pergunta, re.I):
+                _t = pergunta.lower()
+                _modo = ("seis" if re.search(r"6 partes|seis|guitarra|piano", _t) else
+                         "melhor" if re.search(r"melhor qualidade|qualidade m[aá]xima", _t) else
+                         "rapido" if re.search(r"4 partes|quatro|bateria|baixo", _t) else "voz")
+                _r_est = _est.separar_url(_link_est, _modo)
+                if _r_est.get("ok"):
+                    _txt = ("Peguei o link. Vou baixar o áudio, converter para MP3 e separar (%s). "
+                            "Acompanhe no painel **Estúdio musical** — ele abriu sozinho. "
+                            "Leva de 2 a 6 minutos para uma música de 3 minutos."
+                            % {"voz": "voz e instrumental", "rapido": "4 partes",
+                               "seis": "6 partes", "melhor": "4 partes, qualidade máxima"}[_modo])
+                    evento({"tipo": "estudio", "id": _r_est["id"]})
+                else:
+                    _txt = "Não consegui começar: " + str(_r_est.get("erro") or "")
+                evento({"tipo": "texto", "texto": _txt})
+                medidor.gravar(True)
+                evento({"tipo": "medicao", **medidor.resumo(True)})
+                evento({"tipo": "fim"})
+                return
+        except Exception as _erro_est:
+            anotar_erro("[estudio por link]", _erro_est)
+
+        # ── BLENDER TAMBEM VAI DIRETO ─────────────────────────── (28/09)
+        #
+        # "voce esta conectado com o blender?" caia na pesquisa direta logo
+        # abaixo (web_buscar "conectado com o blender mcp") ou fazia o modelo
+        # abrir o Chrome. Por isso este bloco vem ANTES da pesquisa direta. Quando a frase cita o Blender e diz
+        # o que fazer (status, carrinho, png), o blender.py decide sozinho.
+        # O que nao casar segue para o modelo, com as ferramentas blender_*.
+        try:
+            import blender as _blender
+            _pedido_blender = (_blender.pedido_direto(pergunta, recentes)
+                               if ferramentas.ligada_conexao("blender") else None)
+        except Exception:
+            _pedido_blender = None
+        if _pedido_blender:
+            _acao_b, _args_b = _pedido_blender
+            _titulos = {"status": "Conferindo o Blender",
+                        "carrinho": "Montando o carrinho no Blender",
+                        "imagem": "Salvando a imagem da camera",
+                        "objeto": "Criando o objeto no Blender",
+                        "mascote": "Montando o mascote no Blender",
+                        "referencia": "Montando a imagem no Blender",
+                        "olhar": "Olhando a cena do Blender",
+                        "da_imagem": "Transformando a imagem em projeto 3D",
+                        "livre": "Criando o projeto no Blender (formas simples)",
+                        "detalhado": "Criando o modelo detalhado no Blender",
+                        "biblioteca": "Buscando na biblioteca Poly Haven",
+                        "importar": "Importando o arquivo no Blender",
+                        "referencias": "Colocando as referencias no Blender",
+                        "textura": "Aplicando a textura",
+                        "gerar_3d": "Gerando o modelo 3D (Modal, depois Hugging Face, depois o seu PC) -- 1 a 4 min",
+                        "ficha": "Montando a ficha tecnica",
+                        "salvar": "Salvando o projeto",
+                        "humano": "Criando a pessoa no Blender (MPFB)",
+                        "instalar_humano": "Instalando o gerador de humanos (pode levar alguns minutos)"}
+            evento({"tipo": "acao", "id": "blender-direto", "estado": "rodando",
+                    "titulo": _titulos.get(_acao_b, "Blender"),
+                    "resumo": pergunta[:100]})
+            inicio_b = time.time()
+            try:
+                _aviso_b = ""
+                if _acao_b == "detalhado":
+                    # Caminho DETALHADO: texto -> imagem (FLUX) -> malha com
+                    # textura (TRELLIS.2). Se falhar (cota, rede), cai nas pecas.
+                    if not _blender.no_ar():
+                        saida_b, deu_certo_b = _blender.executar_direto("status", {})
+                    else:
+                        evento({"tipo": "acao", "id": "blender-direto", "estado": "rodando",
+                                "titulo": "Desenhando e esculpindo o modelo (1 a 3 min)",
+                                "resumo": pergunta[:100]})
+                        saida_b, deu_certo_b = _blender.criar_detalhado(
+                            _args_b["pedido"],
+                            traduzir=lambda _p: chamar_modelo(
+                                [{"role": "user", "content": _p}],
+                                lambda _acumulado: None, com_ferramentas=False)[0])
+                    if not deu_certo_b and _blender.no_ar():
+                        _aviso_b = "\n\n(" + saida_b + " -- montei com formas simples.)"
+                        _acao_b = "livre"
+                if _acao_b == "livre":
+                    # O modelo so escreve a lista de pecas: sem ferramentas,
+                    # sem laco. E o que um modelo pequeno faz bem.
+                    if not _blender.no_ar():
+                        saida_b, deu_certo_b = _blender.executar_direto("status", {})
+                    else:
+                        evento({"tipo": "acao", "id": "blender-direto", "estado": "rodando",
+                                "titulo": "Planejando as pecas do projeto",
+                                "resumo": pergunta[:100]})
+                        # Planejador maior (Qwen 32B no Hugging Face, token do
+                        # config). Sem token ou com falha, usa o motor do Bigode.
+                        import blender_recursos as _rec
+                        prompt_b = _blender.PROMPT_TEXTO_PECAS % _args_b["pedido"]
+                        resp_b = _rec.planejar_hf(prompt_b)
+                        if not resp_b or not _blender.extrair_json(resp_b):
+                            resp_b, _ = chamar_modelo(
+                                [{"role": "user", "content": prompt_b}],
+                                lambda _acumulado: None, com_ferramentas=False)
+                        saida_b, deu_certo_b = _blender.montar_de_texto(
+                            resp_b, _args_b["pedido"])
+                        saida_b += _aviso_b
+                elif _acao_b != "detalhado":
+                    saida_b, deu_certo_b = _blender.executar_direto(_acao_b, _args_b)
+            except Exception as erro_b:
+                saida_b, deu_certo_b = "Erro ao falar com o Blender: %s" % erro_b, False
+            gasto_b = time.time() - inicio_b
+            medidor.anotar_ferramenta("blender_" + _acao_b, gasto_b, _args_b)
+            try:
+                anotar_erro("[blender direto] %.1fs  acao=%s  args=%r\n-> %s"
+                            % (gasto_b, _acao_b, _args_b, (saida_b or "")[:300]))
+            except Exception:
+                pass
+            evento({"tipo": "acao", "id": "blender-direto",
+                    "estado": "ok" if deu_certo_b else "erro",
+                    "titulo": "Blender respondeu" if deu_certo_b
+                              else "Não deu certo no Blender",
+                    "resumo": pergunta[:100]})
+            evento({"tipo": "texto", "texto": saida_b})
+            if deu_certo_b and _acao_b not in ("status", "olhar"):
+                medidor.arquivos_escritos.append("cena do Blender")
+            evento({"tipo": "medicao", **medidor.resumo(deu_certo_b)})
+            medidor.gravar(deu_certo_b)
+            evento({"tipo": "fim"})
+            return
 
         # Consultas curtas e inequívocas não precisam de uma rodada do modelo.
         # Se o usuário já escreveu “pesquise sobre cannabis”, usa exatamente esse
@@ -4539,6 +5043,22 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as erro:
             anotar_erro("nao consegui anotar no diario", erro)
 
+        # MEMORIA DE FATOS (28/09): depois da resposta, em segundo plano,
+        # tira da mensagem do Fred o que vale lembrar. Nao atrasa nada.
+        try:
+            import memoria_fatos
+            if memoria_fatos.extrair_em_segundo_plano(
+                    pergunta, str(dados.get("especialista") or ""),
+                    str(dados.get("projeto") or ""),
+                    reserva=lambda _p: chamar_modelo(
+                        [{"role": "user", "content": _p}], lambda _a: None,
+                        com_ferramentas=False)[0],
+                    ao_erro=anotar_erro):
+                evento({"tipo": "memoria", "estado": "conferindo",
+                        "desde": time.time() - 1})
+        except Exception as erro:
+            anotar_erro("[memoria de fatos] extracao", erro)
+
         evento({"tipo": "fim"})
 
     def _autorizar(self, dados):
@@ -4687,16 +5207,34 @@ def anotar_erro(assunto, excecao=None):
     O terminal continua limpo: desconexao de navegador e barulho, nao erro.
     O arquivo guarda tudo.
     """
+    import sys as _sys
     import traceback
+    # O QUE E ERRO E O QUE E SO REGISTRO                          (28/09)
+    #
+    #   O erros.log misturava tudo: cada ferramenta que dava CERTO virava
+    #   uma entrada, e toda entrada terminava com "NoneType: None" (a pilha
+    #   vazia de quando nao ha excecao). Resultado: 94 entradas e so uma
+    #   dezena de erros de verdade -- ninguem acha o problema no meio.
+    #   Agora: registro de atividade que deu certo vai para atividade.log;
+    #   erros.log fica so com falha, e sem a linha vazia.
     try:
-        with ERROS.open("a", encoding="utf-8") as f:
+        texto = str(assunto or "")
+        sem_excecao = excecao is None and _sys.exc_info()[0] is None
+        if sem_excecao and texto.startswith("[") and not re.search(
+                r"falh|erro|n[aã]o deu|n[aã]o consegui|n[aã]o respondeu|sem resposta|"
+                r"cota|falta |nenhum|n[aã]o existe|[uú]nica aba|n[aã]o encontrei|"
+                r"acabou|quota|timeout|recus", texto, flags=re.I):
+            destino = BASE / "atividade.log"
+        else:
+            destino = ERROS
+        with destino.open("a", encoding="utf-8") as f:
             f.write("\n" + "=" * 70 + "\n")
             f.write("%s  %s\n" % (
-                datetime.datetime.now().isoformat(timespec="seconds"), assunto))
+                datetime.datetime.now().isoformat(timespec="seconds"), texto))
             if excecao is not None:
                 f.write("".join(traceback.format_exception(
                     type(excecao), excecao, excecao.__traceback__)))
-            else:
+            elif not sem_excecao:
                 f.write(traceback.format_exc())
     except Exception:
         pass                      # registrar falha nao pode derrubar o servidor
@@ -4957,7 +5495,14 @@ def espiar_motor():
     O arquivo continua existindo. So deixou de ser o unico lugar.
     """
     registro = BASE / "motor.log"
-    posicao = 0
+    # 28/09: comecava do byte 0 e REPETIA o log antigo inteiro a cada vez que
+    # o Bigode abria -- com o motor na Modal, a tela mostrava um carregamento
+    # local de 18/09 (e o "cancel task" dele) como se fosse agora. So o que
+    # for escrito DEPOIS de abrir aparece.
+    try:
+        posicao = registro.stat().st_size if registro.is_file() else 0
+    except OSError:
+        posicao = 0
     while True:
         try:
             if registro.is_file():
