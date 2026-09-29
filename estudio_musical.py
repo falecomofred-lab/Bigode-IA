@@ -159,7 +159,7 @@ def listar():
 def arquivo(nome, arq):
     pasta = (pasta_estudio() / _nome(nome)).resolve()
     alvo = (pasta / str(arq)).resolve()
-    if not str(alvo).startswith(str(pasta)) or not alvo.is_file():
+    if pasta not in alvo.parents or not alvo.is_file():
         return None
     return alvo
 
@@ -172,6 +172,9 @@ def status(jid):
 
 
 def separar(nome_arquivo, dados_b64, modo="rapido", nome=""):
+    if len(str(dados_b64 or "")) < 200:
+        return {"ok": False, "erro": "Nenhum audio chegou. Escolha o arquivo de novo "
+                                     "(se estiver no Google Drive, abra-o uma vez no PC antes)."}
     jid = uuid.uuid4().hex[:10]
     nm = _nome(nome or Path(str(nome_arquivo or "musica")).stem)
     JOBS[jid] = {"id": jid, "estado": "rodando", "etapa": "Recebendo o audio", "erro": "",
@@ -182,6 +185,7 @@ def separar(nome_arquivo, dados_b64, modo="rapido", nome=""):
 
 def _rodar_separar(jid, nome_arquivo, dados_b64, modo):
     j = JOBS[jid]
+    local = None
     try:
         ext = Path(str(nome_arquivo or "a.mp3")).suffix.lower() or ".mp3"
         if ext not in (".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac"):
@@ -192,35 +196,131 @@ def _rodar_separar(jid, nome_arquivo, dados_b64, modo):
         dados = base64.b64decode(b64)
         if len(dados) > 150 * 1024 * 1024:
             raise RuntimeError("Arquivo grande demais (maximo 150 MB).")
+        if len(dados) < 1024:
+            raise RuntimeError("O arquivo chegou vazio (%d bytes). Se ele estiver no Google Drive, "
+                               "abra-o uma vez no PC para baixar de verdade e envie de novo." % len(dados))
+        # copia de trabalho no disco C: (o Drive pode segurar o arquivo sincronizando)
+        local = _local().PASTA / "trabalho" / ("envio_" + jid + ext)
+        local.parent.mkdir(parents=True, exist_ok=True)
+        local.write_bytes(dados)
         pasta = pasta_estudio() / j["nome"]
         pasta.mkdir(parents=True, exist_ok=True)
         original = pasta / ("original" + ext)
         original.write_bytes(dados)
-        _separar_arquivo(j, original, pasta, modo)
+        _separar_arquivo(j, original, pasta, modo, ler_de=local)
     except Exception as erro:
         j.update(estado="erro", erro=str(erro)[:500])
+    finally:
+        if local is not None:
+            try:
+                local.unlink()
+            except Exception:
+                pass
 
 
-def _separar_arquivo(j, original, pasta, modo):
-    """Parte comum: arquivo de audio ja na pasta -> partes separadas."""
+def _separar_arquivo(j, original, pasta, modo, ler_de=None):
+    """Parte comum: arquivo de audio -> partes separadas na pasta final.
+
+    CORRECAO 29/09 -- "LoadAudioError ... no suitable format reader found":
+      o Demucs recebia o arquivo direto da pasta do Google Drive. Se o
+      arquivo chegou vazio, cortado ou nao era audio de verdade (um .webm
+      ou uma pagina salva com nome .mp3), o erro aparecia so no fim, em
+      ingles. Agora:
+        1. confere o tamanho e o comeco do arquivo antes de tudo;
+        2. converte para WAV com o ffmpeg -- o WAV o separador sempre le;
+        3. trabalha numa pasta do disco C: (%LOCALAPPDATA%) e so COPIA o
+           resultado para o Drive no final. O Drive sincronizando no meio
+           do trabalho nao atrapalha mais.
+    """
+    fonte = Path(ler_de or original)
+    tam = fonte.stat().st_size if fonte.exists() else 0
+    if tam < 1024:
+        raise RuntimeError("O arquivo de audio chegou vazio (%d bytes). Se ele estiver no Google "
+                           "Drive, abra-o uma vez no PC para baixar de verdade e envie de novo." % tam)
+    with open(fonte, "rb") as f:
+        cabeca = f.read(64).lstrip().lower()
+    if cabeca.startswith((b"<!doctype", b"<html", b"<?xml", b"{")):
+        raise RuntimeError("Isto nao e um audio: o arquivo e uma pagina da internet salva com nome "
+                           "de musica. Baixe o MP3 de novo ou cole o link no campo de link.")
+
     j["etapa"] = "Preparando o separador (so na primeira vez demora mais)"
     g, script = _preparar()
+    ffmpeg = _ffmpeg(j)
     modelo = MODOS.get(modo, "htdemucs")
-    j["etapa"] = "Separando os instrumentos (%s) -- 2 a 6 min para 3 min de musica" % modelo
-    r = subprocess.run([str(g.PY), str(script), "separar", str(original), str(pasta), modelo,
-                        "1" if modo == "voz" else "0", json.dumps(NOMES)],
-                       capture_output=True, text=True, timeout=3600,
-                       creationflags=0x08000000 if sys.platform == "win32" else 0)
-    resp = _ultima_linha_json(r.stdout)
-    if not resp or not resp.get("ok"):
-        raise RuntimeError("O separador falhou: " + (r.stderr or r.stdout or "")[-400:])
+    trab = g.PASTA / "trabalho" / uuid.uuid4().hex[:10]
+    trab.mkdir(parents=True, exist_ok=True)
+    try:
+        j["etapa"] = "Conferindo e convertendo o audio"
+        wav = trab / "entrada.wav"
+        r = subprocess.run([ffmpeg, "-nostdin", "-y", "-v", "error", "-i", str(fonte), "-vn",
+                            "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", str(wav)],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           timeout=600, creationflags=0x08000000 if sys.platform == "win32" else 0)
+        if r.returncode != 0 or not wav.exists() or wav.stat().st_size < 1024:
+            raise RuntimeError("Este arquivo nao abre como audio (corrompido ou formato estranho). "
+                               "Detalhe: " + (r.stderr or "").strip()[-300:])
+
+        j["etapa"] = "Separando os instrumentos (%s) -- 2 a 6 min para 3 min de musica" % modelo
+        saida = trab / "partes"
+        r = subprocess.run([str(g.PY), str(script), "separar", str(wav), str(saida), modelo,
+                            "1" if modo == "voz" else "0", json.dumps(NOMES)],
+                           capture_output=True, text=True, timeout=3600,
+                           creationflags=0x08000000 if sys.platform == "win32" else 0)
+        resp = _ultima_linha_json(r.stdout)
+        if not resp or not resp.get("ok"):
+            raise RuntimeError("O separador falhou: " + (r.stderr or r.stdout or "")[-400:])
+
+        j["etapa"] = "Guardando as partes na pasta do Estudio"
+        pasta = Path(pasta)
+        pasta.mkdir(parents=True, exist_ok=True)
+        partes = []
+        for a in resp["arquivos"]:
+            a = Path(a)
+            shutil.copyfile(a, pasta / a.name)
+            partes.append(a.stem)
+    finally:
+        shutil.rmtree(trab, ignore_errors=True)
+
     info = {"original": Path(original).name, "modo": modo, "modelo": modelo,
             "quando": time.strftime("%d/%m %H:%M")}
     if j.get("fonte"):
         info["fonte"] = j["fonte"]
-    (Path(pasta) / "info.json").write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
-    j.update(estado="pronto", etapa="Pronto", pasta=str(pasta),
-             partes=[Path(a).stem for a in resp["arquivos"]])
+    (pasta / "info.json").write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
+    j.update(estado="pronto", etapa="Pronto", pasta=str(pasta), partes=partes)
+
+
+def _ffmpeg(j=None):
+    """ffmpeg que vem no pacote imageio-ffmpeg (~30 MB, uma vez so)."""
+    g = _local()
+    libs = g.PASTA / "libs_video"
+    bins = libs / "imageio_ffmpeg" / "binaries"
+
+    def achar():
+        for arq in sorted(bins.glob("ffmpeg*")) if bins.exists() else []:
+            if arq.is_file() and arq.suffix.lower() not in (".md", ".py", ".txt"):
+                if sys.platform != "win32":
+                    try:
+                        arq.chmod(0o755)
+                    except OSError:
+                        pass
+                return str(arq)
+        return ""
+
+    achado = achar()
+    if not achado:
+        with _TRAVA_VIDEO:
+            achado = achar()
+            if not achado:
+                if j is not None:
+                    j["etapa"] = "Instalando o conversor de audio (so na primeira vez, ~30 MB)"
+                libs.mkdir(parents=True, exist_ok=True)
+                g._rodar([str(g.PY), "-m", "pip", "install", "--quiet", "--disable-pip-version-check",
+                          "--upgrade", "--target", str(libs), "imageio-ffmpeg"], limite=900)
+                achado = achar()
+    if not achado:
+        raise RuntimeError("Nao consegui instalar o conversor de audio (ffmpeg). Confira a internet "
+                           "e tente de novo.")
+    return achado
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -272,17 +372,10 @@ def _preparar_video(j=None):
     if not script.exists() or script.read_text(encoding="utf-8") != SCRIPT_VIDEO:
         script.write_text(SCRIPT_VIDEO, encoding="utf-8")
     deno = libs / "bin" / ("deno.exe" if sys.platform == "win32" else "deno")
-    ffmpeg = ""
-    bins = libs / "imageio_ffmpeg" / "binaries"
-    for arq in sorted(bins.glob("ffmpeg*")) if bins.exists() else []:
-        if arq.is_file() and arq.suffix.lower() not in (".md", ".py", ".txt"):
-            ffmpeg = str(arq)
-            if sys.platform != "win32":
-                try:
-                    arq.chmod(0o755)
-                except OSError:
-                    pass
-            break
+    try:
+        ffmpeg = _ffmpeg(j)
+    except Exception:
+        ffmpeg = ""
     return g, script, (str(deno) if deno.exists() else ""), ffmpeg
 
 
@@ -307,7 +400,7 @@ def separar_url(url, modo="voz", nome=""):
 
 def _rodar_url(jid, url, modo, nome):
     j = JOBS[jid]
-    tmp = pasta_estudio() / ("_baixando_" + jid)
+    tmp = _local().PASTA / "trabalho" / ("baixando_" + jid)   # disco C:, nao o Drive
     try:
         g, script, deno, ffmpeg = _preparar_video(j)
         if not ffmpeg:
@@ -349,11 +442,12 @@ def _rodar_url(jid, url, modo, nome):
         while final.exists():
             final = pasta_estudio() / ("%s-%d" % (base, n))
             n += 1
-        tmp.rename(final)
+        final.mkdir(parents=True)
+        shutil.copyfile(mp3, final / "original.mp3")
         j["nome"] = final.name
         if titulo:
             j["titulo"] = titulo
-        _separar_arquivo(j, final / "original.mp3", final, modo)
+        _separar_arquivo(j, final / "original.mp3", final, modo, ler_de=mp3)
     except subprocess.TimeoutExpired:
         j.update(estado="erro", erro="Demorou demais para baixar (30 min). Confira a internet.")
     except Exception as erro:

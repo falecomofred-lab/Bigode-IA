@@ -20,6 +20,16 @@ CONVERSAS = APP_ROOT / "conversas"
 PROJETOS = APP_ROOT / "projetos"
 
 
+def _id_seguro(ident):
+    """So letras, numeros, _ e -. Bloqueia "../config" e "*".        (29/09)
+
+    Sem isto, um pedido {"id": "../config"} em /api/projeto/apagar apagava o
+    config.json (com todas as chaves) -- testado e confirmado na auditoria.
+    """
+    ident = str(ident or "").strip()
+    return ident if re.fullmatch(r"[A-Za-z0-9_\-]{1,64}", ident) else ""
+
+
 def _garantir():
     CONVERSAS.mkdir(exist_ok=True)
     PROJETOS.mkdir(exist_ok=True)
@@ -52,7 +62,7 @@ def titulo_de(mensagens):
 
 def salvar_conversa(dados):
     _garantir()
-    ident = dados.get("id") or uuid.uuid4().hex[:12]
+    ident = _id_seguro(dados.get("id")) or uuid.uuid4().hex[:12]
     mensagens = dados.get("mensagens") or []
     if not mensagens:
         return {"id": ident}
@@ -103,6 +113,9 @@ def renomear_conversa(ident, titulo):
 
 
 def _caminho_conversa(ident):
+    ident = _id_seguro(ident)
+    if not ident:
+        return None
     for arquivo in CONVERSAS.rglob(ident + ".json"):
         return arquivo
     return None
@@ -165,7 +178,7 @@ def listar_projetos():
 
 def salvar_projeto(dados):
     _garantir()
-    ident = dados.get("id") or uuid.uuid4().hex[:10]
+    ident = _id_seguro(dados.get("id")) or uuid.uuid4().hex[:10]
     registro = {
         "id": ident,
         "nome": (dados.get("nome") or "Projeto sem nome").strip(),
@@ -180,10 +193,16 @@ def salvar_projeto(dados):
 
 
 def abrir_projeto(ident):
+    ident = _id_seguro(ident)
+    if not ident:
+        return {}
     return _ler(PROJETOS / (ident + ".json"), {})
 
 
 def apagar_projeto(ident):
+    ident = _id_seguro(ident)
+    if not ident:
+        return False
     arquivo = PROJETOS / (ident + ".json")
     if arquivo.exists():
         arquivo.unlink()

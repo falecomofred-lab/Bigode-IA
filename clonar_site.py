@@ -81,7 +81,7 @@ def arquivo(nome, arq):
     """Caminho seguro de um arquivo de um clone (para a tela mostrar)."""
     pasta = _pasta_do(nome).resolve()
     alvo = (pasta / str(arq or "index.html")).resolve()
-    if not str(alvo).startswith(str(pasta)) or not alvo.is_file():
+    if pasta not in alvo.parents or not alvo.is_file():
         return None
     return alvo
 

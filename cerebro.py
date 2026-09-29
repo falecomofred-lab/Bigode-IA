@@ -162,6 +162,20 @@ def config():
         if url:
             dados["llm_url"] = url
             dados["llm_chave"] = str(m.get("token") or "").strip()
+        # JANELA DA PLACA = A DO PERFIL PUBLICADO                  (29/09)
+        #   Na Modal o motor sobe com --ctx-size do perfis_modal.py (Qwen
+        #   16.384, DeepSeek 32.768). Usar o numero do motor LOCAL aqui fazia
+        #   o Bigode cortar "OS PROJETOS DO FRED" de um prompt que cabia.
+        #   So vale em memoria: o numero do arquivo (o do motor local) fica
+        #   guardado em _contexto_arquivo e volta no salvar_config.
+        try:
+            from perfis_modal import PERFIS as _PERFIS_PLACA
+            _jan = int((_PERFIS_PLACA.get(str(m.get("perfil") or "")) or {}).get("janela") or 0)
+        except Exception:
+            _jan = 0
+        if _jan:
+            dados["_contexto_arquivo"] = dados.get("contexto", 8192)
+            dados["contexto"] = _jan
     # ENDERECO NAO E SEGREDO, MAS TAMBEM NAO E CODIGO      (14/09)
     #
     #     Aqui estava escrito o endereco real do endpoint da Modal, com o
@@ -221,8 +235,11 @@ def config():
     if not dados.get("chave_extensao"):
         dados["chave_extensao"] = uuid.uuid4().hex
         try:
+            gravar = dict(dados)
+            if "_contexto_arquivo" in gravar:          # nao gravar a janela da placa
+                gravar["contexto"] = gravar.pop("_contexto_arquivo")
             (BASE / "config.json").write_text(
-                json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
+                json.dumps(gravar, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception:
             pass
     
@@ -284,6 +301,15 @@ def salvar_config(novo):
     """
     atual = config()
     antes = int(atual.get("contexto", 0))
+    arquivo_ctx = atual.pop("_contexto_arquivo", None)
+    if arquivo_ctx is not None:
+        # Motor na placa: a janela mostrada e a do perfil, nao a do arquivo.
+        # So grava um numero novo se a pessoa mudou de verdade.
+        novo = dict(novo)
+        if int(novo.get("contexto") or antes) == antes:
+            novo.pop("contexto", None)
+        atual["contexto"] = arquivo_ctx
+        antes = int(arquivo_ctx)
     atual.update(novo)
     (BASE / "config.json").write_text(
         json.dumps(atual, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -303,7 +329,7 @@ def salvar_config(novo):
 
 # Nome de campo que guarda segredo. Vale em qualquer nivel do config.
 _SEGREDO = re.compile(
-    r"token|chave|secret|senha|password|api_?key|client_secret|credential",
+    r"(?<!max_)token|chave|secret|senha|password|api_?key|client_secret|credential",
     re.I)
 
 
@@ -344,6 +370,18 @@ def _sem_segredos(valor):
     if isinstance(valor, list):
         return [_sem_segredos(x) for x in valor]
     return valor
+
+
+def _so_novos(atual, novo):
+    """O que realmente mudou: sem "(guardado)" e sem apagar chave vizinha."""
+    saida = {}
+    for chave, valor in (novo or {}).items():
+        if valor == "(guardado)":
+            continue
+        if isinstance(valor, dict) and isinstance(atual.get(chave), dict):
+            valor = {**atual[chave], **_so_novos(atual[chave], valor)}
+        saida[chave] = valor
+    return saida
 
 
 def config_publica():
@@ -970,7 +1008,49 @@ def pedir_ao_navegador(nome, args, evento, espera=90):
     return resultado
 
 
+# NAVEGADOR PROPRIO (Playwright)                              (29/09)
+#   config.json -> "navegador_motor":
+#       "auto"     (padrao) usa a extensao se ela ja deu sinal; se ela nunca
+#                  apareceu ou nao responder, o Bigode abre a PROPRIA janela
+#                  e fica nela ate o fim da sessao (para nao alternar paginas).
+#       "bigode"   sempre a janela propria (navegador_bigode.py)
+#       "extensao" so a extensao, como era antes
+NAV_PROPRIO = {"fixo": False}
+
+
+def _motor_navegador():
+    return str(config().get("navegador_motor") or "auto").strip().lower()
+
+
+def _pelo_navegador_proprio(nome, args, evento, espera, motivo=""):
+    import navegador_bigode
+    pedido = uuid.uuid4().hex[:10]
+    evento({"tipo": "navegador", "id": pedido,
+            "acao": nome.replace("navegador_", ""), "args": args or {}})
+    if not navegador_bigode.instalado():
+        evento({"tipo": "acao", "id": "nav-instalar", "estado": "rodando",
+                "titulo": "Preparando o navegador do Bigode (so na primeira vez, ~1 min)",
+                "detalhe": ""})
+    resultado = navegador_bigode.pedir(nome, args or {}, espera=max(espera, 60))
+    if motivo and isinstance(resultado, str):
+        resultado = ("(A extensao do Chrome nao respondeu -- %s. Usei a janela propria "
+                     "do Bigode.)\n\n" % motivo) + resultado
+    return resultado
+
+
 def _pedir_ao_navegador_bruto(nome, args, evento, espera=90):
+    motor = _motor_navegador()
+    if motor == "bigode" or (motor == "auto" and (NAV_PROPRIO["fixo"] or not extensao_conhecida())):
+        return _pelo_navegador_proprio(nome, args, evento, espera)
+    resultado = _pela_extensao(nome, args, evento, espera)
+    if motor == "auto" and isinstance(resultado, str) and resultado.startswith(
+            ("O navegador nao respondeu", "A extensao do Bigode nunca deu sinal")):
+        NAV_PROPRIO["fixo"] = True
+        return _pelo_navegador_proprio(nome, args, evento, espera, motivo="sem resposta")
+    return resultado
+
+
+def _pela_extensao(nome, args, evento, espera=90):
     """Manda a acao para a extensao do Chrome e espera o resultado.
 
     O caminho da entrega mudou, e vale registrar por que. Antes, a acao ia
@@ -1321,6 +1401,45 @@ class Cancelado(Exception):
     """O usuario apertou parar ou fechou a aba."""
 
 
+def _abrir_motor(pedido):
+    """urlopen do motor, com a causa real quando a Modal recusa.    (29/09)
+
+    Com a conta da Modal desativada, a resposta e 404 com o texto
+    "workspace ... is disabled". Como HTTPError e um URLError, a tela
+    mostrava "O motor ainda esta carregando o modelo" -- e o Fred esperava
+    por um motor que nunca ia subir.
+    """
+    try:
+        resposta = urllib.request.urlopen(pedido, timeout=1800)
+        PROVEDOR._falha_remota = None
+        PROVEDOR._online_memo = None
+        return resposta
+    except urllib.error.URLError as erro_rede:
+        # a tela passa a mostrar "desligado" por 2 min (modelos.online)
+        PROVEDOR._falha_remota = (time.time(), str(erro_rede)[:200])
+        PROVEDOR._online_memo = None
+        if not isinstance(erro_rede, urllib.error.HTTPError):
+            raise
+        erro = erro_rede
+        try:
+            corpo = erro.read().decode("utf-8", "ignore")[:400]
+        except Exception:
+            corpo = ""
+        if "workspace" in corpo and "disabled" in corpo:
+            raise RuntimeError(
+                "A sua conta na Modal esta DESATIVADA (\"workspace disabled\"). "
+                "Nenhum motor da Modal vai responder ate reativar em "
+                "https://modal.com/settings (Usage/Billing).") from None
+        if erro.code in (401, 403):
+            raise RuntimeError("A Modal recusou a senha do motor (HTTP %d). Rode "
+                               "python usar_modal_motor.py e cole a senha de novo." % erro.code) from None
+        if erro.code == 404:
+            raise RuntimeError("Endereco do motor nao existe (HTTP 404). O app pode ter "
+                               "saido do ar: publique de novo com python -m modal deploy "
+                               "modal_motor.py. Detalhe: " + corpo[:200]) from None
+        raise
+
+
 def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=None,
                   esquema=None, obrigar_ferramenta=False, medidor=None):
     """Stream do modelo. Devolve (texto, chamada_de_ferramenta_ou_None).
@@ -1451,7 +1570,7 @@ def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=Non
     comeco = time.time()
     primeiro_token = None       # marca o fim da leitura do prompt
     pedacos_recebidos = 0
-    with urllib.request.urlopen(pedido, timeout=1800) as resposta:
+    with _abrir_motor(pedido) as resposta:
         for linha_bruta in resposta:
             linha = linha_bruta.decode("utf-8", "ignore").strip()
             if not linha.startswith("data:"):
@@ -2411,6 +2530,8 @@ def ajustar_janela_se_preciso():
         import ferramentas
         cfg = config()
         janela = int(cfg.get("contexto", 8192))
+        if "_contexto_arquivo" in cfg:
+            return      # motor na placa: a janela e a do perfil publicado
 
         # Quem sobe o motor aqui? Se for o notebook (Colab), o Bigode nao
         # manda no `--n_ctx` e aumentar so quebra.
@@ -2726,6 +2847,157 @@ def olhar_na_placa(imagem_b64, pergunta=""):
                                 "pergunta": pergunta or ""}, 180)
 
 
+def ram_livre_gb():
+    """Memoria livre AGORA, em GB (None se nao der para medir)."""
+    try:
+        if os.name == "nt":
+            import ctypes
+
+            class _Mem(ctypes.Structure):
+                _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                            ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                            ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                            ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                            ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+            m = _Mem()
+            m.dwLength = ctypes.sizeof(_Mem)
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+            return round(m.ullAvailPhys / 1024 ** 3, 1)
+        for linha in open("/proc/meminfo", encoding="utf-8"):
+            if linha.startswith("MemAvailable:"):
+                return round(int(linha.split()[1]) / 1024 ** 2, 1)
+    except Exception:
+        pass
+    return None
+
+
+def bloqueio_windows():
+    """O Windows (Device Guard / controle de aplicativos) barrou o motor local
+    na ULTIMA tentativa? Le o motor.log, que e reescrito a cada partida."""
+    registro = BASE / "motor.log"
+    try:
+        texto = registro.read_text(encoding="utf-8", errors="ignore")[-6000:]
+    except Exception:
+        return None
+    baixo = texto.lower()
+    if not any(m in baixo for m in ("device guard", "bloqueado pela pol", "winerror 1260",
+                                    "blocked by your organization", "controle de aplicativos")):
+        return None
+    exe = ""
+    achado = re.search(r'COMANDO:\s*"([^"]+)"', texto)
+    if achado:
+        exe = achado.group(1)
+    return {"exe": exe,
+            "quando": time.strftime("%d/%m %H:%M", time.localtime(registro.stat().st_mtime)),
+            "msg": "O Windows bloqueou o motor local (llamafile) na ultima tentativa. "
+                   "Use um modelo NA PLACA, ou peca liberacao do arquivo ao Windows."}
+
+
+ACORDAR = {"estado": "", "segundos": None, "msg": "", "quando": 0}
+
+
+def acordar_placa():
+    """Liga a placa da Modal AGORA, por pedido explicito (botao 'Acordar
+    agora'). Nunca roda sozinho: acordar custa placa."""
+    cfg = config()
+    if str(cfg.get("modelo_provedor") or "").lower() != "modal":
+        return {"ok": False, "msg": "O motor nao esta na placa."}
+    m = cfg.get("modal") or {}
+    if ACORDAR["estado"] == "acordando":
+        return {"ok": True, **ACORDAR}
+
+    def _rodar():
+        try:
+            import motor_perfil
+            ok, levou = motor_perfil.acordar(m.get("url", ""), m.get("token", ""), segundos=240)
+            PROVEDOR._falha_remota = None if ok else (time.time(), "a placa nao respondeu")
+            PROVEDOR._online_memo = None
+            ACORDAR.update(estado="pronta" if ok else "erro", segundos=levou,
+                           msg=("Placa pronta em %.0f s." % levou) if ok else
+                           "A placa nao respondeu em %.0f s. Confira a conta na Modal "
+                           "(creditos / limite de gasto)." % levou)
+        except Exception as erro:
+            ACORDAR.update(estado="erro", msg=str(erro)[:200])
+
+    ACORDAR.update(estado="acordando", segundos=None, msg="Acordando a placa...",
+                   quando=time.time())
+    threading.Thread(target=_rodar, daemon=True).start()
+    return {"ok": True, **ACORDAR}
+
+
+# ══════════════════════════════════════════════════════════════════════
+# PIPI IA: VER SE ESTA ABERTA E ABRIR                            (29/09)
+#
+#   A Pipi e um programa separado (pipi_server.py, porta 7300) que desenha
+#   na Modal. O cartao em Configuracoes pergunta so se a porta responde --
+#   /api/eu da Pipi e local, nao acorda placa nenhuma.
+#
+#   "Abrir a Pipi" roda o pipi.bat dela, e SO aceita pedido feito NESTE
+#   computador (127.0.0.1). Pelo celular ou pela rede de casa o botao
+#   recusa: quem esta longe nao abre programa no seu PC.
+# ══════════════════════════════════════════════════════════════════════
+def _pasta_pipi():
+    for base in (os.environ.get("PIPI_PASTA", "").strip(),
+                 str(BASE.parent / "Pipi IA"),
+                 str(Path.home() / "Downloads" / "Pipi IA")):
+        if base and (Path(base) / "pipi_server.py").is_file():
+            return Path(base)
+    return None
+
+
+def _porta_pipi():
+    return int(os.environ.get("PIPI_PORT", "7300") or 7300)
+
+
+def estado_pipi():
+    pasta = _pasta_pipi()
+    aberta = False
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%d/api/eu" % _porta_pipi(),
+                                    timeout=2) as r:
+            aberta = 200 <= r.status < 500
+    except urllib.error.HTTPError:
+        aberta = True           # respondeu, mesmo recusando
+    except Exception:
+        aberta = False
+    configurada = False
+    if pasta:
+        try:
+            dados = json.loads((pasta / "modal.json").read_text(encoding="utf-8-sig") or "{}")
+            configurada = bool(str(dados.get("url") or "").strip()
+                               and str(dados.get("token") or "").strip())
+        except Exception:
+            configurada = False
+    return {"pasta": str(pasta) if pasta else "", "aberta": aberta,
+            "configurada": configurada, "porta": _porta_pipi(),
+            "ponte": bool(pasta and (pasta / "ponte.txt").is_file()),
+            "endereco": "http://127.0.0.1:%d" % _porta_pipi()}
+
+
+def abrir_pipi(ip_cliente):
+    if str(ip_cliente) not in ("127.0.0.1", "::1", "localhost"):
+        return {"ok": False, "msg": "Por seguranca, a Pipi so pode ser aberta pelo proprio "
+                                    "computador (nao pelo celular ou pela rede)."}
+    estado = estado_pipi()
+    if estado["aberta"]:
+        return {"ok": True, "msg": "A Pipi ja esta aberta.", **estado}
+    if not estado["pasta"]:
+        return {"ok": False, "msg": "Nao achei a pasta 'Pipi IA' ao lado do Cerebro."}
+    pasta = Path(estado["pasta"])
+    try:
+        if os.name == "nt":
+            os.startfile(str(pasta / "pipi.bat"))          # abre a janela preta da Pipi
+        else:
+            import subprocess
+            subprocess.Popen([sys.executable, str(pasta / "pipi_server.py")], cwd=str(pasta),
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             start_new_session=True)
+    except Exception as erro:
+        anotar_erro("[pipi] nao abriu", erro)
+        return {"ok": False, "msg": "Nao consegui abrir a Pipi: %s" % erro}
+    return {"ok": True, "msg": "Abrindo a Pipi... (leva alguns segundos)", **estado}
+
+
 def estado_da_placa():
     m = config().get("modal") or {}
     return {
@@ -2940,7 +3212,11 @@ def executar_direto(nome, args):
 
     try:
         comeco = time.time()
-        resultado = catalogo[nome]["fn"](**(args or {}))
+        if nome.startswith("navegador_"):
+            # antes caia no _no_navegador, que so dizia "extensao nao conectada"
+            resultado = pedir_ao_navegador(nome, args or {}, lambda _e: None)
+        else:
+            resultado = catalogo[nome]["fn"](**(args or {}))
         return {"ok": True, "nome": nome,
                 "narracao": narrar(nome, args, True),
                 "segundos": round(time.time() - comeco, 1),
@@ -3185,7 +3461,34 @@ class Handler(BaseHTTPRequestHandler):
         return ("sessao=%s; Path=/; Max-Age=%d; HttpOnly; SameSite=Lax"
                 % (token, autenticacao.DIAS_SESSAO * 86400))
 
+    # REDE DE SEGURANCA                                          (29/09)
+    #   Um erro dentro de uma rota derrubava a conexao sem resposta (o
+    #   navegador via "Empty reply" e a tela ficava girando). A auditoria
+    #   achou isso em /api/conversa/apagar e /api/projeto/apagar sem id.
+    #   Agora todo erro vira JSON 500 e vai para o erros.log.
     def do_GET(self):
+        try:
+            return self._do_GET()
+        except Exception as erro:
+            return self._falhou("GET", erro)
+
+    def do_POST(self):
+        try:
+            return self._do_POST()
+        except Exception as erro:
+            return self._falhou("POST", erro)
+
+    def _falhou(self, metodo, erro):
+        try:
+            anotar_erro("[%s %s]" % (metodo, self.path.split("?")[0]), erro)
+        except Exception:
+            pass
+        try:
+            return self._enviar(500, *self._json({"ok": False, "erro": str(erro)[:300]}))
+        except Exception:
+            return None
+
+    def _do_GET(self):
         rota = self.path.split("?")[0]
 
         # ---------- entrar com Google / GitHub ----------
@@ -3359,9 +3662,13 @@ class Handler(BaseHTTPRequestHandler):
                 "provedor": config().get("modelo_provedor", "local"),
                 "ferramentas": len(ferramentas.CATALOGO),
             }),
+            "/api/pipi/estado": lambda: self._json(estado_pipi()),
             "/api/modelos": lambda: self._json({
                 "modelos": modelos_com_placa(),
                 "placa": estado_da_placa(),
+                "ram_livre_gb": ram_livre_gb(),
+                "bloqueio_windows": bloqueio_windows(),
+                "acordar": ACORDAR,
                 "mcp": "%s %s" % (
                     str(BASE / "python" / "python.exe")
                     if (BASE / "python" / "python.exe").exists() else "python",
@@ -3507,7 +3814,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._ir_para("/", self._cookie_sessao(token))
 
     # ------------------------------ POST -----------------------------
-    def do_POST(self):
+    def _do_POST(self):
         rota_post = self.path.split("?")[0]
 
         if rota_post in ("/api/login/entrar", "/api/login/criar"):
@@ -3636,7 +3943,12 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/chroma/indexar":
             return self._enviar(200, *self._json(chroma_memoria.indexar_dominios()))
         if rota == "/api/config":
-            return self._enviar(200, *self._json(salvar_config(dados)))
+            # AUDITORIA 29/09: a resposta devolvia o config INTEIRO, com os
+            # tokens, para o navegador. E um "(guardado)" vindo da tela
+            # podia sobrescrever a chave de verdade. Agora: ignora
+            # "(guardado)", mescla sub-dicionarios e devolve so a versao publica.
+            salvar_config(_so_novos(config(), dados if isinstance(dados, dict) else {}))
+            return self._enviar(200, *self._json(config_publica()))
         if rota == "/api/conversas":
             return self._enviar(200, *self._json(armazenamento.salvar_conversa(dados)))
         if rota == "/api/conversa/renomear":
@@ -3701,6 +4013,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._enviar(200, *self._json(trocar_modelo(
                 dados.get("caminho", ""),
                 voltar_para_local=bool(dados.get("voltar_para_local")))))
+        if rota == "/api/pipi/abrir":
+            return self._enviar(200, *self._json(abrir_pipi(self.client_address[0])))
+        if rota == "/api/modelo/acordar":
+            return self._enviar(200, *self._json(acordar_placa()))
         if rota == "/api/modelo/placa":
             return self._enviar(200, *self._json(
                 ligar_na_placa(str(dados.get("perfil") or ""))))

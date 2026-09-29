@@ -164,7 +164,20 @@ def criar(nome, quando="", conteudo=""):
     return {"ok": True, "id": ident}
 
 
+def _ident_ok(ident):
+    """Nome de pasta de habilidade: so a-z, 0-9 e hifen.            (29/09)
+
+    Sem esta trava, apagar com id ".." rodava shutil.rmtree na pasta do
+    projeto inteiro, e id vazio apagava todas as habilidades.
+    """
+    ident = str(ident or "").strip()
+    return ident if re.fullmatch(r"[a-z0-9][a-z0-9\-]{0,63}", ident) else ""
+
+
 def salvar(ident, texto):
+    ident = _ident_ok(ident)
+    if not ident:
+        return {"ok": False, "msg": "habilidade nao existe"}
     arquivo = PASTA / ident / "HABILIDADE.md"
     if not arquivo.parent.exists():
         return {"ok": False, "msg": "habilidade nao existe"}
@@ -182,6 +195,9 @@ def texto_bruto(ident):
 
 def apagar(ident):
     import shutil
+    ident = _ident_ok(ident)
+    if not ident:
+        return {"ok": False}
     destino = PASTA / ident
     if destino.exists():
         shutil.rmtree(destino)

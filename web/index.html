@@ -851,6 +851,11 @@ header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
         border-radius:20px;flex-shrink:0;font-family:inherit}
 .modtag.uso{background:rgba(52,211,153,.14);color:var(--ok)}
 .modtag.usar{background:var(--ac);color:#0A0C11}
+.aviso-motor{margin:0 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;
+  border:1px solid var(--borda);background:var(--cartao,transparent)}
+.aviso-motor.erro{border-color:rgba(248,113,113,.45)}
+.aviso-motor .aviso-linha{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.aviso-motor button{min-height:32px}
 .modtag.erro{background:rgba(248,113,113,.14);color:var(--erro)}
 /* Os dois destinos, um ao lado do outro. A PLACA e a escolha certa quase
    sempre, entao ela vem primeira e cheia; AQUI fica com contorno, como a
@@ -1743,6 +1748,7 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
         <div class="barra"><i id="ligBarra"></i></div>
         <div class="lm" id="ligMsg"></div>
       </div>
+      <div id="avisoPlaca" class="aviso-motor" role="status" hidden></div>
       <div id="listaModelos"></div>
       <div class="mstat">
         <div><b id="stEstado">—</b><span>situação</span></div>
@@ -1823,6 +1829,9 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
         aqui. Só o crachá da sessão fica guardado no Chrome — a senha, não.</div>
       <div class="expl" id="estadoExt">Verificando…</div>
 
+      <div class="et">PIPI IA · IMAGENS</div>
+      <div class="aviso-motor" id="cartaoPipi" role="status">Conferindo a Pipi…</div>
+
       <div class="et">LIGAR NO CLAUDE</div>
       <div class="expl" style="margin-top:0">O Claude Desktop pode usar o Bigode como ferramenta (arquivo
         <code>mcp_servidor.py</code>). Em <code>%APPDATA%\Claude\claude_desktop_config.json</code>, dentro de
@@ -1843,6 +1852,7 @@ let historico=[],ocupado=false,CX={},CFG={},PERS={},conversaId=null,projetoAtivo
 let CHROME_LIGADO=false;   // a extensao do Chrome deu sinal nos ultimos 15s
 let ULTIMAS=[];            // as conversas da barra lateral, para renomear
 let LIGADO=false,ESTADO='parado';
+let RAM_LIVRE=null, BLOQUEIO_WIN=null;
 
 /* ---------- logos e icones ---------- */
 const LOGO={
@@ -2067,7 +2077,7 @@ function abrirPainel(p){
   $('veu').classList.add('on'); $('gaveta').classList.add('on');
   if(p==='conexoes')carregarConn(); if(p==='projetos')carregarProjetos();
   if(p==='historico')carregarHistorico(); if(p==='personalidade')carregarPers();
-  if(p==='ajustes')carregarAjustes(); if(p==='habilidades')carregarHabilidades();
+  if(p==='ajustes'){carregarAjustes();pintarPipi();} if(p==='habilidades')carregarHabilidades();
   if(p==='artefatos')carregarArtefatos(); if(p==='programados')carregarProgramados();
   if(p==='especialistas')carregarEspecialistas();
 }
@@ -4162,9 +4172,93 @@ function PERFIL(x){
   return x.tok_s_medido? rot+' · '+String(x.tok_s_medido).replace('.',',')+' tok/s' : rot;
 }
 
+/* AVISOS DO MOTOR                                           (29/09)
+   1. O Windows barrou o llamafile na última partida (lido do motor.log).
+   2. Motor na placa: botão "Acordar agora". A tela NUNCA acorda a placa
+      sozinha -- consultar a Modal liga a GPU e foi isso que gastou os
+      créditos de setembro. Só acorda quando você manda. */
+function pintarAvisoMotor(m){
+  const el=$('avisoPlaca'); if(!el)return;
+  const partes=[];
+  if(m.bloqueio_windows){
+    partes.push('<div class="aviso-linha" style="color:var(--erro)"><span><b>Bloqueado pelo Windows</b> '+
+      (m.bloqueio_windows.quando?'('+esc(m.bloqueio_windows.quando)+')':'')+
+      ': o motor local não pôde abrir. Use um modelo <b>NA PLACA</b> ou peça a liberação do arquivo '+
+      '<code>'+esc((m.bloqueio_windows.exe||'llamafile').split('\\').pop())+'</code>.</span></div>');
+  }
+  if(m.placa&&m.placa.provedor==='modal'){
+    const a=m.acordar||{};
+    const txt=a.estado==='acordando'?'Acordando a placa… (pode levar até 3 min)'
+             :a.estado==='pronta'?esc(a.msg||'Placa pronta.')
+             :a.estado==='erro'?esc(a.msg||'A placa não respondeu.')
+             :'A placa dorme quando ninguém usa e acorda na primeira pergunta. Para não esperar, acorde antes.';
+    partes.push('<div class="aviso-linha"><span>'+txt+'</span>'+
+      '<button class="modtag usar" id="btAcordar" '+(a.estado==='acordando'?'disabled':'')+
+      '>Acordar agora</button></div>');
+  }
+  el.hidden=!partes.length;
+  el.className='aviso-motor'+(m.bloqueio_windows?' erro':'');
+  el.innerHTML=partes.join('');
+  const bt=$('btAcordar');
+  if(bt)bt.onclick=acordarPlaca;
+}
+
+async function acordarPlaca(){
+  let r={};
+  try{
+    r=await(await fetch('/api/modelo/acordar',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:'{}'})).json();
+  }catch(e){return toast('Não consegui falar com o Bigode.','erro');}
+  if(r.ok===false)return toast(r.msg||'Não deu.','erro');
+  toast('Acordando a placa…');
+  const passo=async()=>{
+    let m; try{m=await(await fetch('/api/modelos')).json();}catch(e){return;}
+    pintarAvisoMotor(m);
+    if((m.acordar||{}).estado==='acordando')return setTimeout(passo,4000);
+    status();
+    toast((m.acordar||{}).msg||'Pronto.', (m.acordar||{}).estado==='erro'?'erro':undefined);
+  };
+  setTimeout(passo,3000);
+}
+
+/* CARTÃO DA PIPI                                            (29/09)
+   Pergunta só se a porta 7300 responde (local, não acorda placa). O botão
+   "Abrir a Pipi" roda o pipi.bat -- e o servidor só aceita esse pedido
+   vindo deste computador, nunca do celular. */
+async function pintarPipi(){
+  const el=$('cartaoPipi'); if(!el)return;
+  let d={};
+  try{d=await(await fetch('/api/pipi/estado')).json();}
+  catch(e){el.textContent='Não consegui conferir a Pipi.';return;}
+  if(!d.pasta){el.innerHTML='Não achei a pasta <b>Pipi IA</b> ao lado do Cerebro.';return;}
+  const linha=d.aberta
+    ?'<span><b style="color:var(--ok)">Aberta</b> em <a href="'+esc(d.endereco)+'" target="_blank" rel="noopener">'+
+      esc(d.endereco)+'</a> · FLUX.1-schnell na Modal (L40S)'+
+      (d.configurada?'':' · <b style="color:var(--erro)">Modal não configurada</b>')+'</span>'
+    :'<span><b>Fechada.</b> O Bigode pede imagens à Pipi; com ela fechada, desenhar não funciona.'+
+      (d.configurada?'':' <b style="color:var(--erro)">A Modal dela também não está configurada.</b>')+'</span>';
+  el.innerHTML='<div class="aviso-linha">'+linha+
+    (d.aberta?'':'<button class="modtag usar" id="btPipi">Abrir a Pipi</button>')+'</div>';
+  const bt=$('btPipi');
+  if(bt)bt.onclick=async()=>{
+    bt.disabled=true;
+    let r={};
+    try{r=await(await fetch('/api/pipi/abrir',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();}
+    catch(e){bt.disabled=false;return toast('Não consegui falar com o Bigode.','erro');}
+    toast(r.msg||'…',r.ok===false?'erro':undefined);
+    if(r.ok===false){bt.disabled=false;return;}
+    let n=0;const passo=async()=>{await pintarPipi();
+      if(!(($('cartaoPipi')||{}).textContent||'').includes('Aberta')&&++n<10)setTimeout(passo,3000);};
+    setTimeout(passo,3000);
+  };
+}
+
 async function pintarModelos(){
   const m=await(await fetch('/api/modelos')).json();
   const lista=m.modelos||[];
+  RAM_LIVRE=(typeof m.ram_livre_gb==='number')?m.ram_livre_gb:null;
+  BLOQUEIO_WIN=m.bloqueio_windows||null;
+  pintarAvisoMotor(m);
   if(!lista.length){
     $('listaModelos').innerHTML='<div class="vazio2">Nenhum modelo encontrado. '+
       'Copie um arquivo .gguf para a pasta de IAs do seu Drive.</div>';
@@ -4274,9 +4368,28 @@ async function trocarModelo(caminho,nome,gb){
   // 3 GB livres, o sistema começa a trocar memória com o disco, e a leitura
   // de um prompt vai de 2 para 14 minutos. Sem este aviso, você descobre
   // depois de duas horas esperando.
-  if(gb && gb>=10){
+  if(BLOQUEIO_WIN){
     const ok=confirm(
-      'ATENÇÃO: este modelo tem '+gb+' GB.\n\n'+
+      'O Windows BLOQUEOU o motor local na última tentativa ('+
+      ((BLOQUEIO_WIN.exe||'llamafile').split('\\').pop())+').\n\n'+
+      'Enquanto o arquivo não for liberado no Windows, ligar aqui vai falhar de novo. '+
+      'Um modelo NA PLACA não tem esse problema.\n\nTentar mesmo assim?');
+    if(!ok)return;
+  }
+  if(gb && RAM_LIVRE!==null && gb+1.5>RAM_LIVRE){
+    /* Conta com a memória livre MEDIDA agora, não com um número fixo.
+       +1,5 GB: o motor precisa de espaço além do arquivo (janela e sistema).
+       Pergunta em vez de travar: fechando programas, a memória sobe. */
+    const ok=confirm(
+      'NÃO CABE AGORA: este modelo tem '+String(gb).replace('.',',')+' GB e há '+
+      String(RAM_LIVRE).replace('.',',')+' GB de memória livre.\n\n'+
+      'O Windows vai usar o disco como memória e cada resposta pode levar '+
+      'mais de 10 minutos. Feche programas pesados (Chrome, Blender) ou use '+
+      'um modelo menor ou NA PLACA.\n\nLigar mesmo assim?');
+    if(!ok)return;
+  }else if(gb && RAM_LIVRE===null && gb>=10){
+    const ok=confirm(
+      'ATENÇÃO: este modelo tem '+String(gb).replace('.',',')+' GB.\n\n'+
       'Um modelo desse tamanho quase não deixa memória livre. O sistema '+
       'passa a trocar memória com o disco e ler uma pergunta leva mais de '+
       '10 minutos.\n\n'+

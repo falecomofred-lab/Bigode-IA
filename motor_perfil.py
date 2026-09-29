@@ -134,6 +134,20 @@ def acordar(url, token, segundos=150):
             # chamada sem chave -- e de pe e o que interessa aqui.
             if e.code in (401, 403):
                 return True, round(time.time() - inicio, 1)
+            # CONTA DA MODAL DESATIVADA                        (29/09)
+            #   A Modal responde 404 "workspace ... is disabled". Esperar
+            #   150 s por isso so atrasava o Bigode e escondia a causa.
+            if e.code == 404:
+                try:
+                    corpo = e.read().decode("utf-8", "ignore")
+                except Exception:
+                    corpo = ""
+                if "disabled" in corpo:
+                    print("")
+                    print("  [!] A SUA CONTA NA MODAL ESTA DESATIVADA.")
+                    print("      Nenhum motor da Modal responde ate reativar em")
+                    print("      https://modal.com/settings  (Usage / Billing).")
+                    return False, round(time.time() - inicio, 1)
         except Exception:
             pass
         time.sleep(3)

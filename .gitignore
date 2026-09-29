@@ -80,3 +80,9 @@ config.json.bak
 *.bak
 config.json
 conexoes.json
+memoria/fatos.json
+_QUARENTENA_*/
+Claude outputs/
+producao_blender/
+estudio/
+teste_da_voz.wav

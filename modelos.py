@@ -479,29 +479,43 @@ class LocalModelProvider:
             O Fred viu tres "novo carregamento" no log tendo a Modal
             configurada e respondendo.
         """
+        # CACHE DE 5 s                                          (29/09)
+        #   A tela pergunta o estado varias vezes por segundo (status,
+        #   runtime, diagnostico) e cada pergunta batia na Modal com espera
+        #   de ate 8 s. A auditoria mediu /api/status em 15,6 s. Uma
+        #   resposta de 5 s atras vale para todas elas.
+        agora = time.time()
+        memo = getattr(self, "_online_memo", None)
+        if memo and agora - memo[0] < 5:
+            return memo[1]
+        resultado = self._online_de_verdade()
+        self._online_memo = (time.time(), resultado)
+        return resultado
+
+    def _online_de_verdade(self):
         cfg = self._config()
         bruto = str(cfg.get("llm_url") or "")
 
         if self.remoto():
-            # Preferir o health_url quando existe: no llama-server da Modal
-            # ele responde 200 pronto e 503 carregando, o que e informacao
-            # melhor do que "abriu a conexao".
-            alvo = str((cfg.get("modal") or {}).get("health_url") or "").strip()
-            if not alvo:
-                endereco = urlparse(bruto)
-                if not endereco.scheme:
-                    return False
-                alvo = "%s://%s/health" % (endereco.scheme, endereco.netloc)
-            try:
-                with urllib.request.urlopen(alvo, timeout=8) as r:
-                    return 200 <= r.status < 300
-            except urllib.error.HTTPError as e:
-                # 503 = llama.cpp carregando o modelo. Ainda nao esta
-                # pronto, mas o servico existe -- e 401/403 significa que
-                # ele esta de pe e so recusou a chamada sem token.
-                return e.code in (401, 403)
-            except Exception:
+            # NAO ACORDAR A PLACA PARA PERGUNTAR SE ELA ESTA ACORDADA  (29/09)
+            #
+            #   A tela chama /api/status a cada 9 s. Cada chamada batia no
+            #   /health da Modal -- e na Modal QUALQUER pedido liga a placa e
+            #   zera o relogio de 5 min para ela dormir. Resultado: com a aba
+            #   do Bigode aberta, a L4 nunca desligava, nem de madrugada.
+            #   O painel da Modal mostrou: bigode-coder US$ 14,10 do mes,
+            #   L4 US$ 20,95 -- e os US$ 30 de credito acabaram no dia 28.
+            #
+            #   Agora, com motor na nuvem, "online" quer dizer "configurado e
+            #   sem falha recente". A placa so liga quando voce pergunta de
+            #   verdade (ou quando o BIGODE.bat acorda de proposito, 1 vez).
+            #   Se a ultima chamada falhou (conta desativada, senha errada),
+            #   fica "desligado" por 2 min e a mensagem de erro diz o porque.
+            falha = getattr(self, "_falha_remota", None)
+            if falha and time.time() - falha[0] < 120:
                 return False
+            return bool(str(cfg.get("llm_url") or "").strip()
+                        or str((cfg.get("modal") or {}).get("url") or "").strip())
 
         # ═══ 503 NAO E "PRONTO" ══════════════════════════════ (18/09) ═══
         #
@@ -682,6 +696,7 @@ class LocalModelProvider:
         # Bigode manda 16k para um motor de 8k e a resposta volta vazia.
         self._carregado = str(modelo)
         self._inicio_carga = time.time()
+        self._online_memo = None
         self._tempo_carga = None
         self._salvar({"modelo_atual": str(modelo), "contexto": janela})
 
@@ -827,6 +842,7 @@ class LocalModelProvider:
 
         self._carregado = str(modelo)
         self._inicio_carga = time.time()
+        self._online_memo = None
         self._tempo_carga = None
         self._salvar({"modelo_atual": str(modelo)})
 
@@ -872,6 +888,11 @@ class LocalModelProvider:
 
     def erro_recente(self):
         """Ultimas linhas de erro do motor, se ele nao subiu."""
+        if self.remoto():
+            # motor na nuvem: o motor.log e do llamafile local e so traria
+            # erro velho (ex.: o bloqueio do Device Guard). Mostra a falha real.
+            falha = getattr(self, "_falha_remota", None)
+            return ("Falha na nuvem: %s" % falha[1]) if falha else ""
         registro = APP_ROOT / "motor.log"
         if not registro.exists():
             return ""

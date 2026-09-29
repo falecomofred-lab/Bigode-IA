@@ -5,3 +5,6 @@ huggingface_hub>=0.30,<2
 
 # Blender: imagem -> modelo 3D (TRELLIS.2 no Hugging Face)
 gradio_client
+
+# Imagens (fotos do celular, clonar site, Blender)
+Pillow
