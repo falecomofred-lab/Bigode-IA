@@ -2974,6 +2974,158 @@ def estado_pipi():
             "endereco": "http://127.0.0.1:%d" % _porta_pipi()}
 
 
+# ==========================================================================
+# GOOGLE DRIVE DO PC -> BLENDER                                   (29/09)
+# ==========================================================================
+#
+#   No iPhone, o botao de anexo abre o app Arquivos. Mas os escaneamentos do
+#   Fred ficam no Google Drive -- que JA esta montado neste PC (G:\Meu Drive).
+#   Em vez de baixar no celular e subir de novo pelo 4G, a tela navega
+#   pelas pastas do Drive AQUI no PC e o Bigode importa o arquivo direto do
+#   lugar dele. Vantagens:
+#     - nada trafega pelo celular (um .usdz de 60 MB nao gasta seu 4G);
+#     - sem limite de 75 MB do envio;
+#     - um .obj continua ao lado do .mtl e das texturas dele.
+#
+#   Seguranca: so lista e so entrega arquivos DENTRO das pastas do Drive,
+#   so extensoes 3D e so para quem fez login. Nada e apagado ou movido.
+#   Outras pastas: "pastas_escaneamento": ["D:\\Scans", ...] no config.json.
+
+EXT_DRIVE = (".usdz", ".usd", ".usdc", ".usda", ".glb", ".gltf", ".obj",
+             ".ply", ".fbx", ".stl", ".zip")
+_PULAR_DRIVE = {"__pycache__", "node_modules", "python", "chroma_db", "venv",
+                "$recycle.bin", "system volume information", "arquivos gguf"}
+_CACHE_DRIVE = {}
+
+
+def raizes_drive():
+    agora = time.time()
+    if _CACHE_DRIVE.get("raizes") and agora - _CACHE_DRIVE["raizes"][0] < 60:
+        return _CACHE_DRIVE["raizes"][1]
+    lista = config().get("pastas_escaneamento")
+    candidatas = [Path(str(p)) for p in lista] if isinstance(lista, list) and lista else []
+    if not candidatas:
+        if os.name == "nt":
+            for letra in "GDEFHIJKLMNOPQRSTUVWXYZ":
+                for nome in ("Meu Drive", "My Drive"):
+                    candidatas.append(Path("%s:\\" % letra) / nome)
+        candidatas += [Path.home() / "Google Drive", Path.home() / "Meu Drive"]
+    achadas = []
+    for c in candidatas:
+        try:
+            if c.is_dir():
+                r = c.resolve()
+                if r not in achadas:
+                    achadas.append(r)
+        except OSError:
+            continue
+    _CACHE_DRIVE["raizes"] = (agora, achadas)
+    return achadas
+
+
+def _raiz_e_alvo(indice, rel):
+    raizes = raizes_drive()
+    if not raizes:
+        return None, None, ("Nao achei o Google Drive neste PC (pasta 'Meu Drive'). "
+                            "Instale o Google Drive para computador ou coloque "
+                            "\"pastas_escaneamento\" no config.json.")
+    try:
+        raiz = raizes[int(indice or 0)]
+    except (ValueError, IndexError):
+        raiz = raizes[0]
+    rel = str(rel or "").replace("\\", "/").strip("/")
+    try:
+        alvo = (raiz / rel).resolve() if rel else raiz
+    except OSError:
+        return raiz, None, "Caminho invalido."
+    if alvo != raiz and raiz not in alvo.parents:
+        return raiz, None, "Fora da pasta do Drive."
+    return raiz, alvo, ""
+
+
+def _visivel(nome):
+    return not (nome.startswith(".") or nome.startswith("~$")
+                or nome.lower() in _PULAR_DRIVE or nome.lower() == "desktop.ini")
+
+
+def drive_listar(indice=0, rel=""):
+    raiz, alvo, erro = _raiz_e_alvo(indice, rel)
+    if erro:
+        return {"ok": False, "erro": erro}
+    if not alvo.is_dir():
+        return {"ok": False, "erro": "Essa pasta nao existe mais."}
+    pastas, arquivos = [], []
+    try:
+        with os.scandir(alvo) as itens:
+            for e in itens:
+                if not _visivel(e.name):
+                    continue
+                try:
+                    if e.is_dir():
+                        pastas.append(e.name)
+                    elif e.name.lower().endswith(EXT_DRIVE):
+                        st = e.stat()
+                        arquivos.append({"nome": e.name, "mb": round(st.st_size / 1048576, 1),
+                                         "quando": int(st.st_mtime)})
+                except OSError:
+                    continue
+    except OSError as falha:
+        return {"ok": False, "erro": "Nao consegui abrir a pasta: %s" % falha}
+    pastas.sort(key=str.lower)
+    arquivos.sort(key=lambda a: -a["quando"])
+    atual = "" if alvo == raiz else alvo.relative_to(raiz).as_posix()
+    return {"ok": True, "raizes": [str(r) for r in raizes_drive()],
+            "raiz": raizes_drive().index(raiz), "caminho": atual,
+            "pastas": pastas[:500], "arquivos": arquivos[:500]}
+
+
+def drive_recentes(indice=0, limite_s=6.0):
+    """Os escaneamentos mais novos do Drive inteiro, com tempo maximo de busca."""
+    raiz, _alvo, erro = _raiz_e_alvo(indice, "")
+    if erro:
+        return {"ok": False, "erro": erro}
+    chave = "recentes:%s" % raiz
+    agora = time.time()
+    if _CACHE_DRIVE.get(chave) and agora - _CACHE_DRIVE[chave][0] < 120:
+        return _CACHE_DRIVE[chave][1]
+    achados, completo = [], True
+    for pasta, subpastas, nomes in os.walk(raiz):
+        if time.time() - agora > limite_s:
+            completo = False
+            break
+        subpastas[:] = [d for d in subpastas if _visivel(d)]
+        for nome in nomes:
+            if nome.lower().endswith(EXT_DRIVE) and _visivel(nome):
+                cheio = Path(pasta) / nome
+                try:
+                    st = cheio.stat()
+                except OSError:
+                    continue
+                achados.append({"nome": nome, "caminho": cheio.relative_to(raiz).as_posix(),
+                                "mb": round(st.st_size / 1048576, 1), "quando": int(st.st_mtime)})
+    achados.sort(key=lambda a: -a["quando"])
+    r = {"ok": True, "arquivos": achados[:20], "completo": completo}
+    _CACHE_DRIVE[chave] = (agora, r)
+    return r
+
+
+def drive_usar(indice=0, rel=""):
+    """Confere o arquivo escolhido e devolve o caminho para o Blender importar."""
+    raiz, alvo, erro = _raiz_e_alvo(indice, rel)
+    if erro:
+        return {"ok": False, "erro": erro}
+    if not alvo.is_file() or not alvo.name.lower().endswith(EXT_DRIVE):
+        return {"ok": False, "erro": "Escolha um arquivo 3D (.usdz, .glb, .obj, .zip...)."}
+    try:
+        tamanho = alvo.stat().st_size
+    except OSError as falha:
+        return {"ok": False, "erro": "Nao consegui ler o arquivo: %s" % falha}
+    if tamanho > 500 * 1048576:
+        return {"ok": False, "erro": "Arquivo acima de 500 MB. Exporte com menos detalhe."}
+    return {"ok": True, "caminho": str(alvo), "nome": alvo.name,
+            "mb": round(tamanho / 1048576, 1)}
+
+
 def abrir_pipi(ip_cliente):
     if str(ip_cliente) not in ("127.0.0.1", "::1", "localhost"):
         return {"ok": False, "msg": "Por seguranca, a Pipi so pode ser aberta pelo proprio "
@@ -3395,10 +3547,33 @@ class Handler(BaseHTTPRequestHandler):
     LIVRES = ("/login", "/health", "/api/health", "/api/login/estado", "/api/login/entrar",
               "/api/login/criar", "/auth/", "/icone", "/manifest.json",
               "/sw.js", "/apple-touch-icon", "/favicon", "/img/",
-              "/venure.css", "/voz.js", "/conversa.js",
-              # Travado, o login tambem pode nao responder. Diagnostico que
-              # exige login nao serve para diagnosticar travamento.
-              "/api/diagnostico")
+              "/venure.css", "/voz.js", "/conversa.js")
+
+    # Pedido que chegou por um tunel (Tailscale Funnel, Cloudflare) tambem
+    # aparece como 127.0.0.1, porque quem entrega e o programa do tunel,
+    # rodando neste PC. Por isso "local" exige tres coisas: veio de
+    # 127.0.0.1, sem cabecalho de encaminhamento, e o endereco digitado
+    # era 127.0.0.1/localhost.                                     (29/09)
+    _CAB_TUNEL = ("X-Forwarded-For", "X-Forwarded-Host", "Forwarded",
+                  "X-Real-IP", "Tailscale-Funnel-Request", "Cf-Connecting-Ip")
+
+    def _eh_local(self):
+        if str(self.client_address[0]) not in ("127.0.0.1", "::1"):
+            return False
+        if any(self.headers.get(c) for c in self._CAB_TUNEL):
+            return False
+        host = (self.headers.get("Host") or "").lower()
+        return host.startswith(("127.0.0.1", "localhost", "[::1]"))
+
+    def _ip_cliente(self):
+        ip = str(self.client_address[0])
+        if ip in ("127.0.0.1", "::1"):
+            enc = (self.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+            if enc:
+                return enc
+            if not self._eh_local():
+                return "tunel"
+        return ip
 
     def _sessao(self):
         """Quem esta falando: pelo cookie (navegador) ou pelo cabecalho.
@@ -3419,6 +3594,10 @@ class Handler(BaseHTTPRequestHandler):
     def _autorizado(self):
         rota = self.path.split("?")[0]
         if any(rota.startswith(p) for p in self.LIVRES):
+            return True
+        # Travado, o login tambem pode nao responder: o diagnostico segue
+        # livre, mas so no proprio PC. Pela internet ele mostraria o codigo.
+        if rota == "/api/diagnostico" and self._eh_local():
             return True
         if not config().get("exigir_login", True):
             return True
@@ -3554,6 +3733,7 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/login/estado":
             return self._enviar(200, *self._json({
                 "tem_conta": autenticacao.existe_alguem(),
+                "cadastro": autenticacao.cadastro_aberto(config()),
                 "provedores": autenticacao.disponiveis(config()),
                 "logado": bool(self._sessao()),
             }))
@@ -3663,6 +3843,9 @@ class Handler(BaseHTTPRequestHandler):
                 "ferramentas": len(ferramentas.CATALOGO),
             }),
             "/api/pipi/estado": lambda: self._json(estado_pipi()),
+            "/api/drive/listar": lambda: self._json(drive_listar(
+                self._param("raiz"), self._param("caminho"))),
+            "/api/drive/recentes": lambda: self._json(drive_recentes(self._param("raiz"))),
             "/api/modelos": lambda: self._json({
                 "modelos": modelos_com_placa(),
                 "placa": estado_da_placa(),
@@ -3823,7 +4006,19 @@ class Handler(BaseHTTPRequestHandler):
                 d = json.loads(self.rfile.read(tam).decode("utf-8") or "{}")
             except Exception:
                 d = {}
+            # Cadastro fechado e limite de erros: ver autenticacao.py (29/09)
+            quem = "email:" + str(d.get("email") or "").strip().lower()
+            onde = "ip:" + self._ip_cliente()
+            falta = autenticacao.espera_login(quem, onde)
+            if falta:
+                return self._enviar(200, *self._json({
+                    "ok": False, "erro": "Muitas tentativas erradas. Espere %d minuto(s)."
+                    % max(1, (falta + 59) // 60)}))
             if rota_post.endswith("criar"):
+                if not autenticacao.cadastro_aberto(config()):
+                    return self._enviar(200, *self._json({
+                        "ok": False, "erro": "Cadastro fechado. So o dono do Bigode "
+                                             "libera contas novas."}))
                 r = autenticacao.criar_conta(d.get("nome"), d.get("email"),
                                              d.get("senha"))
                 if r.get("ok"):
@@ -3832,7 +4027,11 @@ class Handler(BaseHTTPRequestHandler):
                 r = autenticacao.conferir(d.get("email"), d.get("senha"))
 
             if not r.get("ok"):
+                if not rota_post.endswith("criar"):
+                    autenticacao.anotar_erro_login(quem, onde)
+                    time.sleep(1)             # robo tenta menos por minuto
                 return self._enviar(200, *self._json(r))
+            autenticacao.limpar_erros_login(quem, onde)
             token = autenticacao.abrir_sessao(r["email"], r["nome"], r.get("foto", ""))
             # O token vai TAMBEM no corpo: a extensao do Chrome nao consegue
             # ler o cookie (SameSite), entao guarda o token e manda no
@@ -4013,8 +4212,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._enviar(200, *self._json(trocar_modelo(
                 dados.get("caminho", ""),
                 voltar_para_local=bool(dados.get("voltar_para_local")))))
+        if rota == "/api/drive/usar":
+            return self._enviar(200, *self._json(drive_usar(
+                dados.get("raiz"), dados.get("caminho"))))
         if rota == "/api/pipi/abrir":
-            return self._enviar(200, *self._json(abrir_pipi(self.client_address[0])))
+            return self._enviar(200, *self._json(abrir_pipi("127.0.0.1" if self._eh_local() else "remoto")))
         if rota == "/api/modelo/acordar":
             return self._enviar(200, *self._json(acordar_placa()))
         if rota == "/api/modelo/placa":

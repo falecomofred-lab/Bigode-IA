@@ -399,6 +399,10 @@ elif EXT == ".ply":
     bpy.ops.wm.ply_import(filepath=CAMINHO)
 elif EXT == ".svg":
     bpy.ops.import_curve.svg(filepath=CAMINHO)
+elif EXT in (".usdz", ".usd", ".usdc", ".usda"):
+    # iPhone com LiDAR (RoomPlan, Scaniverse, Polycam): o importador de USD
+    # do Blender le a escala (metros) e o eixo "em cima" do proprio arquivo.
+    bpy.ops.wm.usd_import(filepath=CAMINHO)
 novos = [o for o in bpy.data.objects if o not in antes]
 COL = bpy.data.collections.new(NOME)
 bpy.context.scene.collection.children.link(COL)
@@ -892,6 +896,180 @@ def planejar_hf(prompt, modelo=""):
         return dados["choices"][0]["message"]["content"]
     except Exception:
         return None
+
+
+# ==========================================================================
+# ESCANEAMENTO DE AMBIENTE / OBJETO (iPhone com LiDAR)          (29/09)
+# ==========================================================================
+#
+#   O Bigode nao escaneia: quem escaneia e um app no iPhone Pro/iPad Pro
+#   (RoomPlan da Apple via apps como o 3d Scanner App, Scaniverse, Polycam).
+#   O Bigode RECEBE o arquivo, poe no Blender NA ESCALA REAL (sem esticar)
+#   e mede: tamanho total, paredes, portas, janelas e moveis.
+#
+#   Formatos: .usdz (RoomPlan), .glb/.gltf, .obj, .ply, .fbx, .stl, e .zip
+#   (o Polycam gratis exporta GLTF em .zip).
+EXT_ESCANEAMENTO = (".usdz", ".usd", ".usdc", ".usda", ".glb", ".gltf", ".obj",
+                    ".ply", ".fbx", ".stl", ".zip")
+ESCANEAMENTOS = PASTA / "escaneamentos"
+
+_CATEGORIAS = {
+    "parede": ("wall", "parede"), "porta": ("door", "porta"),
+    "janela": ("window", "janela"), "abertura": ("opening", "abertura"),
+    "piso": ("floor", "piso", "chao"),
+    "movel": ("sofa", "table", "chair", "bed", "storage", "cabinet", "refrigerator",
+              "stove", "oven", "sink", "toilet", "bathtub", "washer", "dryer",
+              "dishwasher", "fireplace", "television", "stairs", "mesa", "cadeira",
+              "cama", "armario", "geladeira", "fogao", "pia", "vaso", "banheira"),
+}
+
+_CODIGO_MEDIR = r"""
+import re as _re
+def _cat(nome):
+    n = nome.lower()
+    for cat, chaves in CATEGORIAS.items():
+        if any(k in n for k in chaves):
+            return cat
+    return ""
+def _caixa(objs):
+    pts = [(o.matrix_world @ Vector(c)) for o in objs for c in o.bound_box]
+    if not pts:
+        return None
+    xs, ys, zs = [p.x for p in pts], [p.y for p in pts], [p.z for p in pts]
+    return (max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs))
+malhas = [o for o in COL.objects if o.type == 'MESH']
+geral = _caixa(malhas) or (0, 0, 0)
+itens, contagem = [], {}
+for o in malhas:
+    cat = _cat(o.name) or _cat(o.parent.name if o.parent else "")
+    d = _caixa([o])
+    if cat:
+        contagem[cat] = contagem.get(cat, 0) + 1
+    itens.append({"nome": o.name, "tipo": cat, "l": round(d[0], 3), "p": round(d[1], 3),
+                  "a": round(d[2], 3)})
+paredes = [i for i in itens if i["tipo"] == "parede"]
+perimetro = sum(max(i["l"], i["p"]) for i in paredes)
+pe_direito = max((i["a"] for i in paredes), default=0)
+MEDIDAS = {"largura": round(geral[0], 3), "profundidade": round(geral[1], 3),
+           "altura": round(geral[2], 3), "area_aprox": round(geral[0] * geral[1], 2),
+           "perimetro_paredes": round(perimetro, 2), "pe_direito": round(pe_direito, 2),
+           "contagem": contagem, "malhas": len(malhas),
+           "itens": sorted(itens, key=lambda i: -(i["l"] * i["p"] * max(i["a"], 0.01)))[:40]}
+"""
+
+_CODIGO_ENQUADRAR_SEGURO = r"""
+tela = getattr(bpy.context, "screen", None)
+if tela:
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in COL.objects: o.select_set(True)
+    for area in tela.areas:
+        if area.type == 'VIEW_3D':
+            regiao = next((r for r in area.regions if r.type == 'WINDOW'), None)
+            if regiao:
+                try:
+                    with bpy.context.temp_override(area=area, region=regiao):
+                        bpy.ops.view3d.view_selected()
+                except Exception:
+                    pass
+"""
+
+
+def _abrir_zip(p):
+    """Extrai o .zip e devolve o melhor arquivo 3D de dentro (usdz > glb > gltf > obj...)."""
+    import zipfile
+    destino = ENTRADA / (p.stem + "_zip")
+    destino.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(p) as z:
+        for info in z.infolist():
+            alvo = (destino / info.filename).resolve()
+            if destino.resolve() not in alvo.parents and alvo != destino.resolve():
+                continue                                  # caminho malicioso no zip
+            if info.is_dir():
+                alvo.mkdir(parents=True, exist_ok=True)
+                continue
+            alvo.parent.mkdir(parents=True, exist_ok=True)
+            with z.open(info) as origem, open(alvo, "wb") as saida:
+                shutil.copyfileobj(origem, saida)
+    for ext in (".usdz", ".usd", ".usdc", ".glb", ".gltf", ".obj", ".ply", ".fbx", ".stl"):
+        achados = sorted(destino.rglob("*" + ext), key=lambda a: -a.stat().st_size)
+        if achados:
+            return achados[0]
+    return None
+
+
+def _m(v):
+    return ("%.2f" % float(v)).replace(".", ",") + " m"
+
+
+def blender_escaneamento(caminho="", nome="", **_):
+    """Importa um escaneamento (LiDAR/fotogrametria) em escala real e mede."""
+    b = _b()
+    p = Path(str(caminho).strip().strip('"'))
+    if not p.exists():
+        cand = ENTRADA / p.name
+        p = cand if cand.exists() else p
+    if not p.exists():
+        return "Arquivo nao encontrado: %s" % caminho
+    if p.suffix.lower() not in EXT_ESCANEAMENTO:
+        return "Formato %s nao suportado. Use: %s" % (p.suffix, " ".join(EXT_ESCANEAMENTO))
+    if p.suffix.lower() == ".zip":
+        dentro = _abrir_zip(p)
+        if not dentro:
+            return "O .zip nao tem nenhum arquivo 3D (usdz, glb, gltf, obj, ply, fbx, stl)."
+        p = dentro
+    ext = p.suffix.lower()
+    nome = re.sub(r"[^\w\- ]", "", (nome or p.stem))[:40] or "Escaneamento"
+    codigo = ("from mathutils import Vector\nMASCARA = ''\nGIRO = {}\n"
+              + _CODIGO_IMPORTAR % (repr(str(p)), repr(ext), repr(nome), 0.0)
+              + "CATEGORIAS = %r\n" % (_CATEGORIAS,)
+              + _CODIGO_MEDIR + _CODIGO_ENQUADRAR_SEGURO
+              + "\nresult = {'colecao': COL.name, 'medidas': MEDIDAS}\n")
+    r = b.executar_codigo(codigo, timeout=300)
+    if r.get("status") != "ok":
+        return b._texto(r)
+    res = r.get("result") or {}
+    m = res.get("medidas") or {}
+    if not m.get("malhas"):
+        return ("Importei '%s', mas nao veio nenhuma malha 3D. Confira se o app exportou o modelo "
+                "(e nao so a foto ou a planta)." % p.name)
+
+    # guarda as medidas ao lado, para abrir no Excel/AutoCAD depois
+    try:
+        ESCANEAMENTOS.mkdir(parents=True, exist_ok=True)
+        base = ESCANEAMENTOS / (nome + "_medidas")
+        base.with_suffix(".json").write_text(json.dumps(m, ensure_ascii=False, indent=2),
+                                             encoding="utf-8")
+        linhas = ["nome;tipo;largura_m;profundidade_m;altura_m"]
+        linhas += ["%s;%s;%s;%s;%s" % (i["nome"], i["tipo"], str(i["l"]).replace(".", ","),
+                                       str(i["p"]).replace(".", ","), str(i["a"]).replace(".", ","))
+                   for i in m.get("itens", [])]
+        base.with_suffix(".csv").write_text("\n".join(linhas), encoding="utf-8-sig")
+        arquivo_medidas = str(base.with_suffix(".csv"))
+    except Exception:
+        arquivo_medidas = ""
+
+    c = m.get("contagem") or {}
+    partes = ["Importei o escaneamento '%s' no Blender em ESCALA REAL (colecao '%s')."
+              % (p.name, res.get("colecao")),
+              "Tamanho total: %s x %s, altura %s." % (_m(m["largura"]), _m(m["profundidade"]),
+                                                      _m(m["altura"]))]
+    if c.get("parede"):
+        partes.append("Paredes: %d (perimetro ~%s, pe-direito %s). Area do piso ~%s m2 "
+                      "(pelo retangulo externo; em comodo em L e menor)."
+                      % (c["parede"], _m(m["perimetro_paredes"]), _m(m["pe_direito"]),
+                         str(m["area_aprox"]).replace(".", ",")))
+    plural = {"porta": "portas", "janela": "janelas", "abertura": "aberturas", "movel": "moveis"}
+    extras = ["%d %s" % (c[k], plural[k] if c[k] > 1 else k)
+              for k in ("porta", "janela", "abertura", "movel") if c.get(k)]
+    if extras:
+        partes.append("Encontrei: " + ", ".join(extras) + ".")
+    moveis = [i for i in m.get("itens", []) if i["tipo"] == "movel"][:6]
+    for i in moveis:
+        partes.append("  - %s: %s x %s x %s" % (i["nome"], _m(i["l"]), _m(i["p"]), _m(i["a"])))
+    if arquivo_medidas:
+        partes.append("Medidas salvas em: %s" % arquivo_medidas)
+    partes.append("Para AutoCAD/Unreal: no Blender, File > Export > FBX ou OBJ.")
+    return "\n".join(partes)
 
 
 # ==========================================================================

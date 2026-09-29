@@ -808,6 +808,19 @@ header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
 .bt:hover{color:var(--txt);border-color:#3A4658;background:var(--sup2)}
 .bt.forte{background:var(--ac);color:#0A0C11;border:none;font-weight:600}
 .bt.larga{width:100%}
+/* Google Drive do PC -> Blender (29/09) */
+.drive-nav{margin-top:10px;border:1px solid var(--linha);border-radius:12px;background:var(--sup);max-height:62vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.drive-top{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--linha);position:sticky;top:0;background:var(--sup);z-index:1;flex-wrap:wrap}
+.drive-top select{background:var(--sup2);color:var(--txt);border:1px solid var(--linha);border-radius:8px;padding:8px;max-width:100%}
+.drive-caminho{font-size:12px;color:var(--txt2);flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drive-item{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:10px 12px;border:0;border-bottom:1px solid var(--linha);background:none;color:var(--txt);text-align:left;font:inherit;font-size:14px;cursor:pointer}
+.drive-item:hover,.drive-item:active{background:var(--sup2)}
+.drive-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drive-item small{color:var(--mudo);white-space:nowrap}
+.drive-item svg{flex:none;color:var(--txt2)}
+.drive-arq svg{color:var(--ac)}
+.drive-et{padding:10px 12px 6px;font-size:11px;letter-spacing:.08em;color:var(--mudo)}
+.drive-vazio{padding:14px 12px;font-size:13px;color:var(--txt2)}
 .fila{display:flex;gap:8px}
 .linha-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:11px;
             border:1px solid var(--linha);background:var(--sup2);margin-bottom:7px;
@@ -1449,6 +1462,25 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
         <label class="cel4-qual"><input type="checkbox" id="celMax" checked> Qualidade máxima (textura 2048 e mais detalhe na malha — ~1 min a mais)</label>
         <button class="bt forte larga" id="celCriar" onclick="celCriar()" disabled>Tire pelo menos a foto de frente</button>
         <div class="b3-nota" id="celLink" style="margin-top:8px"></div>
+      </div>
+
+      <!-- ESCANEAR AMBIENTE / OBJETO (29/09): iPhone/iPad Pro com LiDAR.
+           O app escaneia; o Bigode importa em escala real e mede. -->
+      <div class="b3-hero cel4" id="scan3d">
+        <div class="b3-passo"><b><i class="ic" data-ic="regua"></i></b> Escanear cômodo ou objeto (iPhone/iPad Pro com LiDAR)</div>
+        <div class="b3-nota" style="margin:0 0 10px">Escaneie com um app no iPhone, exporte o arquivo e envie aqui.
+          O Bigode coloca no Blender <b>em tamanho real</b> e mede paredes, portas, janelas e móveis.</div>
+        <details class="cel4-dicas"><summary>Qual app usar e como exportar</summary>
+          <ul>
+            <li><b>Scaniverse</b> (grátis): escaneie e exporte em <b>USDZ, GLB ou OBJ</b>.</li>
+            <li><b>Polycam</b>: no plano grátis só exporta <b>GLTF</b> (vem em .zip) — pode mandar o .zip direto.</li>
+            <li>Apps com <b>RoomPlan</b> da Apple geram <b>.usdz</b> com paredes, portas e janelas separadas — é o que dá a planta mais limpa.</li>
+            <li>Cômodo de até ~9 × 9 m por vez, com luz, sem passar de 5 minutos. Espelho e vidro atrapalham o sensor.</li>
+          </ul></details>
+        <input type="file" id="scanInput" accept=".usdz,.usd,.usdc,.glb,.gltf,.obj,.ply,.fbx,.stl,.zip" style="display:none">
+        <button class="bt forte larga" id="driveBt" onclick="driveAbrir()">Escolher do Google Drive</button>
+        <button class="bt larga" id="scanBt" style="margin-top:8px" onclick="$('scanInput').value='';$('scanInput').click()">Enviar deste aparelho (.usdz, .glb, .obj, .zip…)</button>
+        <div id="driveNav" class="drive-nav" style="display:none"></div>
       </div>
 
       <details class="b3-mais">
@@ -2658,6 +2690,88 @@ async function celCriar(){
   celAtualizar();
   b3Enviar(pedido);
 }
+/* ESCANEAMENTO LiDAR (29/09): sobe o arquivo e pede ao Bigode para importar e medir. */
+async function scanEnviar(arq){
+  if(!arq)return;
+  if(arq.size>75*1024*1024)return toast('Arquivo grande demais (máx. 75 MB). Exporte com menos detalhe ou em .usdz.','erro');
+  const b=$('scanBt'); b.disabled=true; b.textContent='Enviando '+arq.name+'…';
+  let r={};
+  try{
+    const dados=await new Promise((ok,erro)=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=erro;f.readAsDataURL(arq);});
+    r=await(await fetch('/api/blender/arquivo',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nome:arq.name,dados})})).json();
+  }catch(e){r={ok:false};}
+  b.disabled=false; b.textContent='Enviar deste aparelho (.usdz, .glb, .obj, .zip…)';
+  if(!r.ok)return toast(r.erro||'Não consegui enviar o arquivo. Confira o Wi-Fi.','erro');
+  b3Enviar('importe no blender o escaneamento '+r.caminho);
+}
+document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='scanInput')scanEnviar(ev.target.files[0]);});
+/* GOOGLE DRIVE DO PC (29/09): o Drive ja esta montado no computador (G:\Meu Drive).
+   A tela navega pelas pastas de la e o Bigode importa o arquivo do lugar dele:
+   nada sobe pelo 4G, sem limite de 75 MB, e o .obj continua junto do .mtl. */
+const DRV={raiz:0,caminho:''};
+function driveAbrir(){
+  const n=$('driveNav');
+  if(n.style.display==='block'){n.style.display='none';return;}
+  n.style.display='block'; driveIr(DRV.caminho);
+}
+function driveData(t){try{return new Date(t*1000).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});}catch(e){return '';}}
+function driveArqHtml(a,caminho){
+  return '<button class="drive-item drive-arq" data-arq="'+esc(caminho)+'">'+S(IC.caixa,18)+
+    '<span>'+esc(a.nome)+'</span><small>'+esc(String(a.mb))+' MB · '+driveData(a.quando)+'</small></button>';
+}
+async function driveIr(caminho){
+  const n=$('driveNav');
+  n.innerHTML='<div class="drive-vazio">Abrindo o Drive…</div>';
+  let r={};
+  try{r=await(await fetch('/api/drive/listar?raiz='+DRV.raiz+'&caminho='+encodeURIComponent(caminho||''))).json();}
+  catch(e){r={ok:false,erro:'Sem conexão com o Bigode.'};}
+  if(!r.ok){
+    if(caminho){DRV.caminho='';return driveIr('');}
+    n.innerHTML='<div class="drive-vazio" style="color:var(--erro)">'+esc(r.erro||'Não deu certo.')+'</div>';return;
+  }
+  DRV.caminho=r.caminho; DRV.raiz=r.raiz;
+  const partes=r.caminho?r.caminho.split('/'):[];
+  const nomeRaiz=(r.raizes[r.raiz]||'Drive').split(/[\\/]/).filter(Boolean).pop();
+  let h='<div class="drive-top">';
+  if(partes.length)h+='<button class="bt" data-ir="'+esc(partes.slice(0,-1).join('/'))+'">← Voltar</button>';
+  if(r.raizes.length>1)h+='<select id="driveRaiz">'+r.raizes.map((x,i)=>'<option value="'+i+'"'+(i===r.raiz?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>';
+  h+='<span class="drive-caminho">'+esc([nomeRaiz].concat(partes).join(' / '))+'</span>';
+  h+='<button class="bt" data-fechar="1">Fechar</button></div>';
+  if(!r.caminho)h+='<div id="driveRecentes"><div class="drive-et">RECENTES</div><div class="drive-vazio">Procurando escaneamentos no Drive…</div></div>';
+  if(r.arquivos.length)h+='<div class="drive-et">ARQUIVOS 3D NESTA PASTA</div>'+
+    r.arquivos.map(a=>driveArqHtml(a,(r.caminho?r.caminho+'/':'')+a.nome)).join('');
+  if(r.pastas.length)h+='<div class="drive-et">PASTAS</div>'+r.pastas.map(p=>
+    '<button class="drive-item" data-ir="'+esc((r.caminho?r.caminho+'/':'')+p)+'">'+S(IC.pasta||MARCA.pasta,18)+'<span>'+esc(p)+'</span></button>').join('');
+  if(!r.arquivos.length&&!r.pastas.length)h+='<div class="drive-vazio">Nenhum arquivo 3D (.usdz, .glb, .obj, .zip…) nesta pasta.</div>';
+  n.innerHTML=h; n.scrollTop=0;
+  if(!r.caminho)driveRecentes();
+}
+async function driveRecentes(){
+  let r={};
+  try{r=await(await fetch('/api/drive/recentes?raiz='+DRV.raiz)).json();}catch(e){}
+  const el=$('driveRecentes'); if(!el||DRV.caminho)return;
+  if(!r.ok||!r.arquivos||!r.arquivos.length){el.remove();return;}
+  el.innerHTML='<div class="drive-et">RECENTES NO DRIVE</div>'+r.arquivos.slice(0,8).map(a=>driveArqHtml(a,a.caminho)).join('');
+}
+async function driveUsar(caminho){
+  const nome=caminho.split('/').pop();
+  toast('Importando '+nome+' no Blender…');
+  let r={};
+  try{r=await(await fetch('/api/drive/usar',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({raiz:DRV.raiz,caminho})})).json();}catch(e){r={ok:false,erro:'Sem conexão com o Bigode.'};}
+  if(!r.ok)return toast(r.erro||'Não consegui usar esse arquivo.','erro');
+  $('driveNav').style.display='none';
+  b3Enviar('importe no blender o escaneamento '+r.caminho);
+}
+document.addEventListener('click',ev=>{
+  const nav=$('driveNav'); if(!nav||!nav.contains(ev.target))return;
+  const b=ev.target.closest('[data-ir],[data-arq],[data-fechar]'); if(!b)return;
+  if(b.dataset.fechar){nav.style.display='none';return;}
+  if(b.dataset.arq!==undefined)return driveUsar(b.dataset.arq);
+  driveIr(b.dataset.ir);
+});
+document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='driveRaiz'){DRV.raiz=+ev.target.value;DRV.caminho='';driveIr('');}});
 /* No computador, mostra o endereco para abrir no celular. */
 async function celMostrarLink(){
   const el=$('celLink'); if(!el)return;

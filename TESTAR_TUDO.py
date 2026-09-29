@@ -319,7 +319,12 @@ def checar_html(caminho, nome):
     definidas = set(re.findall(r"function\s+(\w+)", js))
     definidas |= set(re.findall(
         r"(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?[\(\w]", js))
-    faltando = sorted(c for c in chamadas if c not in definidas)
+    # 29/09: onkeydown="if(event.key==='Enter')..." e JavaScript valido; o
+    # "if(" era lido como chamada de funcao e reprovava a publicacao a toa.
+    palavras_js = {"if", "return", "for", "while", "switch", "typeof", "void",
+                   "new", "await", "confirm", "alert", "event", "this"}
+    faltando = sorted(c for c in chamadas
+                      if c not in definidas and c not in palavras_js)
     if faltando:
         falha("onclick chama funcao inexistente: %s" % ", ".join(faltando))
         bom = False

@@ -70,6 +70,67 @@ def existe_alguem():
     return bool(_ler().get("usuarios"))
 
 
+# ==========================================================================
+# Portas fechadas para quem chega pela internet                    (29/09)
+# ==========================================================================
+#
+#   Com o link fixo (Tailscale Funnel), a tela de login fica na internet.
+#   Dois buracos que nao importavam dentro de casa passam a importar:
+#
+#   1. QUALQUER UM CRIAVA CONTA. O botao "Criar conta" e o "Entrar com
+#      Google" abriam conta nova para quem pedisse -- e conta nova entra no
+#      Bigode inteiro. Agora so existe cadastro quando ainda nao ha conta
+#      nenhuma (o primeiro e o dono) ou quando o config.json diz
+#      "cadastro_aberto": true.
+#
+#   2. SENHA NO CHUTE. Nada impedia um robo de tentar mil senhas. Agora,
+#      5 erros em 15 minutos seguram aquele e-mail (e aquele endereco) por
+#      15 minutos. O dono so espera; ninguem perde a conta.
+
+LIMITE_ERROS = 5
+JANELA_ERROS = 15 * 60
+_ERROS = {}                  # chave -> [momentos dos erros]
+
+
+def cadastro_aberto(config=None):
+    if not existe_alguem():
+        return True
+    return bool((config or {}).get("cadastro_aberto", False))
+
+
+def _recentes(chave, agora):
+    return [t for t in _ERROS.get(chave, []) if agora - t < JANELA_ERROS]
+
+
+def espera_login(*chaves):
+    """Segundos que faltam para poder tentar de novo (0 = pode tentar)."""
+    agora = time.time()
+    falta = 0
+    with TRAVA:
+        for c in chaves:
+            if not c:
+                continue
+            erros = _recentes(c, agora)
+            _ERROS[c] = erros
+            if len(erros) >= LIMITE_ERROS:
+                falta = max(falta, int(JANELA_ERROS - (agora - erros[0])) + 1)
+    return falta
+
+
+def anotar_erro_login(*chaves):
+    agora = time.time()
+    with TRAVA:
+        for c in chaves:
+            if c:
+                _ERROS[c] = _recentes(c, agora) + [agora]
+
+
+def limpar_erros_login(*chaves):
+    with TRAVA:
+        for c in chaves:
+            _ERROS.pop(c, None)
+
+
 def buscar(email):
     alvo = (email or "").strip().lower()
     for u in _ler().get("usuarios", []):
@@ -316,6 +377,8 @@ def concluir_login(config, provedor, codigo, estado, base_url):
 
         u = buscar(email)
         if not u:
+            if not cadastro_aberto(config):
+                return {"ok": False, "erro": "Esse e-mail nao tem acesso a este Bigode."}
             criar_conta(nome, email, "", provedor=provedor, foto=foto)
             u = buscar(email)
         return {"ok": True, "email": u["email"], "nome": u["nome"],

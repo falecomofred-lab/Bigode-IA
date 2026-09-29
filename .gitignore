@@ -86,3 +86,13 @@ Claude outputs/
 producao_blender/
 estudio/
 teste_da_voz.wav
+
+# Link publico do Tailscale Funnel (29/09)
+LINK_FIXO.txt
+
+# Garantido pelo PUBLICAR_NO_GITHUB.ps1 (29/09)
+*.wav
+memoria/projetos/
+memoria/medicoes.jsonl
+PERIGO_APAGA_E_RECRIA_REPOS.ps1
+python/

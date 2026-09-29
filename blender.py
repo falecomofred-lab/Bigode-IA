@@ -1557,6 +1557,14 @@ def _pedido_recursos(pergunta, t, palavras, no_blender):
                      r"shape_keys|basemesh|sexo|rosto|cabelo|pele", t):
             return "humano", {"ficha": pergunta}
         return "livre", {"pedido": pergunta.strip()[:3000]}
+    # ESCANEAMENTO (iPhone com LiDAR / RoomPlan / Polycam / Scaniverse)   (29/09)
+    #   .usdz e .zip so chegam por aqui; glb/obj/ply viram escaneamento quando
+    #   a frase fala em escanear -- ai o Bigode NAO estica e ainda mede.
+    escaneados = _caminhos(pergunta, ["usdz", "usdc", "usda", "usd", "zip"])
+    fala_de_scan = re.search(r"escane|scan|lidar|roomplan|polycam|scaniverse|comodo|ambiente|planta baixa", t)
+    if escaneados or (fala_de_scan and _caminhos(pergunta, ["glb", "gltf", "obj", "fbx", "stl", "ply"])):
+        alvo = (escaneados or _caminhos(pergunta, ["glb", "gltf", "obj", "fbx", "stl", "ply"]))[0]
+        return "escaneamento", {"caminho": alvo}
     arquivos_3d = _caminhos(pergunta, ["glb", "gltf", "obj", "fbx", "stl", "ply", "svg"])
     if arquivos_3d:
         alt = re.search(r"(\d+(?:[.,]\d+)?)\s*(m|metro|metros|cm)\b", t)
@@ -1658,6 +1666,10 @@ def executar_direto(acao, argumentos):
                                  encoding="utf-8")
         except Exception:
             pass
+    if acao == "escaneamento":
+        import blender_recursos as r
+        texto = r.blender_escaneamento(**argumentos)
+        return texto, texto.startswith("Importei o escaneamento")
     if acao in ("biblioteca", "importar", "referencias", "textura", "gerar_3d"):
         import blender_recursos as r
         funcao = {"biblioteca": r.blender_biblioteca, "importar": r.blender_importar,

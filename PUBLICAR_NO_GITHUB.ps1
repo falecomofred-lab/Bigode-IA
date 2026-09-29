@@ -1,187 +1,202 @@
-# TROCAR OS DOIS REPOSITORIOS DO GITHUB
-# Venure - venure.com.br - 17/09/2026
+# PUBLICAR BIGODE IA + PIPI IA NO GITHUB -- com trava de seguranca   (29/09/2026)
 #
-#     cd "G:\Meu Drive\projetos\Cerebro"
-#     .\PUBLICAR_NO_GITHUB.ps1 -Ensaio     <- mostra e nao faz nada
-#     .\PUBLICAR_NO_GITHUB.ps1             <- faz
+#   Rode assim, dentro da pasta Cerebro:
+#       powershell -ExecutionPolicy Bypass -File .\PUBLICAR_NO_GITHUB.ps1
 #
-# O QUE ELE FAZ, E POR QUE NESSA ORDEM
+#   So conferir, sem enviar nada:
+#       powershell -ExecutionPolicy Bypass -File .\PUBLICAR_NO_GITHUB.ps1 -SoConferir
 #
-#   1. Roda o TESTAR_TUDO.py e PARA se qualquer credencial aparecer.
-#      Esta e a unica etapa que nao tem volta se der errado: codigo
-#      quebrado se conserta no commit seguinte, token publicado nao.
+#   O QUE FAZ, EM CADA PROJETO (Cerebro e Pipi IA):
+#     1. apaga os desktop.ini que o Google Drive enfia dentro da .git
+#     2. garante no .gitignore os arquivos de senha, chave e dado pessoal
+#     3. tira do GitHub (NAO do seu PC) qualquer arquivo sensivel que ja
+#        estivesse sendo enviado
+#     4. TRAVA 1 - nome proibido: config.json, conexoes.json, usuarios.json...
+#     5. TRAVA 2 - formato de chave: hf_, sk-, ghp_, GOCSPX-, chave privada...
+#     6. TRAVA 3 - suas chaves DE VERDADE: le os tokens dos seus arquivos de
+#        configuracao AQUI no PC e procura cada um dentro do que vai subir.
+#        Se aparecer em qualquer arquivo, para tudo. (O valor nunca e
+#        mostrado na tela -- so o nome do arquivo onde apareceu.)
+#     7. TRAVA 4 - arquivo acima de 50 MB
+#     8. mostra a lista do que vai subir e PERGUNTA antes de enviar
 #
-#   2. APAGA os dois repositorios do GitHub, com historico.
-#      Nao e exagero. O historico do Git guarda tudo o que ja passou por
-#      ele: apagar o config.json hoje nao apaga o token que estava nele
-#      em agosto -- um `git log -p` ainda le. Como por estes dois repos
-#      ja passaram token da Hugging Face, token da Modal e o usuarios.json
-#      com e-mail e hash de senha, limpar por cima seria fingir.
-#
-#      O repositorio novo nasce sem historico nenhum. E o unico jeito
-#      honesto de dizer "nao tem segredo ai dentro".
-#
-#   3. Cria os dois DE NOVO, PRIVADOS.
-#      O Bigode era publico. Ele le pasta, roda comando e entra no
-#      navegador: nao e coisa para ficar aberta.
-#
-#   4. Sobe um commit unico, ja filtrado pelos .gitignore.
-#
-# PRECISA DO gh (GitHub CLI)
-#   winget install GitHub.cli
-#   gh auth login
-#
-# Sem o gh, a parte de apagar e criar tem de ser feita a mao no site --
-# o script diz exatamente onde clicar.
+#   Este script NAO apaga repositorio, NAO reescreve historico e NAO usa
+#   --force. (O antigo que fazia isso foi renomeado para
+#   PERIGO_APAGA_E_RECRIA_REPOS.ps1 -- nao rode.)
 
-param([switch]$Ensaio)
+param([switch]$SoConferir)
 
-# 'Continue', nao 'Stop'. Com 'Stop' o PowerShell trata QUALQUER linha que
-# um programa externo escreva no stderr como erro fatal -- e tanto o `gh`
-# quanto o `git push` escrevem ali no uso normal (o push manda a barra de
-# progresso pelo stderr). O script ja confere $LASTEXITCODE em cada etapa
-# que importa; e o exit code que diz se deu certo, nao o stderr.
-$ErrorActionPreference = 'Continue'
-$conta   = 'falecomofred-lab'
+$ErrorActionPreference = "Continue"
+$raiz = Split-Path -Parent $PSScriptRoot
+
 $projetos = @(
-  @{ Nome = 'Bigode-IA'; Pasta = 'G:\Meu Drive\projetos\Cerebro';
-     Desc  = 'Bigode IA - assistente da Venure que roda na sua maquina' },
-  @{ Nome = 'Pipi-IA';   Pasta = 'G:\Meu Drive\projetos\Pipi IA';
-     Desc  = 'Pipi IA - geracao de imagem da Venure' }
+  @{ Nome = "Bigode IA (Cerebro)"; Pasta = $PSScriptRoot
+     Url  = "https://github.com/falecomofred-lab/Bigode-IA.git"
+     Garantir = @("config.json", "conexoes.json", "usuarios.json", "modal.json", "ponte.txt",
+                  "motor_remoto.txt", "motor.chave", "*.bak", "*.log", "*.wav",
+                  "conversas/", "Historico/", "projetos/", "memoria/projetos/",
+                  "memoria/fatos.json", "memoria/medicoes.jsonl", "chroma_db/",
+                  "producao_blender/", "estudio/", "Claude outputs/", "auditoria/",
+                  "_QUARENTENA_*/", "LINK_FIXO.txt", "PERIGO_APAGA_E_RECRIA_REPOS.ps1",
+                  "Arquivos GGUF/", "*.gguf", "python/") },
+  @{ Nome = "Pipi IA"; Pasta = (Join-Path $raiz "Pipi IA")
+     Url  = "https://github.com/falecomofred-lab/Pipi-IA.git"
+     Garantir = @("config.json", "usuarios.json", "modal.json", "cloudflare.json", "ponte.txt",
+                  "motor_remoto.txt", "*.bak", "*.log", ".git-antigo*/", "producao/",
+                  "*.gguf", "python/") }
 )
 
-function Titulo($t) { Write-Host "`n  $t" -ForegroundColor Cyan
-                      Write-Host ('  ' + ('-' * 62)) -ForegroundColor DarkGray }
-function Bom($t)    { Write-Host "  [ok] $t" -ForegroundColor Green }
-function Ruim($t)   { Write-Host "  [X]  $t" -ForegroundColor Red }
-function Aviso($t)  { Write-Host "  [!]  $t" -ForegroundColor Yellow }
+# Arquivos que NUNCA podem estar no envio (nome exato, em qualquer pasta)
+$nomesProibidos = '(^|/)(config\.json|config\.local\.json|conexoes\.json|usuarios\.json|modal\.json|cloudflare\.json|ponte\.txt|motor_remoto\.txt|motor\.chave|fatos\.json|medicoes\.jsonl|LINK_FIXO\.txt|\.env)$|\.(bak|pem|key|gguf|wav)$|(^|/)(\.git-antigo|conversas/|Historico/|memoria/projetos/|chroma_db/|producao_blender/)'
 
-# ----------------------------------------------------------------------
-Titulo ' 1. CONFERINDO SE HA SEGREDO NO QUE VAI SUBIR'
+# Formato de chave conhecido (Hugging Face, OpenAI, GitHub, Google, AWS, chave privada)
+$formatos = 'hf_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9_-]{30,}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|GOCSPX-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
 
-Push-Location 'G:\Meu Drive\projetos\Cerebro'
-& python TESTAR_TUDO.py
-$notaTeste = $LASTEXITCODE
-Pop-Location
+# Onde estao suas chaves de verdade (so lidas aqui, nunca enviadas)
+$arquivosDeChave = @("config.json", "conexoes.json", "modal.json", "cloudflare.json", "usuarios.json")
 
-if ($notaTeste -ne 0) {
-  Ruim 'O TESTAR_TUDO reprovou. Nao vou publicar nada.'
-  Write-Host '       Conserte o que ele apontou e rode de novo.' -ForegroundColor DarkGray
-  exit 1
-}
-Bom 'nada de credencial, e os arquivos compilam'
-
-# ----------------------------------------------------------------------
-Titulo ' 2. O gh ESTA INSTALADO E LOGADO?'
-
-$temGh = $null -ne (Get-Command gh -ErrorAction SilentlyContinue)
-if ($temGh) {
-  & gh auth status 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) { $temGh = $false }
-}
-
-if (-not $temGh) {
-  Aviso 'gh ausente ou sem login. A parte do site fica com voce:'
-  Write-Host ''
-  foreach ($p in $projetos) {
-    Write-Host "       APAGAR:  https://github.com/$conta/$($p.Nome)/settings" -ForegroundColor DarkGray
-    Write-Host '                 desca ate Danger Zone > Delete this repository' -ForegroundColor DarkGray
+function Juntar-Segredos($no, $chave, $lista) {
+  if ($null -eq $no) { return }
+  if ($no -is [string]) {
+    $v = $no.Trim()
+    $ehChave = $chave -match '(?i)token|key|chave|secret|senha|password|hash|sal$|client|api'
+    $pareceAleatorio = ($v.Length -ge 32) -and ($v -notmatch '[\s/\\:@.]')
+    if ($v.Length -ge 12 -and ($ehChave -or $pareceAleatorio) -and $v -notmatch '^(?i)cole_aqui') {
+      [void]$lista.Add($v)
+    }
+    return
   }
-  Write-Host ''
-  Write-Host '       CRIAR:   https://github.com/new  (marque Private, sem README)' -ForegroundColor DarkGray
-  Write-Host ''
-  Write-Host '       Depois rode este script de novo -- ele segue do passo 4.' -ForegroundColor DarkGray
-  Write-Host ''
-  if (-not $Ensaio) {
-    $r = Read-Host '       Ja apagou e criou os dois no site? (digite SIM)'
-    if ($r -ne 'SIM') { Ruim 'Parando aqui.'; exit 1 }
+  if ($no -is [System.Collections.IEnumerable] -and -not ($no -is [string])) {
+    foreach ($item in $no) { Juntar-Segredos $item $chave $lista }
+    return
   }
-} else {
-  Bom 'gh pronto'
+  if ($no -is [psobject]) {
+    foreach ($p in $no.PSObject.Properties) { Juntar-Segredos $p.Value $p.Name $lista }
+  }
 }
 
-# ----------------------------------------------------------------------
-Titulo ' 3. APAGAR O ANTIGO E CRIAR O NOVO (PRIVADO)'
+function Ler-Segredos($pastas) {
+  $lista = New-Object 'System.Collections.Generic.HashSet[string]'
+  foreach ($pasta in $pastas) {
+    foreach ($n in $arquivosDeChave) {
+      $arq = Join-Path $pasta $n
+      if (-not (Test-Path -LiteralPath $arq)) { continue }
+      try {
+        $json = Get-Content -LiteralPath $arq -Raw -Encoding UTF8 | ConvertFrom-Json
+        Juntar-Segredos $json "" $lista
+      } catch { }
+    }
+  }
+  return ,$lista
+}
+
+function Checar-Commit($c) {
+  $achou = @()
+  $achou += git ls-tree -r --name-only $c | Where-Object { $_ -match $nomesProibidos }
+  $achou += git grep -I -l -E $formatos $c 2>$null
+  foreach ($s in $segredos) { $achou += git grep -I -l -F -e $s $c 2>$null }
+  return $achou
+}
+
+$segredos = Ler-Segredos ($projetos | ForEach-Object { $_.Pasta })
+Write-Host ("`nChaves reais lidas dos seus arquivos de configuracao: {0} (nao serao mostradas)" -f $segredos.Count) -ForegroundColor DarkGray
+
+$resultado = @()
 
 foreach ($p in $projetos) {
-  $alvo = "$conta/$($p.Nome)"
-  if ($Ensaio) { Aviso "ENSAIO: apagaria e recriaria $alvo como privado"; continue }
-  if (-not $temGh) { continue }
+  Write-Host "`n==================== $($p.Nome) ====================" -ForegroundColor Cyan
+  if (-not (Test-Path -LiteralPath $p.Pasta)) {
+    Write-Host "  Pasta nao encontrada: $($p.Pasta) -- pulei." -ForegroundColor Yellow
+    $resultado += "$($p.Nome): pasta nao encontrada"; continue
+  }
+  Set-Location -LiteralPath $p.Pasta
 
-  & gh repo view $alvo 2>$null | Out-Null
-  if ($LASTEXITCODE -eq 0) {
-    Write-Host "       apagando $alvo …" -ForegroundColor DarkGray
-    & gh repo delete $alvo --yes
-    if ($LASTEXITCODE -ne 0) {
-      Ruim "nao consegui apagar $alvo"
-      Write-Host '       Falta permissao: gh auth refresh -h github.com -s delete_repo' -ForegroundColor DarkGray
-      exit 1
-    }
-    Bom "$alvo apagado, com historico"
-  } else {
-    Aviso "$alvo nao existe mais (ja apagado)"
+  if (-not (Test-Path -LiteralPath ".git")) {
+    git init -b main | Out-Null
+    git remote add origin $p.Url
+  }
+  # 1. desktop.ini do Google Drive dentro da .git quebra o Git ("bad object refs/desktop.ini")
+  Get-ChildItem .git -Recurse -Force -Filter desktop.ini -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+  if (-not (git remote)) { git remote add origin $p.Url }
+
+  # 1b. commits feitos aqui e AINDA NAO ENVIADOS tambem sobem no push.
+  #     Se algum deles tiver arquivo ou chave sensivel, junto todos num so
+  #     (git reset --soft): seus arquivos NAO mudam, so o historico local.
+  git fetch -q origin 2>$null
+  $ramo = git rev-parse --abbrev-ref HEAD 2>$null
+  $remoto = if ($ramo -and $ramo -ne "HEAD") { git rev-parse --verify -q "origin/$ramo" 2>$null } else { $null }
+  $pendentes = if ($remoto) { git rev-list "$remoto..HEAD" 2>$null } else { git rev-list HEAD 2>$null }
+  $sujos = @()
+  foreach ($c in $pendentes) { $sujos += Checar-Commit $c }
+  if ($sujos) {
+    Write-Host "  Commits locais ainda nao enviados tinham arquivo sensivel. Juntei-os (seus arquivos nao mudam)." -ForegroundColor Yellow
+    if ($remoto) { git reset -q --soft $remoto } else { git update-ref -d HEAD }
   }
 
-  & gh repo create $alvo --private --description $p.Desc
-  if ($LASTEXITCODE -ne 0) { Ruim "nao consegui criar $alvo"; exit 1 }
-  Bom "$alvo criado, PRIVADO e vazio"
-}
-
-# ----------------------------------------------------------------------
-Titulo ' 4. SUBIR O COMECO LIMPO'
-
-foreach ($p in $projetos) {
-  Write-Host "`n       $($p.Nome)" -ForegroundColor White
-  if (-not (Test-Path $p.Pasta)) { Ruim "pasta nao existe: $($p.Pasta)"; exit 1 }
-
-  Push-Location $p.Pasta
-  try {
-    if ($Ensaio) {
-      # O `git add --dry-run` e a hora de ver a lista de verdade. Se algo
-      # que nao devia aparecer aqui, o .gitignore e que esta furado.
-      Write-Host '       ENSAIO: o git levaria estes arquivos:' -ForegroundColor Yellow
-      if (Test-Path '.git') {
-        & git add --all --dry-run 2>$null | Select-Object -First 40
-      } else {
-        Write-Host '       (sem .git ainda)' -ForegroundColor DarkGray
-      }
-      continue
-    }
-
-    # O .git antigo vai embora junto com o historico. Renomeia em vez de
-    # apagar: se algo der errado nos proximos 3 comandos, da para voltar.
-    if (Test-Path '.git') {
-      $guardado = ".git-antigo-$(Get-Date -Format yyyyMMdd-HHmmss)"
-      Rename-Item '.git' $guardado
-      Bom "historico antigo guardado em $guardado"
-    }
-
-    & git init -b main    | Out-Null
-    & git add --all
-    & git -c user.name='Venure' -c user.email='contato@venure.com.br' `
-          commit -m "$($p.Nome) - versao de 17/09/2026" | Out-Null
-    & git remote add origin "https://github.com/$conta/$($p.Nome).git"
-    & git push -u origin main --force
-
-    if ($LASTEXITCODE -ne 0) { Ruim 'o push falhou'; exit 1 }
-
-    $n = (& git ls-files | Measure-Object).Count
-    Bom "$n arquivos publicados em https://github.com/$conta/$($p.Nome)"
+  # 2. .gitignore com tudo que e sensivel
+  if (-not (Test-Path -LiteralPath ".gitignore")) { New-Item .gitignore -ItemType File | Out-Null }
+  $atual = Get-Content -LiteralPath .gitignore -ErrorAction SilentlyContinue
+  $faltam = $p.Garantir | Where-Object { $atual -notcontains $_ }
+  if ($faltam) {
+    Add-Content -LiteralPath .gitignore -Value ("`n# Garantido pelo PUBLICAR_NO_GITHUB.ps1 (29/09)")
+    Add-Content -LiteralPath .gitignore -Value $faltam
+    Write-Host ("  .gitignore: +{0} regra(s)" -f @($faltam).Count)
   }
-  finally { Pop-Location }
+
+  # 3. tira do envio o que ja estava sendo enviado por engano (fica no seu PC)
+  git add -A 2>$null
+  $rastreados = git ls-files
+  $sairam = $rastreados | Where-Object { $_ -match $nomesProibidos }
+  foreach ($s in $sairam) { git rm --cached --quiet -- "$s" 2>$null }
+  if ($sairam) { Write-Host ("  Tirei do GitHub (continua no PC): {0}" -f ($sairam -join ", ")) -ForegroundColor Yellow }
+
+  # 4..7. travas sobre TUDO que ficaria no repositorio
+  $problemas = @()
+  $problemas += git ls-files | Where-Object { $_ -match $nomesProibidos } | ForEach-Object { "nome proibido: $_" }
+  $problemas += git grep --cached -I -l -E $formatos 2>$null | ForEach-Object { "formato de chave dentro de: $_" }
+  foreach ($s in $segredos) {
+    $problemas += git grep --cached -I -l -F -e $s 2>$null | ForEach-Object { "SUA CHAVE REAL dentro de: $_" }
+  }
+  git diff --cached --name-only --diff-filter=ACMR | ForEach-Object {
+    $f = Get-Item -LiteralPath $_ -ErrorAction SilentlyContinue
+    if ($f -and $f.Length -gt 50MB) { $problemas += ("arquivo grande ({0:N0} MB): {1}" -f ($f.Length / 1MB), $_) }
+  }
+  $problemas = $problemas | Sort-Object -Unique
+
+  if ($problemas) {
+    Write-Host "  PAREI. Nada deste projeto foi enviado:" -ForegroundColor Red
+    $problemas | ForEach-Object { Write-Host "   - $_" -ForegroundColor Red }
+    git reset --quiet
+    $resultado += "$($p.Nome): BLOQUEADO"
+    continue
+  }
+  Write-Host "  [ok] Nenhuma chave, senha ou dado pessoal no envio." -ForegroundColor Green
+
+  $mudancas = git diff --cached --name-status
+  if (-not $mudancas) {
+    Write-Host "  Nada novo para enviar."
+    $resultado += "$($p.Nome): sem mudancas"; continue
+  }
+  Write-Host ("  Vai subir {0} mudanca(s):" -f @($mudancas).Count)
+  $mudancas | Select-Object -First 40 | ForEach-Object { Write-Host "    $_" }
+  if (@($mudancas).Count -gt 40) { Write-Host "    ... e mais $(@($mudancas).Count - 40)" }
+
+  if ($SoConferir) {
+    git reset --quiet
+    $resultado += "$($p.Nome): conferido (nada enviado)"; continue
+  }
+  $ok = Read-Host "  Enviar $($p.Nome) para o GitHub? (S/N)"
+  if ($ok -notmatch '^[sS]') {
+    git reset --quiet
+    $resultado += "$($p.Nome): cancelado por voce"; continue
+  }
+  git commit -q -m ("Atualizacao {0}" -f (Get-Date -Format "dd/MM/yyyy HH:mm"))
+  git push origin HEAD
+  if ($LASTEXITCODE -eq 0) { $resultado += "$($p.Nome): ENVIADO" }
+  else { $resultado += "$($p.Nome): commit feito, push FALHOU (veja a mensagem acima)" }
 }
 
-Titulo ' PRONTO'
-Write-Host '  Os dois repositorios sao novos, privados e sem historico.' -ForegroundColor Green
-Write-Host ''
-Write-Host '  Uma coisa que o script NAO faz por voce:' -ForegroundColor Yellow
-Write-Host '  revogar os tokens que ja estiveram nos repos antigos. Apagar o' -ForegroundColor DarkGray
-Write-Host '  repositorio tira a copia do GitHub, mas se alguem leu antes, o' -ForegroundColor DarkGray
-Write-Host '  token continua valendo. Revogue em:' -ForegroundColor DarkGray
-Write-Host '    huggingface.co/settings/tokens   e   modal.com/settings/tokens' -ForegroundColor DarkGray
-Write-Host ''
-if (-not $Ensaio) {
-  Write-Host '  As pastas .git-antigo-* podem ser apagadas quando voce confirmar' -ForegroundColor DarkGray
-  Write-Host '  que os repositorios novos estao certos.' -ForegroundColor DarkGray
-  Write-Host ''
-}
+Set-Location -LiteralPath $PSScriptRoot
+Write-Host "`n==================== RESUMO ====================" -ForegroundColor Cyan
+$resultado | ForEach-Object { Write-Host "  $_" }
+Write-Host ""
