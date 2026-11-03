@@ -1,0 +1,135 @@
+/* ===================================================================
+   LIQUID GLASS — Componentes Bigode 3.0
+   3 camadas profissionais: backdrop-filter + shadow + inset light
+   =================================================================== */
+
+/* ── COMPOSER (Input com Liquid Glass) ──────────────────────────── */
+bigode-composer {
+  --glass-bg: rgba(22, 26, 35, .7);
+  --glass-border: rgba(157, 192, 139, .2);
+  --glass-shadow-outer: 0 20px 40px rgba(0, 0, 0, .4);
+  --glass-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+/* ── MESSAGE (Mensagens com efeito de profundidade) ───────────────── */
+bigode-message {
+  --msg-user-bg: rgba(22, 26, 35, .6);
+  --msg-user-border: rgba(157, 192, 139, .15);
+  --msg-assistant-bg: rgba(17, 20, 27, .4);
+  --msg-shadow: 0 4px 12px rgba(0, 0, 0, .2),
+                inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+/* ── TOAST (Notificações com glass) ────────────────────────────── */
+bigode-toast {
+  --toast-bg: rgba(17, 20, 27, .85);
+  --toast-border: rgba(157, 192, 139, .2);
+  --toast-shadow: 0 25px 50px rgba(0, 0, 0, .5),
+                  inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+/* ── SKELETON (Loading com shimmer) ──────────────────────────────── */
+bigode-skeleton {
+  --skeleton-bg: rgba(29, 34, 44, .5);
+  --skeleton-shimmer: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, .05),
+    transparent
+  );
+}
+
+/* ── PROGRESS (Barra com glow) ───────────────────────────────────── */
+bigode-progress {
+  --progress-track: rgba(29, 34, 44, .8);
+  --progress-fill: linear-gradient(90deg, #9DC08B, #5EEAD4);
+  --progress-glow: 0 0 20px rgba(157, 192, 139, .4);
+}
+
+/* ── CHAT (Container com profundidade) ────────────────────────────── */
+bigode-chat {
+  --chat-bg: rgba(10, 12, 17, .5);
+  --chat-scroll: #1E2531;
+}
+
+/* ── THEME TOGGLE (Botão animado) ───────────────────────────────── */
+bigode-theme-toggle {
+  --toggle-bg: rgba(29, 34, 44, .6);
+  --toggle-border: rgba(157, 192, 139, .15);
+  --toggle-shadow: 0 2px 8px rgba(0, 0, 0, .2),
+                   inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+/* ── SIDEBAR (Drawer com glass) ────────────────────────────────── */
+bigode-sidebar {
+  --sidebar-bg: rgba(13, 16, 22, .85);
+  --sidebar-hover: rgba(22, 26, 35, .5);
+  --sidebar-active: rgba(29, 34, 44, .7);
+}
+
+/* ===================================================================
+   DARK MODE (prefers-color-scheme)
+   =================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  bigode-composer { --glass-bg: rgba(22, 26, 35, .75); }
+  bigode-message { --msg-assistant-bg: rgba(10, 12, 17, .6); }
+  bigode-toast { --toast-bg: rgba(13, 16, 22, .9); }
+  bigode-progress { --progress-fill: linear-gradient(90deg, #7FBC6E, #34D399); }
+}
+
+@media (prefers-color-scheme: light) {
+  bigode-composer { --glass-bg: rgba(240, 240, 245, .85); }
+  bigode-message { --msg-assistant-bg: rgba(248, 248, 252, .7); }
+  bigode-toast { --toast-bg: rgba(245, 245, 250, .9); }
+}
+
+/* ===================================================================
+   REDUÇÃO DE MOVIMENTO (Accessibility)
+   =================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  bigode-progress { animation: none !important; }
+  bigode-toast { animation: none !important; }
+  bigode-message { animation: none !important; }
+}
+
+/* ===================================================================
+   COMPONENTES — Suporte a backdrop-filter
+   =================================================================== */
+
+/* Fallback para navegadores sem suporte a backdrop-filter */
+@supports not (backdrop-filter: blur(1px)) {
+  bigode-composer { background: rgba(17, 20, 27, .9); }
+  bigode-message { background: rgba(22, 26, 35, .8); }
+  bigode-toast { background: rgba(13, 16, 22, .95); }
+}
+
+/* ===================================================================
+   TRANSIÇÕES SUAVES
+   =================================================================== */
+
+bigode-composer,
+bigode-message,
+bigode-toast,
+bigode-theme-toggle {
+  transition: all .2s ease;
+}
+
+bigode-message:hover {
+  --msg-shadow: 0 8px 20px rgba(0, 0, 0, .3),
+                inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+/* ===================================================================
+   RESPONSIVIDADE
+   =================================================================== */
+
+@media (max-width: 900px) {
+  bigode-sidebar { --sidebar-bg: rgba(13, 16, 22, .95); }
+}
+
+@media (max-width: 620px) {
+  bigode-composer { --glass-bg: rgba(22, 26, 35, .8); }
+  bigode-message { font-size: 14px; }
+}

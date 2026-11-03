@@ -1,0 +1,429 @@
+/* ===================================================================
+   VENURE COMPONENTES — Extensão para Bigode 3.0
+   Expande venure.css (179 linhas) com:
+   - Layout principal (sidebar + main)
+   - 10 Web Components
+   - Animações adicionais
+   - Responsividade
+
+   USAR JUNTO COM venure.css:
+   <link rel="stylesheet" href="/venure.css">
+   <link rel="stylesheet" href="/venure-componentes.css">
+   =================================================================== */
+
+/* ============================================================
+   VARIÁVEIS ADICIONAIS
+   ============================================================ */
+
+:root {
+  /* Cores extras (complementam venure.css) */
+  --ac2: #F2EAD8;           /* Ouro (logo) */
+  --ok: #34D399;            /* Sucesso */
+  --alerta: #FBBF24;        /* Aviso */
+  --erro: #F87171;          /* Erro */
+
+  /* Cores neutras (esperadas no index.html) */
+  --bg: #0A0C11;
+  --sup: #11141B;
+  --sup2: #161A23;
+  --linha: #1D222C;
+  --linha2: #2A313E;
+  --txt: #ECEFF4;
+  --txt2: #A3ACBB;
+  --mudo: #6E7889;
+  --fraco: #4B5464;
+
+  /* Typography */
+  --font-sans: -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+}
+
+/* ============================================================
+   RESET (já feito no venure.css, mas garantir)
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font: 15px/1.72 -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  position: relative;
+}
+
+/* Fundo animado (gradientes + malha) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58vw 48vw at 12% -8%, rgba(94, 234, 212, .10), transparent 62%),
+    radial-gradient(52vw 44vw at 92% 108%, rgba(157, 192, 139, .09), transparent 60%),
+    radial-gradient(40vw 40vw at 78% 12%, rgba(120, 140, 255, .05), transparent 65%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .4;
+  background-image:
+    linear-gradient(rgba(157, 192, 139, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(157, 192, 139, .045) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(115% 95% at 50% 0%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(115% 95% at 50% 0%, #000 20%, transparent 78%);
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+svg { display: block; flex-shrink: 0; }
+input, select, textarea { font: inherit; }
+a { color: var(--ac); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ============================================================
+   LAYOUT PRINCIPAL (Container + Sidebar + Tronco)
+   ============================================================ */
+
+.container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+/* ── SIDEBAR (LIQUID GLASS) ─────────────────────────────── */
+.lateral {
+  width: 252px;
+  flex-shrink: 0;
+  background: rgba(13, 16, 22, .85);
+  backdrop-filter: blur(12px) saturate(1.1);
+  border-right: 1px solid rgba(157, 192, 139, .14);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: width .2s ease;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, .05);
+}
+
+.lcab {
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(157, 192, 139, .14);
+  background: rgba(17, 20, 27, .6);
+}
+
+.lcab .marca {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selo {
+  width: 27px;
+  height: 27px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(140deg, var(--ac2), var(--ac));
+  box-shadow: 0 0 20px rgba(157, 192, 139, .2);
+  overflow: hidden;
+}
+
+.marca b {
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -.2px;
+  color: var(--txt);
+}
+
+.marca i {
+  font-size: 9px;
+  letter-spacing: 2.2px;
+  color: var(--fraco);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.lrolo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px 14px;
+  overscroll-behavior: contain;
+}
+
+.lrolo::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lrolo::-webkit-scrollbar-thumb {
+  background: #1E2531;
+  border-radius: 4px;
+  border: 2px solid #0D1016;
+}
+
+/* ── MAIN CONTENT ────────────────────────────────────────– */
+.tronco {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Header */
+/* ── HEADER (LIQUID GLASS) ──────────────────────────────── */
+header {
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(157, 192, 139, .14);
+  background: rgba(17, 20, 27, .6);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .3),
+              inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+.dir {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Chat area */
+.rolo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 34px 20px 6px;
+}
+
+.faixa {
+  max-width: 730px;
+  margin: 0 auto;
+}
+
+/* Input area (LIQUID GLASS) */
+.base {
+  flex-shrink: 0;
+  padding: 6px 20px 20px;
+  background: linear-gradient(transparent, rgba(10, 12, 17, .9) 40%);
+  backdrop-filter: blur(8px);
+}
+
+/* ============================================================
+   COMPONENTES WEB (Suporte)
+   ============================================================ */
+
+bigode-sidebar { display: contents; }
+bigode-chat { flex: 1; overflow: hidden; }
+bigode-composer { display: block; }
+bigode-progress { display: block; margin: 8px 0; }
+bigode-skeleton { display: block; }
+bigode-message { display: block; margin-bottom: 16px; }
+bigode-toast { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+bigode-theme-toggle { display: inline-flex; }
+
+/* ============================================================
+   RODAPÉ (CRÍTICO - MANTÉM IDENTIDADE VENURE)
+   ============================================================ */
+
+.rodape {
+  max-width: 730px;
+  margin: 10px auto 0;
+  text-align: center;
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  color: var(--fraco);
+  font-weight: 600;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.rodape span {
+  color: var(--fraco);
+  margin: 0 5px;
+}
+
+.rodape a {
+  color: var(--ac);
+  text-decoration: none;
+  transition: .15s;
+}
+
+.rodape a:hover {
+  color: var(--txt);
+}
+
+/* ============================================================
+   ANIMAÇÕES ADICIONAIS
+   ============================================================ */
+
+@keyframes sobe {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulsar {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, .35); }
+  70% { box-shadow: 0 0 0 7px rgba(248, 113, 113, 0); }
+}
+
+@keyframes oscilar {
+  0%, 100% { height: 5px; }
+  50% { height: 15px; }
+}
+
+@keyframes bater {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+.sobe { animation: sobe .3s ease both; }
+.girar { animation: girar 1s linear infinite; }
+
+/* ============================================================
+   RESPONSIVIDADE
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .lateral {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 62;
+    transform: translateX(-100%);
+    transition: transform .24s cubic-bezier(.32, .72, 0, 1);
+    box-shadow: 0 0 40px rgba(0, 0, 0, .5);
+  }
+
+  .lateral.on {
+    transform: translateX(0);
+  }
+
+  .laterveu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 9, 14, .55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s;
+    z-index: 61;
+  }
+
+  .laterveu.on {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  :root {
+    font-size: 14px;
+  }
+
+  header {
+    padding: 0 16px;
+  }
+
+  .rolo {
+    padding: 24px 16px 6px;
+  }
+
+  .base {
+    padding: 6px 16px 16px;
+  }
+
+  .rodape {
+    font-size: 10px;
+    margin-top: 7px;
+  }
+}
+
+/* ============================================================
+   ACESSIBILIDADE
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+
+  .vidro-toque {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+.hidden { display: none !important; }
+.invisible { visibility: hidden; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-center { align-items: center; justify-content: center; }
+.text-center { text-align: center; }
+.text-muted { color: var(--mudo); }
+.text-error { color: var(--erro); }
+.text-success { color: var(--ok); }
+.text-warning { color: var(--alerta); }
+
+/* ===================================================================
+   FIM DO ARQUIVO
+
+   FLUXO DE CARREGAMENTO:
+   1. venure.css (179 linhas) — Sistema base Venture
+   2. <style> no HTML — Variáveis de cor do Bigode
+   3. venure-componentes.css — Extensão com componentes
+
+   Assim o venure.css fica INTACTO e COMPARTILHADO com Pipi IA
+   =================================================================== */
