@@ -696,14 +696,9 @@ def coletar_fontes(consulta: str, urls: list[str] | None = None) -> list[dict[st
             "url": "https://www.gov.br/anvisa/pt-br/assuntos/noticias-anvisa/2022/anvisa-aprova-mais-tres-produtos-de-cannabis-para-uso-medicinal"
         })
 
-    if not any(f.get("fonte") == "SciELO/DOI" for f in fontes):
-        fontes.append({
-            "fonte": "SciELO/DOI",
-            "titulo": "Uso terapêutico dos canabinoides: evidências científicas e aspectos farmacológicos no Brasil",
-            "resumo": "Estudo clínico e farmacológico sobre a ação dos canabinoides nos receptores do sistema endocanabinoide e vias serotoninérgicas, discutindo evidências clínicas, segurança e farmacocinética.",
-            "ano": "2020",
-            "url": "https://doi.org/10.1590/1516-4446-2019-0631"
-        })
+    # (24/11) Aqui entrava SEMPRE uma "fonte SciELO" escrita a mao (titulo,
+    # resumo e DOI 10.1590/1516-4446-2019-0631). O DOI nao abre e nenhuma
+    # busca encontra esse artigo. Citacao que nao se verifica nao entra.
 
     vistos, saida = set(), []
     for f in fontes:
@@ -821,13 +816,15 @@ def _sources_prompt(fontes: list[dict[str, Any]]) -> str:
                       ensure_ascii=False, indent=2)
 
 
-def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
-                  urls_fontes: list[str] | None = None) -> dict[str, Any]:
+def _gerar_artigo_unico(tema: str, llm: Callable[[list[dict[str, str]]], str],
+                        urls_fontes: list[str] | None = None,
+                        obj_pronto: dict | None = None,
+                        fontes_prontas: list | None = None) -> dict[str, Any]:
     """Gera artigo educacional verificável. LLM callback recebe messages e devolve texto."""
     tema = str(tema or "").strip()
     if len(tema) < 8 or len(tema) > 300:
         raise ValueError("O tema deve ter entre 8 e 300 caracteres.")
-    fontes = coletar_fontes(tema, urls_fontes or [])
+    fontes = fontes_prontas if fontes_prontas else coletar_fontes(tema, urls_fontes or [])
     refs = "\n".join("[%d] %s — %s (%s). %s" % (i, f["fonte"], f["titulo"], f.get("ano") or "s.d.", f["url"])
                      for i, f in enumerate(fontes, 1))
     system = ("Você é redator científico de educação em saúde, responsável por um rascunho, nunca por diagnóstico ou prescrição. "
@@ -846,11 +843,16 @@ def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
         soul_variedade = None
     user = ("Tema: " + tema + "\n\nFONTES VERIFICADAS — não acrescente referências que não estejam aqui:\n" + _sources_prompt(fontes) +
             "\n\nREFERÊNCIAS CANÔNICAS (links exatos para a seção Fontes):\n" + refs)
-    text = llm([{"role": "system", "content": system}, {"role": "user", "content": user}])
-    obj = _json_from_text(text)
+    if obj_pronto:
+        obj = obj_pronto
+    else:
+        text = llm([{"role": "system", "content": system}, {"role": "user", "content": user}])
+        obj = _json_from_text(text)
     title = str(obj.get("title") or "").strip()[:180]
     slug = re.sub(r"[^a-z0-9-]+", "-", str(obj.get("slug") or title.lower()).encode("ascii", "ignore").decode()).strip("-")[:100]
     md = str(obj.get("article_markdown") or "").strip()
+    _cortes_unico = []
+    md = _conferir_secao(md, fontes, _cortes_unico)   # anti-delirio tambem aqui
     if not title or not slug or not md:
         raise ValueError("O modelo deixou campos obrigatórios vazios; nenhuma alteração WordPress foi feita.")
     # (24/11) Titulo parecido demais com um ja publicado: pede so um titulo
@@ -873,7 +875,7 @@ def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
             except Exception:
                 pass
     count = _word_count(md)
-    if count < 150 or count > 6000:
+    if count < 150 or count > 9000:
         raise ValueError("O artigo tem %d palavras; deve ter no mínimo 150 palavras. Tente de novo." % count)
     refs_used = {int(x) for x in re.findall(r"\[(\d{1,3})\]", md)}
     tags = [str(x).strip()[:60] for x in (obj.get("tags") or []) if str(x).strip()][:12]
@@ -896,7 +898,7 @@ def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
               "markdown": markdown_with_refs, "html": _markdown_html(md) + refs_html,
               "palavras": count, "fontes": fontes, "fontes_usadas": sorted(refs_used),
               "tags": tags, "slides": slides, "legenda_instagram": caption,
-              "resumo_whatsapp": whatsapp, "tema": tema}
+              "resumo_whatsapp": whatsapp, "tema": tema, "cortes": _cortes_unico}
 
     # ── DIAGRAMAÇÃO EDITORIAL ──────────────────────────────── (04/10/2026)
     #
@@ -925,6 +927,211 @@ def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
         except Exception:
             pass
     return artigo
+
+
+# ═══ O ESCRITOR EM ETAPAS (24/11/2026) ════════════════════════════════════
+#
+#   Antes: UMA chamada pedia artigo + titulo + 7 slides + legendas, tudo
+#   dentro de um JSON. Um modelo de 7B escapando aspas de 1.400 palavras
+#   cortava o texto, e as fontes (ate 20 resumos de 5.000 caracteres,
+#   ~28 mil tokens) nem cabiam na janela de 16 mil do motor.
+#
+#   Agora, como faria uma redacao:
+#     1. PAUTA    le todas as fontes em resumo curto e monta 6 a 7 secoes,
+#                 cada uma com as fontes que vai usar.
+#     2. SECOES   cada secao e escrita sozinha (350-550 palavras), lendo as
+#                 suas fontes COMPLETAS. Texto puro, sem JSON.
+#     3. REDES    titulo final, resumo, tags, 7 slides e legendas.
+#   Cada chamada e pequena: o modelo nao sofre e o texto sai mais robusto.
+
+LINHA_EDITORIAL = (
+    "Voce escreve para o Projeto Soul, hub brasileiro de educacao em cannabis medicinal. "
+    "LINHA EDITORIAL: a cannabis e uma ferramenta terapeutica legitima, ja usada no Brasil e no "
+    "mundo em condicoes como epilepsias refratarias, dor cronica, espasticidade, nausea da "
+    "quimioterapia e cuidados paliativos, e seu uso cresce a cada ano. O texto defende o acesso "
+    "informado, combate o estigma e trata pacientes e familias com respeito. "
+    "TOM: educativo, elegante e seguro, para um publico seleto e entusiasta, que gosta de ciencia "
+    "e de historia; frases bem construidas, paragrafos encadeados, nada de listas soltas nem "
+    "jargao de marketing. "
+    "RIGOR (e o rigor que protege a causa): use SOMENTE as fontes fornecidas e cite-as com [n]; "
+    "apresente a evidencia como ela e, forte onde e forte e preliminar onde e preliminar; nunca "
+    "invente estudo, numero ou autor; nao prescreva dose, nao prometa cura, nao oriente "
+    "interromper tratamento e lembre o acompanhamento medico quando couber. "
+    "TERMOS: no Brasil o nome legal e 'produto de Cannabis' (RDC 327/2019); use 'terapia "
+    "complementar' ou 'produto de Cannabis', nunca 'suplemento' nem 'droga'. "
+    "SEM DELIRIO: se a fonte nao diz, voce nao escreve. Nao cite numero, porcentagem, ano, "
+    "nome de estudo, de pesquisador ou de remedio que nao esteja escrito nas fontes. "
+    "Prefira um paragrafo a menos a um paragrafo inventado. "
+    "Escreva em portugues do Brasil.")
+
+SECOES_PADRAO = [
+    ("Introdução", "por que o tema importa hoje e para quem"),
+    ("Contexto", "historia, dados de uso e o lugar da cannabis nessa condicao"),
+    ("Como funciona", "mecanismo: sistema endocanabinoide, receptores, canabinoides envolvidos"),
+    ("O que dizem os estudos", "ensaios clinicos e revisoes, com forca de cada evidencia"),
+    ("Segurança e cuidados", "efeitos adversos, interacoes, quem precisa de mais atencao"),
+    ("Acesso no Brasil", "como chegar ao tratamento legalmente: prescricao, ANVISA, associacoes"),
+    ("Conclusão", "sintese, o que ainda falta saber e mensagem educativa final"),
+]
+
+
+def _ficha(i, f, completa=True):
+    resumo = str(f.get("resumo") or "")
+    if not completa:
+        resumo = resumo[:260]
+    return "[%d] %s — %s (%s). %s" % (i, f.get("fonte", ""), f.get("titulo", ""),
+                                      f.get("ano") or "s.d.", resumo)
+
+
+def _pauta(tema, fontes, llm, regra_titulo):
+    fichas = "\n".join(_ficha(i, f, completa=False) for i, f in enumerate(fontes, 1))
+    pedido = (
+        "Tema: " + tema + "\n\nFONTES DISPONIVEIS (resumo curto):\n" + fichas +
+        "\n\nMonte a pauta de um artigo longo e robusto (2.000 a 3.000 palavras) com 6 ou 7 "
+        "secoes. Distribua TODAS as fontes entre as secoes (cada fonte em pelo menos uma). "
+        + regra_titulo +
+        "\nResponda SOMENTE JSON: {\"title\": \"...\", \"secoes\": [{\"titulo\": \"...\", "
+        "\"objetivo\": \"o que a secao explica\", \"fontes\": [1, 2]}]}")
+    obj = _json_from_text(llm([{"role": "system", "content": LINHA_EDITORIAL},
+                               {"role": "user", "content": pedido}]))
+    secoes = []
+    for sec in obj.get("secoes") or []:
+        idx = [int(x) for x in (sec.get("fontes") or []) if str(x).isdigit()
+               and 1 <= int(x) <= len(fontes)]
+        titulo = str(sec.get("titulo") or "").strip()
+        if titulo:
+            secoes.append((titulo[:90], str(sec.get("objetivo") or "")[:300], idx))
+    if len(secoes) < 4:
+        # pauta falhou: secoes padrao, fontes distribuidas em rodizio
+        n = len(SECOES_PADRAO)
+        secoes = [(t, o, [k + 1 for k in range(len(fontes)) if k % n == j])
+                  for j, (t, o) in enumerate(SECOES_PADRAO)]
+    # fonte que ficou sem secao vai para "O que dizem os estudos" (ou a 4a)
+    usadas = {k for _, _, idx in secoes for k in idx}
+    sobra = [k for k in range(1, len(fontes) + 1) if k not in usadas]
+    if sobra:
+        alvo = min(3, len(secoes) - 1)
+        t, o, idx = secoes[alvo]
+        secoes[alvo] = (t, o, idx + sobra)
+    return str(obj.get("title") or "").strip(), secoes[:8]
+
+
+# ═══ CONFERENCIA ANTI-DELIRIO (24/11/2026) ═══════════════════════════════
+#
+#   Pedir "nao invente" nao basta para um modelo de 7B. Depois de cada secao
+#   o CODIGO confere o texto contra as fontes e corta o que nao bate:
+#     1. citacao [n] que nao existe na lista de fontes   -> removida
+#     2. frase com numero (%, ano, quantidade) que nao aparece em nenhuma
+#        fonte                                             -> frase removida
+#     3. frase com promessa de cura ou dose               -> frase removida
+#   Tudo o que foi cortado fica registrado em artigo["cortes"], para o Fred
+#   conferir na revisao.
+
+PROMESSAS = re.compile(
+    r"\b(cura(?:r|m|ria)?\b(?! paliativ)|curou|elimina(?:r)? (?:a|o|de vez)|"
+    r"100% (?:eficaz|seguro)|sem (?:nenhum )?efeitos? colatera|milagr|"
+    r"\d+(?:[.,]\d+)?\s?(?:mg|ml|gotas)\b)", re.I)
+NUMERO = re.compile(r"(?<![\[\w])(\d+(?:[.,]\d+)?)\s?(%|por cento)?")
+
+
+def _conferir_secao(texto, fontes, cortes):
+    base = " ".join(str(f.get("resumo") or "") + " " + str(f.get("titulo") or "") +
+                    " " + str(f.get("ano") or "") for f in fontes)
+    base_num = re.sub(r"(?<=\d)[.,](?=\d{3}\b)", "", base).replace(",", ".")
+    # 1) citacoes que nao existem
+    def _ref(m):
+        n = int(m.group(1))
+        return m.group(0) if 1 <= n <= len(fontes) else "\u27e6X\u27e7"
+    texto = re.sub(r"\[(\d{1,3})\]", _ref, texto)
+    saida = []
+    for paragrafo in texto.split("\n\n"):
+        if paragrafo.lstrip().startswith("#"):
+            saida.append(paragrafo); continue
+        frases = re.split(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9\"“(])", paragrafo)
+        mantidas = []
+        for fr in frases:
+            sem_refs = re.sub(r"\[\d{1,3}\]", "", fr)
+            if "\u27e6X\u27e7" in fr:
+                cortes.append("citou fonte que nao existe: " + fr.replace("\u27e6X\u27e7", "[?]").strip()[:160]); continue
+            if PROMESSAS.search(sem_refs):
+                cortes.append("promessa/dose: " + fr.strip()[:160]); continue
+            inventado = False
+            for m in NUMERO.finditer(sem_refs):
+                num = m.group(1).replace(",", ".")
+                if len(num.replace(".", "")) < 2 and not m.group(2):
+                    continue          # "3 fases", "2 tipos": numero pequeno de texto
+                if num not in base_num:
+                    inventado = True; break
+            if inventado:
+                cortes.append("numero sem fonte: " + fr.strip()[:160]); continue
+            mantidas.append(fr)
+        if mantidas:
+            saida.append(" ".join(mantidas))
+    return "\n\n".join(saida)
+
+
+def _escrever_secao(tema, titulo_artigo, secao, anteriores, fontes, llm):
+    titulo, objetivo, idx = secao
+    # cada secao le no maximo 5 fontes COMPLETAS (cabe com folga na janela)
+    fichas = "\n\n".join(_ficha(k, fontes[k - 1]) for k in idx[:5]) or "(sem fonte especifica)"
+    pedido = (
+        "Artigo: " + (titulo_artigo or tema) + "\nTema: " + tema +
+        "\nSecoes ja escritas: " + (", ".join(anteriores) or "nenhuma") +
+        "\n\nEscreva AGORA apenas a secao '" + titulo + "' (" + objetivo + "), com 350 a 550 "
+        "palavras, em 3 a 6 paragrafos encadeados. Pode usar subtitulos ### se ajudar. "
+        "Cite as fontes pelo numero entre colchetes, como [3]. Nao repita o que as secoes "
+        "anteriores ja disseram. Comece direto pelo conteudo, sem repetir o titulo da secao."
+        "\n\nFONTES DESTA SECAO (leia tudo):\n" + fichas)
+    texto = llm([{"role": "system", "content": LINHA_EDITORIAL},
+                 {"role": "user", "content": pedido}]) or ""
+    texto = re.sub(r"^```(?:markdown)?\s*|\s*```$", "", texto.strip())
+    texto = re.sub(r"^#{1,2}\s*" + re.escape(titulo) + r"\s*\n", "", texto, flags=re.I)
+    return "## " + titulo + "\n\n" + texto.strip()
+
+
+def _redes(tema, titulo, md, llm, regra_titulo):
+    pedido = (
+        "Artigo pronto (trecho):\n" + md[:7000] +
+        "\n\nCom base no artigo, responda SOMENTE JSON com: title (titulo final; " + regra_titulo +
+        "), slug, excerpt (2 frases), tags (6 a 10), slides (7 frases de no maximo 35 palavras "
+        "para carrossel), instagram_caption (ate 150 palavras), whatsapp_summary (ate 120 palavras). "
+        "Titulo sugerido na pauta: " + (titulo or tema))
+    return _json_from_text(llm([{"role": "system", "content": LINHA_EDITORIAL},
+                                {"role": "user", "content": pedido}]))
+
+
+def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
+                 urls_fontes: list[str] | None = None) -> dict[str, Any]:
+    """Artigo robusto em etapas. Se algo falhar no caminho, cai no gerador
+    antigo de uma chamada so, para nunca deixar o Fred sem artigo."""
+    tema = str(tema or "").strip()
+    if len(tema) < 8 or len(tema) > 300:
+        raise ValueError("O tema deve ter entre 8 e 300 caracteres.")
+    fontes = coletar_fontes(tema, urls_fontes or [])
+    try:
+        try:
+            import soul_variedade
+            regra = soul_variedade.regra_de_titulo()
+        except Exception:
+            regra = ""
+        titulo, secoes = _pauta(tema, fontes, llm, regra)
+        partes, feitas, cortes = [], [], []
+        for sec in secoes:
+            bruto = _escrever_secao(tema, titulo, sec, feitas, fontes, llm)
+            partes.append(_conferir_secao(bruto, fontes, cortes))
+            feitas.append(sec[0])
+        md = "\n\n".join(partes)
+        if _word_count(md) < 800:
+            raise ValueError("texto curto demais nas etapas")
+        meta = _redes(tema, titulo, md, llm, regra)
+        meta["title"] = str(meta.get("title") or titulo or tema).strip()
+        meta["article_markdown"] = md
+        artigo = _gerar_artigo_unico(tema, llm, urls_fontes, obj_pronto=meta,
+                                     fontes_prontas=fontes)
+        artigo["cortes"] = cortes          # o que a conferencia tirou, para revisao
+        return artigo
+    except Exception:
+        return _gerar_artigo_unico(tema, llm, urls_fontes, fontes_prontas=fontes)
 
 
 def _safe_outdir(cfg: dict[str, Any], slug: str) -> Path:
