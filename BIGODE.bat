@@ -165,6 +165,9 @@ goto ABRIR
 
 :MOTOR_OK
 echo Motor local verificado.
+rem CEREBRO HIBRIDO (24/11): com "hibrido_modal" ligado no config.json, a
+rem placa da Modal acorda em segundo plano enquanto o Bigode abre.
+start "Acordando a Modal" /min "%PY%" "%ROOT%LIGAR_MODAL.py" --acordar-hibrido --sem-pausa
 
 :ABRIR
 rem QUEM ABRE O NAVEGADOR E O cerebro.py, NAO ESTE ARQUIVO     (17/09)

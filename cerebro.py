@@ -159,6 +159,14 @@ def config():
     #   implementacoes da mesma coisa significam que os consertos de uma
     #   nunca chegam na outra -- e foi assim que a rota da Modal ficou sem
     #   ferramenta por tres dias sem ninguem notar.
+    # CEREBRO HIBRIDO (24/11): guardamos os DOIS enderecos. O chat pode
+    # mandar a conversa ao motor do computador e o trabalho pesado a placa
+    # da Modal, pedido a pedido (ver _MOTOR e "hibrido_modal").
+    dados["_url_local"] = str(dados.get("llm_url") or "")
+    dados["_chave_local"] = str(dados.get("llm_chave") or "")
+    _mh = dados.get("modal") or {}
+    dados["_url_modal"] = str(_mh.get("url") or "").strip() if _mh.get("ativo") else ""
+    dados["_chave_modal"] = str(_mh.get("token") or "").strip()
     if str(dados.get("modelo_provedor")).lower() == "modal":
         m = dados.get("modal") or {}
         url = str(m.get("url") or "").strip()
@@ -1014,6 +1022,33 @@ def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True):
 #   Agora o system e o historico ficam iguais entre as mensagens, e o que
 #   muda por pergunta vai junto da ULTIMA mensagem do Fred. O motor so le
 #   de novo a mensagem nova + esse contexto (centenas de tokens).
+# Qual motor atende o pedido desta thread: "" (o do config) ou "modal".
+_MOTOR = threading.local()
+
+
+def instrucoes_do_projeto(diretorio):
+    """FASE 1 (24/11): o BIGODE.md da pasta do projeto vira instrucao.
+
+    Igual ao CLAUDE.md do Claude Code e ao AGENTS.md do Codex: um arquivo
+    de texto na raiz do projeto dizendo o que ele e, onde fica cada coisa e
+    as regras. O Bigode le ao entrar no projeto. Aceita tambem CLAUDE.md e
+    AGENTS.md, para nao obrigar a escrever duas vezes. Teto de 6.000
+    caracteres: instrucao longa demais o modelo pequeno nao segue."""
+    if not diretorio:
+        return ""
+    for nome in ("BIGODE.md", "AGENTS.md", "CLAUDE.md"):
+        try:
+            arq = Path(diretorio) / nome
+            if arq.is_file():
+                texto = arq.read_text(encoding="utf-8", errors="ignore").strip()
+                if texto:
+                    return ("\n\n# INSTRUCOES DO PROJETO (%s)\n\n%s"
+                            % (nome, texto[:6000]))
+        except Exception:
+            continue
+    return ""
+
+
 def _anexar_contexto(mensagens, variavel):
     if not variavel or not mensagens:
         return mensagens
@@ -1645,6 +1680,10 @@ def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=Non
     por palpite e trocar sabendo o que se ganha.
     """
     cfg = config()
+    # CEREBRO HIBRIDO (24/11): o chat escolheu a placa para este pedido.
+    if getattr(_MOTOR, "qual", "") == "modal" and cfg.get("_url_modal"):
+        cfg["llm_url"] = cfg["_url_modal"]
+        cfg["llm_chave"] = cfg["_chave_modal"]
     if cfg.get("modelo_provedor") == "huggingface" and huggingface_cliente.configurado():
         # A ROTA DO HUGGING FACE AGORA USA FERRAMENTA              (17/09)
         #
@@ -2498,6 +2537,10 @@ NAO_PRECISA_CARIMBO = (
     "o que voce acha", "o que você acha", "na sua opiniao",
     "na sua opinião", "sugira um nome", "de ideias", "dê ideias",
     "brainstorm", "invente", "imagine",
+    # (24/11) pedido criativo: titulo, nome e ideia nao tem fonte a conferir
+    "ideias", "ideia de", "títulos", "titulos", "título para", "titulo para",
+    "sugira", "sugestões de", "sugestoes de", "nomes para", "slogan",
+    "legenda para", "chamada para",
 )
 
 
@@ -5435,6 +5478,7 @@ class Handler(BaseHTTPRequestHandler):
             system += ("\n\n# PROJETO ATIVO: %s\n\nDiretorio: %s\n\n%s"
                        % (projeto.get("nome", ""), projeto.get("diretorio", ""),
                           projeto.get("instrucoes", "")))
+            system += instrucoes_do_projeto(projeto.get("diretorio", ""))
 
         # O especialista entra no FIM do system, depois do projeto. Nunca no
         # comeco: mudar o inicio do prompt obriga o motor a reler tudo e joga
@@ -5607,6 +5651,14 @@ class Handler(BaseHTTPRequestHandler):
         modo = str(dados.get("modo") or "auto").strip().lower()
         if modo not in ferramentas.MODOS:
             modo = "auto"
+        # CEREBRO HIBRIDO (24/11): com "hibrido_modal" ligado, a conversa
+        # fica no motor do computador (de graca) e todo o resto vai para a
+        # placa da Modal (rapida, paga por uso).
+        _MOTOR.qual = ""
+        if (cfg.get("hibrido_modal") and cfg.get("_url_modal")
+                and str(cfg.get("modelo_provedor") or "local").lower() == "local"
+                and modo != "conversa"):
+            _MOTOR.qual = "modal"
         if modo != "auto":
             _do_modo = ferramentas.para_modo(modo)
             # esquema_openai({}) devolveria o catalogo inteiro: conversa = [].
@@ -5644,20 +5696,27 @@ class Handler(BaseHTTPRequestHandler):
                  and not precisa_agir(pergunta)
                  and not projeto)
 
-        if not curta:
-            evento({"tipo": "acao", "id": "prep", "estado": "ok",
-                    "titulo": "Entendi o que você precisa",
-                    "resumo": "Vou cuidar disso com você."})
+        # (24/11) Saiu o "Entendi o que voce precisa / Escolhendo o melhor
+        # jeito / Recursos prontos": eram frases fixas, iguais em todo
+        # pedido, que nao diziam nada. Agora a primeira linha diz o que e
+        # verdade: o modo, quantas ferramentas e qual motor.
+        _NOMES_MODO = {"auto": "Automático", "conversa": "Conversa",
+                       "arquivos": "Arquivos e código", "pesquisa": "Pesquisa",
+                       "navegador": "Navegador", "blender": "Blender 3D",
+                       "criacao": "Imagem e voz"}
+        evento({"tipo": "acao", "id": "prep", "estado": "ok",
+                "titulo": "Modo %s" % _NOMES_MODO.get(modo, modo),
+                "resumo": "%d ferramentas · %s" % (
+                    len(esquema),
+                    "placa da Modal" if (getattr(_MOTOR, "qual", "") == "modal"
+                                         or str(cfg.get("modelo_provedor")) == "modal")
+                    else "motor do computador")})
 
         if projeto:
             evento({"tipo": "acao", "id": "prep-proj", "estado": "ok",
                     "titulo": "Vou trabalhar no projeto %s" % projeto.get("nome", ""),
                     "resumo": "Estou usando os arquivos deste projeto como referência."})
 
-        if not curta:
-            evento({"tipo": "acao", "id": "prep-rota", "estado": "ok",
-                    "titulo": "Escolhendo o melhor jeito de ajudar",
-                    "resumo": "Vou usar o contexto mais útil para este pedido."})
 
         if fontes:
             evento({"tipo": "acao", "id": "prep-mem", "estado": "ok",
@@ -5666,11 +5725,6 @@ class Handler(BaseHTTPRequestHandler):
 
         ligadas = [c.get("nome") for c in conexoes_publicas().values()
                    if isinstance(c, dict) and c.get("ativa")]
-        if not curta:
-            evento({"tipo": "acao", "id": "prep-fer", "estado": "ok",
-                    "titulo": "Recursos prontos para ajudar",
-                    "resumo": "Arquivos, internet, navegador e projetos ficam "
-                              "disponíveis quando fizer sentido."})
 
         evento({"tipo": "acao", "id": "pensar", "estado": "rodando",
                 "titulo": "Pensando na melhor resposta",

@@ -1,0 +1,24 @@
+# BIGODE.md — instruções deste projeto para o Bigode IA
+
+Copie este arquivo para a pasta raiz de um projeto, renomeie para BIGODE.md
+e preencha. O Bigode lê ao trabalhar nesse projeto (menu + > Trabalhar em um projeto).
+Escreva curto: o Bigode segue melhor poucas regras claras.
+
+## O que é
+- Nome do projeto, para quem é, o que ele faz em uma frase.
+
+## Onde fica cada coisa
+- Pasta principal: ...
+- Arquivo da página inicial: ...
+- Onde ficam as imagens: ...
+
+## Regras
+- Nunca apagar arquivos sem me perguntar.
+- Sempre fazer backup antes de alterar (o Git já guarda).
+- O crédito "Desenvolvido por Venure — venure.com.br" aparece no rodapé.
+
+## Como publicar
+- Ex.: subir pelo cPanel da HostGator em /public_html/...
+
+## Cuidados
+- Ex.: não mexer no arquivo config.php (senhas).

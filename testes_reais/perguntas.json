@@ -1,0 +1,12 @@
+[
+  {"id": 1, "modo": "conversa", "pergunta": "oi", "max_s": 60},
+  {"id": 2, "modo": "conversa", "pergunta": "Me dê 3 ideias de título para um artigo sobre CBD e sono.", "max_s": 120, "max_passos": 1, "sem_texto": ["NÃO CONFERI"]},
+  {"id": 3, "modo": "conversa", "historico": ["Olá! Em uma frase, o que você sabe fazer?"], "pergunta": "Qual foi a minha primeira pergunta nesta conversa?", "max_s": 120, "max_passos": 1},
+  {"id": 4, "modo": "conversa", "pergunta": "Escreva uma mensagem curta de bom dia para clientes de uma agência.", "max_s": 120, "max_passos": 1},
+  {"id": 5, "modo": "arquivos", "pergunta": "Liste as pastas que existem em G:\\Meu Drive\\projetos", "max_s": 240, "ferramenta": "listar_pasta"},
+  {"id": 6, "modo": "pesquisa", "pergunta": "Qual a cotação do dólar hoje?", "max_s": 240, "ferramenta": "cotacao"},
+  {"id": 7, "modo": "pesquisa", "pergunta": "Quem é Axl Rose?", "max_s": 300, "ferramenta": "web_buscar"},
+  {"id": 8, "modo": "auto", "pergunta": "Me dê 3 ideias de título para um artigo do Projeto Soul sobre CBD e sono.", "max_s": 180, "max_passos": 2},
+  {"id": 9, "modo": "auto", "pergunta": "Que dia é hoje?", "max_s": 180, "ferramenta": "agora"},
+  {"id": 10, "modo": "arquivos", "pergunta": "Abra e resuma em 3 linhas o arquivo G:\\Meu Drive\\projetos\\Bigode 2\\Cerebro\\README.md", "max_s": 300, "ferramenta": "ler_arquivo"}
+]

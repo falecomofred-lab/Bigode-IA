@@ -185,14 +185,16 @@ def criar_senha_nova():
     return nova
 
 
-def salvar(token):
+def salvar(token, hibrido=False):
     cfg = ler_json(CONFIG)
     antigo = dict(cfg.get("modal") or {})
     perfis = dict(antigo.get("perfis") or {})
     perfis["conversa"] = {"url": CHAT, "health_url": SAUDE, "token": token}
     cfg["modal"] = {"ativo": True, "url": CHAT, "health_url": SAUDE,
                     "token": token, "perfil": "conversa", "perfis": perfis}
-    cfg["modelo_provedor"] = "modal"
+    # hibrido: conversa no computador (gratis), resto na placa (pago por uso)
+    cfg["modelo_provedor"] = "local" if hibrido else "modal"
+    cfg["hibrido_modal"] = bool(hibrido)
     gravar_config(cfg)
 
 
@@ -202,13 +204,35 @@ def desligar():
     m["ativo"] = False
     cfg["modal"] = m
     cfg["modelo_provedor"] = "local"
+    cfg["hibrido_modal"] = False
     gravar_config(cfg)
     print("\n  Pronto. O Bigode volta a usar o motor do seu computador.\n")
+
+
+def perguntar_jeito():
+    print()
+    print("  Como usar a placa da Modal?")
+    print("    1 = para TUDO (mais rapido; a Modal cobra por uso)")
+    print("    2 = HIBRIDO: modo Conversa no seu computador (gratis),")
+    print("        os outros modos na placa")
+    r = input("  Escolha 1 ou 2 [1]: ").strip()
+    return r == "2"
+
+
+def acordar_hibrido():
+    """Chamado pelo BIGODE.bat: so acorda a placa se o hibrido estiver ligado."""
+    cfg = ler_json(CONFIG)
+    m = cfg.get("modal") or {}
+    if cfg.get("hibrido_modal") and m.get("ativo") and m.get("health_url"):
+        acordar()
+    return 0
 
 
 def main():
     if "--desligar" in sys.argv:
         return desligar()
+    if "--acordar-hibrido" in sys.argv:
+        return acordar_hibrido()
     print()
     print("=" * 64)
     print("  LIGAR O MOTOR DA MODAL NO BIGODE")
@@ -224,7 +248,7 @@ def main():
         print("  Testando a senha guardada n.%d..." % i, end=" ", flush=True)
         if testar(s):
             print("funcionou.")
-            salvar(s)
+            salvar(s, perguntar_jeito())
             print("\n  PRONTO. O Bigode agora usa a Modal.")
             print("  Abra pelo bigodeepipi.bat normalmente.\n")
             return 0
@@ -237,7 +261,7 @@ def main():
         return 1
     acordar()
     if testar(nova):
-        salvar(nova)
+        salvar(nova, perguntar_jeito())
         print("\n  PRONTO. Senha nova criada e guardada. O Bigode agora usa a Modal.")
         print("  Abra pelo bigodeepipi.bat normalmente.\n")
         return 0
