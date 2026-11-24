@@ -123,18 +123,58 @@ body>*{position:relative;z-index:1}
 .lvazio{font-size:12px;color:var(--fraco);padding:6px 11px;line-height:1.5}
 .lpe{flex-shrink:0;border-top:1px solid var(--linha);padding:9px 10px}
 
-/* botao que abre a barra no celular; some no desktop */
-.lbotao{display:none}
-.laterveu{display:none}
-@media(max-width:900px){
-  .lateral{position:fixed;top:0;left:0;bottom:0;z-index:62;transform:translateX(-100%);
-           transition:transform .24s cubic-bezier(.32,.72,0,1);box-shadow:0 0 40px rgba(0,0,0,.5)}
-  .lateral.on{transform:none}
-  .lbotao{display:grid}
-  .laterveu{display:block;position:fixed;inset:0;background:rgba(6,9,14,.55);opacity:0;
-            pointer-events:none;transition:.22s;z-index:61}
-  .laterveu.on{opacity:1;pointer-events:auto}
-}
+/* ============ A LATERAL AGORA É SOB DEMANDA, SEMPRE ============
+   (20/11/2026)
+
+   Antes: no desktop a barra ficava FIXA ocupando 252px, e o botão de
+   abrir (.lbotao) só existia no celular. Ou seja: um quarto da largura
+   da tela era menu permanente, visível na milésima abertura, com onze
+   itens e um numerozinho em cada um.
+
+   O Fred pediu a tela "mais limpa possível" e o menu "sob demanda".
+   Então as regras que eram só de celular passaram a valer em qualquer
+   largura: a barra vira gaveta, o botão de abrir existe sempre, e o
+   .tronco (a conversa) recebe a tela inteira.
+
+   Nada foi removido do menu -- ele continua inteiro, a um clique. O que
+   mudou é que ele não cobra espaço enquanto não é chamado. */
+.lateral{position:fixed;top:0;left:0;bottom:0;z-index:62;
+         transform:translateX(-100%);
+         transition:transform .24s cubic-bezier(.32,.72,0,1);
+         box-shadow:0 0 40px rgba(0,0,0,.5)}
+.lateral.on{transform:none}
+.lbotao{display:grid}
+.laterveu{display:block;position:fixed;inset:0;background:rgba(6,9,14,.55);
+          opacity:0;pointer-events:none;transition:.22s;z-index:61}
+.laterveu.on{opacity:1;pointer-events:auto}
+
+/* ============ A CHAVE: CONEXÕES NO ALTO, AO LADO DO MENU ============
+   As conexões eram uma fileira de interruptores logo acima da caixa de
+   escrever -- Blender, GitHub, Navegador, Terminal, Dados Brasil, cada
+   um com uma luzinha. Seis a oito botões acesos no lugar onde o olho
+   cai depois de digitar.
+
+   Viraram uma chave única ao lado do botão de menu. O número de
+   conexões ligadas aparece como um ponto discreto, e os interruptores
+   continuam todos lá dentro -- é mudança de lugar, não de função. */
+.chave{position:relative}
+.chave .conta{position:absolute;top:5px;right:5px;min-width:7px;height:7px;
+  border-radius:99px;background:var(--ac);box-shadow:0 0 7px var(--ac);
+  opacity:0;transition:.2s}
+.chave.tem .conta{opacity:1}
+.chaveiro{position:fixed;z-index:70;top:52px;left:12px;width:min(300px,calc(100vw - 24px));
+  padding:8px;border-radius:14px;
+  background:linear-gradient(170deg,rgba(22,32,56,.97),rgba(9,15,32,.97));
+  border:1px solid var(--linha2);
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 18px 50px rgba(0,0,0,.55);
+  -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);
+  opacity:0;transform:translateY(-6px) scale(.98);pointer-events:none;
+  transition:opacity .16s ease,transform .16s cubic-bezier(.16,1,.3,1)}
+.chaveiro.on{opacity:1;transform:none;pointer-events:auto}
+.chaveiro .ctit{font-size:10.5px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--fraco);padding:6px 8px 8px}
+.chaveiro .tag{width:100%;justify-content:flex-start;margin:0 0 4px}
+.chaveiro .cpe{border-top:1px solid var(--linha);margin-top:6px;padding-top:6px}
 ::-webkit-scrollbar{width:10px}
 ::-webkit-scrollbar-thumb{background:#1E2531;border-radius:6px;border:3px solid var(--bg)}
 button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
@@ -255,7 +295,7 @@ header{height:56px;flex-shrink:0;display:flex;align-items:center;gap:11px;
 .passo .txt{min-width:0;flex:1}
 .passo .tit{color:var(--txt2);font-size:13px}
 .passo.ok .tit{color:var(--mudo)}
-.passo .sub{font:12px ui-monospace,Consolas,monospace;color:var(--fraco);margin-top:1px;
+.passo .sub{display:block;font:12px ui-monospace,Consolas,monospace;color:var(--fraco);margin-top:1px;
             overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .passo .tempo{color:var(--fraco);font-size:11px;flex-shrink:0;margin-top:3px;
               font-variant-numeric:tabular-nums}
@@ -808,19 +848,6 @@ header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
 .bt:hover{color:var(--txt);border-color:#3A4658;background:var(--sup2)}
 .bt.forte{background:var(--ac);color:#0A0C11;border:none;font-weight:600}
 .bt.larga{width:100%}
-/* Google Drive do PC -> Blender (29/09) */
-.drive-nav{margin-top:10px;border:1px solid var(--linha);border-radius:12px;background:var(--sup);max-height:62vh;overflow:auto;-webkit-overflow-scrolling:touch}
-.drive-top{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--linha);position:sticky;top:0;background:var(--sup);z-index:1;flex-wrap:wrap}
-.drive-top select{background:var(--sup2);color:var(--txt);border:1px solid var(--linha);border-radius:8px;padding:8px;max-width:100%}
-.drive-caminho{font-size:12px;color:var(--txt2);flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drive-item{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:10px 12px;border:0;border-bottom:1px solid var(--linha);background:none;color:var(--txt);text-align:left;font:inherit;font-size:14px;cursor:pointer}
-.drive-item:hover,.drive-item:active{background:var(--sup2)}
-.drive-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drive-item small{color:var(--mudo);white-space:nowrap}
-.drive-item svg{flex:none;color:var(--txt2)}
-.drive-arq svg{color:var(--ac)}
-.drive-et{padding:10px 12px 6px;font-size:11px;letter-spacing:.08em;color:var(--mudo)}
-.drive-vazio{padding:14px 12px;font-size:13px;color:var(--txt2)}
 .fila{display:flex;gap:8px}
 .linha-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:11px;
             border:1px solid var(--linha);background:var(--sup2);margin-bottom:7px;
@@ -864,11 +891,6 @@ header::after{content:'';position:absolute;left:0;right:0;top:56px;height:1px;
         border-radius:20px;flex-shrink:0;font-family:inherit}
 .modtag.uso{background:rgba(52,211,153,.14);color:var(--ok)}
 .modtag.usar{background:var(--ac);color:#0A0C11}
-.aviso-motor{margin:0 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;
-  border:1px solid var(--borda);background:var(--cartao,transparent)}
-.aviso-motor.erro{border-color:rgba(248,113,113,.45)}
-.aviso-motor .aviso-linha{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.aviso-motor button{min-height:32px}
 .modtag.erro{background:rgba(248,113,113,.14);color:var(--erro)}
 /* Os dois destinos, um ao lado do outro. A PLACA e a escolha certa quase
    sempre, entao ela vem primeira e cheia; AQUI fica com contorno, como a
@@ -1034,7 +1056,7 @@ button,.bt,.bico,.red,.mic,.env,.lbotao,.lnovo,.lit,.lrec,.mi,.tag.interruptor{
   .ctx::-webkit-scrollbar{display:none}
   .tag{height:32px;min-height:32px;white-space:nowrap;flex-shrink:0;padding:0 11px}
   .compor{width:100%;min-height:54px;align-items:flex-end;gap:5px;padding:6px;border-radius:20px}
-  .compor textarea{min-height:40px;height:40px;max-height:150px;padding:7px 4px;font-size:16px;line-height:1.45}
+  .compor textarea{min-height:44px;height:44px;max-height:150px;padding:7px 4px;font-size:16px;line-height:1.45}
   .compor .red,.compor .mic,.compor .env{width:42px;height:42px;min-width:42px;min-height:42px;border-radius:13px}
   .ajuda-rapida{gap:6px;margin-bottom:7px;white-space:nowrap;overflow:hidden}
   .ajuda-rapida>span:not(.estado-rapido){overflow:hidden;text-overflow:ellipsis}
@@ -1147,6 +1169,397 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
     transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* VENURE LIQUID GLASS */
+.ajuda-rapida {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  max-width: 760px !important;
+  margin: 0 auto 10px !important;
+  padding: 6px 16px !important;
+  background: var(--vidro) !important;
+  backdrop-filter: var(--desfoque) !important;
+  -webkit-backdrop-filter: var(--desfoque) !important;
+  border: 1px solid var(--vidro-borda) !important;
+  border-radius: 20px !important;
+  box-shadow: inset 0 1px 0 var(--vidro-luz), 0 4px 16px rgba(0,0,0,0.35) !important;
+  font-size: 13px !important;
+}
+.ajuda-rapida .status-led {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: var(--ok) !important;
+  box-shadow: 0 0 10px var(--ok), 0 0 2px #fff !important;
+  flex-shrink: 0 !important;
+  transition: all 0.3s ease !important;
+}
+.ajuda-rapida.carregando .status-led {
+  background: var(--alerta) !important;
+  box-shadow: 0 0 10px var(--alerta) !important;
+  animation: venure-respira 1.8s infinite ease-in-out !important;
+}
+.ajuda-rapida.desligado .status-led {
+  background: var(--mudo) !important;
+  box-shadow: none !important;
+}
+.ajuda-rapida strong {
+  color: var(--txt) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+}
+.ajuda-rapida .estado-rapido {
+  margin-left: auto !important;
+  padding: 2px 10px !important;
+  border-radius: 12px !important;
+  background: rgba(157, 192, 139, 0.12) !important;
+  border: 1px solid rgba(157, 192, 139, 0.25) !important;
+  color: var(--neon) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+.ctx {
+  max-width: 760px !important;
+  margin: 0 auto 12px !important;
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+}
+.tag.interruptor {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  height: 28px !important;
+  padding: 0 12px !important;
+  background: rgba(22, 26, 35, 0.65) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--txt) !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 2px 6px rgba(0,0,0,0.25) !important;
+}
+.tag.interruptor:hover {
+  background: rgba(29, 34, 44, 0.85) !important;
+  border-color: rgba(157, 192, 139, 0.35) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+.tag.interruptor .luz {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: var(--neon) !important;
+  box-shadow: 0 0 6px var(--neon) !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+.tag.interruptor.off {
+  color: var(--mudo) !important;
+  background: rgba(17, 20, 27, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: none !important;
+}
+.tag.interruptor.off .luz {
+  background: var(--fraco) !important;
+  box-shadow: none !important;
+}
+.tag.interruptor svg {
+  width: 14px !important;
+  height: 14px !important;
+  opacity: 0.85 !important;
+  display: block !important;
+}
+.seletor-ambiente-ia {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.bt-aba-ia {
+  flex: 1;
+  padding: 10px 14px;
+  background: var(--sup);
+  border: 1px solid var(--linha);
+  border-radius: 12px;
+  color: var(--txt2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.bt-aba-ia:hover {
+  background: var(--sup2);
+  color: var(--txt);
+  border-color: var(--linha2);
+}
+.bt-aba-ia.ativo {
+  background: rgba(157, 192, 139, 0.16) !important;
+  border-color: var(--ac) !important;
+  color: var(--txt) !important;
+  box-shadow: 0 0 14px rgba(157, 192, 139, 0.18) !important;
+}
+.card-ia-moderno {
+  background: var(--vidro);
+  backdrop-filter: var(--desfoque);
+  -webkit-backdrop-filter: var(--desfoque);
+  border: 1px solid var(--vidro-borda);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: inset 0 1px 0 var(--vidro-luz), 0 4px 14px rgba(0,0,0,0.25);
+}
+.card-ia-moderno:hover {
+  border-color: rgba(157, 192, 139, 0.35);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  transform: translateY(-1px);
+}
+.card-ia-moderno.em-uso {
+  border-color: var(--neon);
+  box-shadow: 0 0 18px rgba(94, 234, 212, 0.18);
+}
+.card-ia-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.card-ia-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(94, 234, 212, 0.12);
+  color: var(--neon);
+  letter-spacing: 0.04em;
+}
+.card-ia-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--txt);
+  margin-bottom: 5px;
+}
+.card-ia-desc {
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+.card-ia-quando {
+  font-size: 12px;
+  color: var(--mudo);
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.04);
+  padding: 7px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.card-ia-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.card-ia-subinfo {
+  font-size: 11px;
+  color: var(--fraco);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROJETO SOUL — DESIGN DIDÁTICO E INTERATIVO (VENURE LIQUID GLASS)
+   ═══════════════════════════════════════════════════════════════════ */
+.soul-container { display: flex; flex-direction: column; gap: 16px; }
+.soul-header {
+  background: var(--vidro);
+  backdrop-filter: var(--desfoque);
+  -webkit-backdrop-filter: var(--desfoque);
+  border: 1px solid var(--vidro-borda);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: inset 0 1px 0 var(--vidro-luz), 0 4px 16px rgba(0,0,0,0.3);
+}
+.soul-header h2 { font-size: 19px; font-weight: 600; color: var(--txt); display: flex; align-items: center; gap: 10px; }
+.soul-header p { font-size: 13px; color: var(--txt2); margin-top: 4px; line-height: 1.5; }
+.soul-status-badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+  border-radius: 12px; font-size: 12px; font-weight: 600;
+  background: rgba(157, 192, 139, 0.12); border: 1px solid rgba(157, 192, 139, 0.25);
+  color: var(--neon); margin-top: 8px;
+}
+.soul-nav-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--linha); padding-bottom: 8px; margin-top: 4px; }
+.soul-tab {
+  padding: 8px 16px; border-radius: 10px; background: transparent; border: 1px solid transparent;
+  color: var(--txt2); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+}
+.soul-tab:hover { background: var(--vidro2); color: var(--txt); }
+.soul-tab.on {
+  background: var(--vidro); border: 1px solid var(--vidro-borda); color: var(--ac);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.soul-stepper {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--vidro); backdrop-filter: var(--desfoque); -webkit-backdrop-filter: var(--desfoque);
+  border: 1px solid var(--vidro-borda); border-radius: 14px; padding: 12px 16px; overflow-x: auto; gap: 6px;
+}
+.soul-step { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--mudo); white-space: nowrap; transition: all 0.25s ease; }
+.soul-step .step-num {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--linha2);
+  color: var(--txt2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+}
+.soul-step.on { color: var(--txt); font-weight: 600; }
+.soul-step.on .step-num { background: var(--ac); color: #0A0C11; box-shadow: 0 0 10px rgba(157,192,139,0.5); }
+.soul-step.concluido { color: var(--ok); }
+.soul-step.concluido .step-num { background: var(--ok); color: #0A0C11; }
+.soul-step-arrow { color: var(--linha2); font-size: 11px; }
+
+.soul-catalogo { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }
+.soul-card-tema {
+  background: var(--sup2); border: 1px solid var(--linha2); border-radius: 12px; padding: 12px 14px;
+  cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; justify-content: space-between;
+}
+.soul-card-tema:hover { background: rgba(157, 192, 139, 0.08); border-color: var(--ac); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.soul-card-tema.selecionado { background: rgba(157, 192, 139, 0.15); border-color: var(--ac); box-shadow: 0 0 12px rgba(157,192,139,0.25); }
+.soul-card-tema .tema-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--neon); margin-bottom: 6px; }
+.soul-card-tema .tema-titulo { font-size: 13px; font-weight: 500; color: var(--txt); line-height: 1.4; }
+
+.soul-dialogo-box {
+  background: linear-gradient(135deg, rgba(22, 26, 35, 0.85), rgba(13, 16, 22, 0.95));
+  border: 1px solid var(--ac); border-radius: 16px; padding: 16px 20px; margin-top: 16px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+  animation: soulFadeIn 0.3s ease;
+}
+@keyframes soulFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.soul-dialogo-cab { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.soul-dialogo-avatar { font-size: 15px; font-weight: 700; color: var(--ac); display: flex; align-items: center; gap: 8px; }
+.soul-dialogo-texto { font-size: 14px; color: var(--txt); line-height: 1.6; }
+.soul-dialogo-acoes { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+.soul-fontes-lista { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 4px; margin-top: 10px; }
+.soul-fonte-item { background: var(--sup2); border: 1px solid var(--linha); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.soul-fonte-meta { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.soul-fonte-badge { padding: 2px 7px; border-radius: 8px; font-weight: 700; font-size: 10px; }
+.soul-fonte-badge.pubmed { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.soul-fonte-badge.anvisa { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.soul-fonte-badge.scielo { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+/* AS FONTES NOVAS PRECISAVAM DE COR                        (04/10/2026)
+   Com os 4 pilares, o coletor passou a devolver OpenAlex, STJ e
+   Presidencia da Republica. Sem regra de CSS o badge saia sem fundo e
+   sem cor -- parecia texto solto, nao selo de origem. Contraste de cada
+   par conferido acima de 4.5:1 sobre o fundo escuro do painel. */
+.soul-fonte-badge.openalex { background: rgba(167, 139, 250, 0.22); color: #c4b5fd; }
+.soul-fonte-badge.stj      { background: rgba(251, 191, 36, 0.18);  color: #fcd34d; }
+.soul-fonte-badge.lei      { background: rgba(148, 163, 184, 0.22); color: #cbd5e1; }
+/* O card de tema virou <button>: zera a aparencia nativa e mantem o
+   alinhamento do texto a esquerda, que o botao centraliza por padrao. */
+button.soul-card-tema { width:100%; text-align:left; font-family:inherit;
+  cursor:pointer; appearance:none; }
+button.soul-card-tema:focus-visible { outline:2px solid var(--ac);
+  outline-offset:2px; }
+.soul-fonte-titulo { font-weight: 500; color: var(--txt); }
+.soul-fonte-resumo { font-size: 12px; color: var(--txt2); line-height: 1.4; }
+.soul-fonte-link { font-size: 11px; color: var(--neon); text-decoration: none; align-self: flex-start; }
+.soul-fonte-link:hover { text-decoration: underline; }
+
+.soul-artigo-view {
+  background: var(--sup); border: 1px solid var(--linha2); border-radius: 14px; padding: 18px 22px;
+  max-height: 400px; overflow-y: auto; margin-top: 12px; line-height: 1.7; color: var(--txt);
+}
+.soul-artigo-view h1, .soul-artigo-view h2, .soul-artigo-view h3 { color: var(--ac2); margin: 14px 0 6px; }
+.soul-artigo-view p { margin-bottom: 10px; color: var(--txt2); }
+
+.soul-capa-box { background: var(--sup); border: 1px solid var(--linha2); border-radius: 14px; padding: 14px; text-align: center; margin-top: 12px; }
+.soul-capa-img { max-width: 100%; max-height: 380px; border-radius: 10px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+
+.soul-sucesso { background: rgba(52, 211, 153, 0.1); border: 1px solid var(--ok); border-radius: 14px; padding: 18px 20px; margin-top: 14px; text-align: center; }
+.soul-sucesso h3 { color: var(--ok); font-size: 17px; margin-bottom: 6px; }
+.soul-sucesso p { color: var(--txt); font-size: 13px; line-height: 1.5; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIQUID GLASS 2.0                                              (02/11)
+   O vidro ja existia (venure.css + bloco "vidro" acima), mas o fundo
+   tinha sido apagado para 45% -- e vidro sobre fundo liso nao aparece:
+   fica parecendo cinza chapado. Aqui:
+     1. o fundo volta a ter cor (luzes suaves, estaticas)
+     2. cabecalho, barra lateral e caixa de escrever ganham o brilho que
+        escorrega (gradiente por cima do vidro), a quina iluminada e a
+        espessura embaixo -- as tres camadas do "liquido"
+     3. botoes da lateral viram pilulas de vidro ao passar o mouse
+   Continua a regra da casa: NADA de vidro atras das mensagens.
+   Para voltar ao visual anterior, apague este bloco inteiro.
+   ══════════════════════════════════════════════════════════════════════ */
+body::before{opacity:1;
+  background:
+    radial-gradient(60vw 50vw at 8% -10%,  rgba(94,234,212,.22), transparent 62%),
+    radial-gradient(55vw 46vw at 96% 110%, rgba(157,192,139,.20), transparent 60%),
+    radial-gradient(42vw 42vw at 80% 8%,   rgba(120,140,255,.13), transparent 65%),
+    radial-gradient(36vw 30vw at 30% 95%,  rgba(224,132,155,.06), transparent 70%)}
+header{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0) 70%),
+    rgba(18,22,30,.52);
+  -webkit-backdrop-filter:blur(22px) saturate(1.5); backdrop-filter:blur(22px) saturate(1.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),
+             inset 0 -1px 0 rgba(0,0,0,.35),
+             0 8px 24px -14px rgba(0,0,0,.6)}
+.lateral{
+  background:
+    linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.015) 30%,transparent 55%),
+    rgba(12,15,21,.50);
+  -webkit-backdrop-filter:blur(26px) saturate(1.45); backdrop-filter:blur(26px) saturate(1.45);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.05),
+             inset 0 1px 0 rgba(255,255,255,.08),
+             12px 0 32px -18px rgba(0,0,0,.55)}
+.lnovo{
+  background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 45%),
+             rgba(157,192,139,.07)!important;
+  border:1px solid rgba(157,192,139,.22)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),
+             inset 0 -8px 16px -12px rgba(0,0,0,.6),
+             0 6px 18px -10px rgba(0,0,0,.6);
+  transition:transform .18s ease, box-shadow .18s ease}
+.lnovo:hover{transform:translateY(-1px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),
+             0 0 0 3px rgba(157,192,139,.10),
+             0 10px 24px -10px rgba(0,0,0,.65)}
+.lit{border-radius:10px;transition:background .15s ease, box-shadow .15s ease}
+.lit:hover{background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.015));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), inset 0 1px 0 rgba(255,255,255,.08)}
+.compor{
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.02) 30%,transparent 55%),
+    rgba(20,24,33,.55)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.5); backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.10)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),
+             inset 0 -14px 26px -18px rgba(0,0,0,.6),
+             0 14px 40px -12px rgba(0,0,0,.6)}
+.ajuda-rapida{
+  background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.01) 50%),
+             rgba(20,24,33,.45);
+  -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+@media (prefers-reduced-motion:reduce){
+  header,.lateral,.compor,.ajuda-rapida{
+    -webkit-backdrop-filter:none!important; backdrop-filter:none!important}
+}
 </style>
 <!-- A captacao de voz, compartilhada com a Pipi. Vem ANTES do script da
      pagina para o `window.Voz` ja existir quando ele rodar. -->
@@ -1201,6 +1614,17 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
   <button class="bico lbotao" onclick="abrirLateral()" title="Abrir o menu" aria-label="Abrir o menu">
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <!-- A CHAVE (20/11/2026): as conexoes sairam de cima da caixa de
+       escrever e vieram para ca, ao lado do menu. Uma chave, um ponto
+       aceso quando ha alguma ligada. -->
+  <button class="bico chave" id="btChave" onclick="abrirChaveiro(event)"
+          title="Conexões — o que o Bigode pode usar"
+          aria-label="Conexões" aria-expanded="false" aria-haspopup="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 19 4"/>
+      <path d="m16 5 3 3"/><path d="m19 8 2-2"/></svg>
+    <span class="conta" id="chaveConta"></span></button>
   <div class="tituloTopo" id="tituloTopo">Nova conversa</div>
   <!-- O "+" que existia aqui saiu: "Nova conversa" já está na barra lateral,
        em letras, e o "+" do compositor faz outra coisa (anexar, projeto,
@@ -1228,8 +1652,21 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
   <!-- "Você pode escrever normalmente." saiu daqui: dizer ao usuario que
        ele pode usar a caixa de escrever, ao lado da caixa de escrever, so
        levanta a duvida de que talvez nao pudesse. -->
-  <div class="ajuda-rapida" id="ajudaRapida"><span>●</span><strong id="ajudaEstado">Preparando o Bigode…</strong><span class="estado-rapido" id="estadoRapido">verificando</span></div>
-  <div class="ctx" id="ctx"></div>
+  <div class="ajuda-rapida pronto" id="ajudaRapida"><span class="status-led"></span><strong id="ajudaEstado">Preparando o Bigode…</strong><span class="estado-rapido" id="estadoRapido">verificando</span></div>
+  <!-- A FILEIRA DE INTERRUPTORES SAIU DAQUI               (20/11/2026)
+       O elemento #ctx nao foi apagado -- `pintarContexto()` continua
+       escrevendo nele. Ele foi MOVIDO para dentro do chaveiro, no alto
+       da tela, ao lado do botao de menu. Apagar o elemento teria
+       quebrado aquela funcao sem nenhum aviso na tela. -->
+  <!-- ANCORA DA VOZ                                        (20/11/2026)
+       A faixa "ouvindo…" do microfone se insere como IRMA de um elemento
+       de referencia. Ela usava o #ctx para isso -- e com o #ctx mudando
+       para dentro do chaveiro (fechado, opacity:0, pointer-events:none),
+       a faixa passaria a nascer DENTRO de um popover invisivel: o
+       microfone funcionaria e ninguem veria o aviso de que esta gravando.
+       Esta linha vazia e a nova ancora, no lugar exato de onde o #ctx
+       saiu. -->
+  <div id="ancoraVoz"></div>
   <!-- ATALHOS DO BLENDER (28/09): so aparecem com a conexao Blender ligada.
        Cada botao escreve o pedido na caixa; nada e enviado sem voce. -->
   <div class="ctx blender-bar" id="blenderBar" style="display:none"></div>
@@ -1237,7 +1674,7 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
     <button class="red" id="btMais" onclick="abrirMenu(event)" title="Anexar arquivo, projeto ou manual" aria-label="Anexar arquivo, projeto ou manual">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-    <textarea id="entrada" rows="1" placeholder="Escreva sua mensagem…" aria-label="Sua mensagem"></textarea>
+    <textarea id="entrada" rows="1" placeholder="Mensagem…" aria-label="Sua mensagem"></textarea>
     <button class="mic" id="btMic" onclick="alternarVoz()" title="Falar em vez de digitar (Ctrl+Espaço)" aria-label="Falar em vez de digitar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1271,6 +1708,20 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
 </div>
 
 </div><!-- /tronco -->
+
+<!-- O CHAVEIRO: onde os interruptores de conexao moram agora.
+     O #ctx vive aqui dentro; quem o preenche e o `pintarContexto()`,
+     inalterado. -->
+<div class="chaveiro" id="chaveiro" role="dialog" aria-modal="false"
+     aria-label="Conexões do Bigode">
+  <div class="ctit">O que o Bigode pode usar</div>
+  <div class="ctx" id="ctx"></div>
+  <div class="cpe">
+    <button class="lit" onclick="fecharChaveiro();irPara('conexoes')">
+      <span style="width:16px"></span>
+      <span style="font-size:13px;color:var(--fraco)">Abrir o painel de conexões</span></button>
+  </div>
+</div>
 
 <div class="menu" id="menu"></div>
 <input type="file" id="arquivoInput" style="display:none">
@@ -1317,7 +1768,261 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
       </div>
     </div>
 
-    <div class="painel" id="pn-projetos">
+    
+    <div class="painel" id="pn-soul">
+      <div class="soul-container">
+        
+        <div class="soul-header">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Projeto Soul — Hub Científico & WordPress
+          </h2>
+          <p>
+            Pesquisa clínica verificável no PubMed (NCBI), marco regulatório oficial da ANVISA e SciELO.
+            Redação institucional de alto nível com imagens geradas pela Pipi IA e aprovação humana passo a passo.
+          </p>
+          <div class="soul-status-badge" id="soulConnBadge">
+            <span class="status-led" id="soulLed" style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span>
+            <span id="soulStatusTexto">Verificando WordPress…</span>
+          </div>
+        </div>
+
+        <div class="soul-nav-tabs">
+          <button class="soul-tab on" id="tabBt-passos" onclick="soulMudarAba('passos')">✨ Criar Artigo (Passo a Passo)</button>
+          <button class="soul-tab" id="tabBt-rascunhos" onclick="soulMudarAba('rascunhos')">📋 Rascunhos no WordPress</button>
+          <button class="soul-tab" id="tabBt-conexao" onclick="soulMudarAba('conexao')">⚙️ Conexão & Categorias</button>
+        </div>
+
+        <div id="soulSecaoPassos">
+          
+          <div class="soul-stepper">
+            <div class="soul-step on" id="sStep-1"><span class="step-num">1</span> Tema</div>
+            <div class="soul-step-arrow">➔</div>
+            <div class="soul-step" id="sStep-2"><span class="step-num">2</span> Fontes Clínicas</div>
+            <div class="soul-step-arrow">➔</div>
+            <div class="soul-step" id="sStep-3"><span class="step-num">3</span> Redação IA</div>
+            <div class="soul-step-arrow">➔</div>
+            <div class="soul-step" id="sStep-4"><span class="step-num">4</span> Capa Pipi IA</div>
+            <div class="soul-step-arrow">➔</div>
+            <div class="soul-step" id="sStep-5"><span class="step-num">5</span> De Acordo Final</div>
+          </div>
+
+          <div id="soulFase1" class="conn" style="margin-top:14px">
+            <div class="et" style="margin-top:0">1. DEFINA O TEMA DO ARTIGO CIENTÍFICO</div>
+            <div class="expl">Escolha uma das sugestões baseadas nas diretrizes do Projeto Soul ou digite sua pesquisa:</div>
+            
+            <!-- OS CARDS SAEM DO SOUL_CATALOGO, NAO DO HTML    (04/10/2026)
+                 Antes o catalogo estava escrito DUAS vezes a mao: quatro
+                 cards aqui e um array SOUL_CATALOGO no JavaScript. Quando
+                 o Python passou a ter 8 temas (4 pilares editoriais), esta
+                 lista continuou com 4 -- e ninguem percebeu, porque a tela
+                 nao da erro: ela so mostra menos do que existe.
+                 Duas copias a mao da mesma lista sempre acabam diferentes.
+                 Agora ha uma copia no front, e os cards saem dela.
+                 role="radiogroup" porque e exatamente isso: escolha unica
+                 entre opcoes. Antes era <div onclick>, invisivel para o
+                 teclado e para o leitor de tela (WCAG 2.1.1 e 4.1.2). -->
+            <div class="soul-catalogo" id="soulCatalogo" role="radiogroup"
+                 aria-label="Temas do catalogo do Projeto Soul"></div>
+
+            <div class="campo" style="margin-top:12px">
+              <label for="soulTema">Tema selecionado para pesquisa</label>
+              <textarea id="soulTema" rows="2" maxlength="300">O Sistema Endocanabinoide e a regulação da homeostase: bases farmacológicas e moleculares</textarea>
+            </div>
+
+            <div class="campo">
+              <label for="soulFontes">URLs de fontes adicionais (opcional)</label>
+              <span class="aj">Uma URL por linha. O Bigode já pesquisa automaticamente PubMed (NCBI), ANVISA e SciELO.</span>
+              <textarea id="soulFontes" rows="2" placeholder="https://..."></textarea>
+            </div>
+
+            <button class="bt forte larga" id="soulBtFase1" style="font-size:14px;padding:11px" onclick="soulIniciarPasso1()">
+              🔬 Passo 1: Executar Coleta de Fontes no PubMed e ANVISA
+            </button>
+          </div>
+
+          <div id="soulFase2" style="display:none;margin-top:14px">
+            <div class="conn">
+              <div class="et" style="margin-top:0">2. EVIDÊNCIAS CIENTÍFICAS E MARCOS REGULATÓRIOS ENCONTRADOS</div>
+              <div id="soulFontesContador" class="expl">Consultando bases do PubMed e ANVISA…</div>
+              <div id="soulFontesLista" class="soul-fontes-lista"></div>
+
+              <div class="soul-dialogo-box" id="soulDlgFase2" style="display:none">
+                <div class="soul-dialogo-cab">
+                  <div class="soul-dialogo-avatar">🧔 Bigode IA</div>
+                </div>
+                <div class="soul-dialogo-texto" id="soulTxtDlgFase2">
+                  "Coletei as fontes clínicas reais acima no PubMed e no repositório da ANVISA. Elas atendem aos critérios éticos e científicos para a redação do artigo?"
+                </div>
+                <div class="soul-dialogo-acoes">
+                  <button class="bt forte" id="soulBtAprovarFontes" onclick="soulAvancarParaRedacao()">
+                    ✓ De Acordo: Aprovar Fontes e Redigir Artigo
+                  </button>
+                  <button class="bt" onclick="soulVoltarFase(1)">↺ Mudar Tema / Refazer Pesquisa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="soulFase3" style="display:none;margin-top:14px">
+            <div class="conn">
+              <div class="et" style="margin-top:0">3. ARTIGO CIENTÍFICO E KIT SOCIAL GERADOS</div>
+              <div id="soulRedacaoStatus" class="expl">Aguarde a IA sintetizar o artigo (1.200 a 1.800 palavras)...</div>
+              
+              <div id="soulArtigoWrapper" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px">
+                  <h3 id="soulArtigoTitulo" style="color:var(--txt);font-size:16px;font-weight:600"></h3>
+                  <span id="soulArtigoPalavras" class="soul-status-badge">~1.400 palavras</span>
+                </div>
+                
+                <div class="soul-artigo-view" id="soulArtigoConteudo"></div>
+
+                <div style="margin-top:12px;display:flex;gap:10px">
+                  <button class="bt" id="soulBtVerCarrossel" onclick="soulAlternarKitSocial('carrossel')">📱 Ver 7 Slides do Carrossel</button>
+                  <button class="bt" id="soulBtVerWhats" onclick="soulAlternarKitSocial('whats')">💬 Ver Resumo WhatsApp</button>
+                </div>
+                <div id="soulKitSocialView" style="display:none;margin-top:10px;padding:12px;background:var(--sup2);border-radius:10px;font-size:13px;line-height:1.5"></div>
+
+                <div class="soul-dialogo-box">
+                  <div class="soul-dialogo-cab">
+                    <div class="soul-dialogo-avatar">🧔 Bigode IA</div>
+                  </div>
+                  <div class="soul-dialogo-texto">
+                    "O artigo foi redigido com estrutura acadêmica, tom institucional sem prescrição médica e todas as citações ancoradas nas fontes reais. Deseja aprovar o texto e acionar a Pipi IA para criar a imagem de destaque da capa?"
+                  </div>
+                  <div class="soul-dialogo-acoes">
+                    <button class="bt forte" id="soulBtAprovarTexto" onclick="soulAvancarParaCapa()">
+                      ✓ De Acordo: Aprovar Artigo e Criar Imagem (Pipi IA)
+                    </button>
+                    <button class="bt" onclick="soulAvancarParaRedacao()">↺ Redigir Novamente</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="soulFase4" style="display:none;margin-top:14px">
+            <div class="conn">
+              <div class="et" style="margin-top:0">4. IMAGEM DE DESTAQUE CRIADA PELA PIPI IA</div>
+              <div id="soulCapaStatus" class="expl">Acionando a Pipi IA para gerar a capa artística em proporção 16:9…</div>
+              
+              <div id="soulCapaWrapper" style="display:none">
+                <div class="soul-capa-box">
+                  <img id="soulCapaImg" class="soul-capa-img" src="" alt="Capa gerada pela Pipi IA">
+                  <div id="soulCapaPromptDesc" style="font-size:12px;color:var(--txt2);margin-top:8px;font-style:italic"></div>
+                </div>
+
+                <div class="soul-dialogo-box">
+                  <div class="soul-dialogo-cab">
+                    <div class="soul-dialogo-avatar">🧔 Bigode IA</div>
+                  </div>
+                  <div class="soul-dialogo-texto">
+                    "A Pipi IA desenhou a imagem de destaque acima para ilustrar o artigo no WordPress. A arte foi aprovada para a capa?"
+                  </div>
+                  <div class="soul-dialogo-acoes">
+                    <button class="bt forte" onclick="soulAvancarParaFinal()">
+                      ✓ De Acordo: Aprovar Imagem e Ir para Revisão Final
+                    </button>
+                    <button class="bt" onclick="soulRegerarCapa()">🎨 Regerar Outra Imagem com Pipi</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="soulFase5" style="display:none;margin-top:14px">
+            <div class="conn">
+              <div class="et" style="margin-top:0">5. APROVAÇÃO FINAL E INJEÇÃO NO WORDPRESS</div>
+              
+              <div class="soul-dialogo-box" style="margin-top:0">
+                <div class="soul-dialogo-cab">
+                  <div class="soul-dialogo-avatar">🧔 Bigode IA</div>
+                </div>
+                <div class="soul-dialogo-texto">
+                  "Todas as etapas foram concluídas e aprovadas por você! Dê o seu 'De Acordo' final para eu criar o rascunho com a imagem de destaque vinculada no site do Projeto Soul."
+                </div>
+                
+                <div style="display:flex;gap:14px;align-items:center;background:var(--sup2);padding:12px 14px;border-radius:12px;margin:12px 0">
+                  <img id="soulMiniCapa" style="width:110px;height:70px;object-fit:cover;border-radius:8px;flex-shrink:0" src="" alt="">
+                  <div>
+                    <div style="font-size:14px;font-weight:600;color:var(--txt)" id="soulResumoTitulo"></div>
+                    <div style="font-size:12px;color:var(--neon);margin-top:3px">Categorias: Cannabis Medicinal, Ciência e Medicina</div>
+                    <div style="font-size:11px;color:var(--txt2);margin-top:2px">Status no WordPress: <b>DRAFT (Rascunho Protegido)</b></div>
+                  </div>
+                </div>
+
+                <div class="soul-dialogo-acoes" style="flex-direction:column;align-items:stretch">
+                  <button class="bt forte larga" style="font-size:15px;padding:12px" id="soulBtEnviarWP" onclick="soulEnviarParaWordPress(false)">
+                    🚀 DAR DE ACORDO: Criar Rascunho no WordPress com Capa
+                  </button>
+                  <button class="bt larga" style="margin-top:6px;font-size:12px;color:var(--alerta)" onclick="soulEnviarParaWordPress(true)">
+                    🌐 Publicar Oficialmente Agora (Tornar Visível ao Público)
+                  </button>
+                </div>
+              </div>
+
+              <div class="soul-sucesso" id="soulSucessoBox" style="display:none">
+                <h3>✓ SUCESSO! ARTIGO E CAPA INJETADOS NO PROJETO SOUL!</h3>
+                <p id="soulSucessoTexto"></p>
+                <div style="margin-top:14px;display:flex;gap:10px;justify-content:center">
+                  <a id="soulLinkEdicaoWP" class="bt forte" href="#" target="_blank" rel="noopener">
+                    🔗 Abrir e Revisar no WordPress
+                  </a>
+                  <button class="bt" onclick="soulReiniciarFluxo()">➕ Criar Outro Artigo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="soulSecaoRascunhos" style="display:none">
+          <div class="conn">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div class="et" style="margin:0">RASCUNHOS NO WORDPRESS</div>
+              <button class="bt" onclick="soulRascunhos()">Atualizar Lista</button>
+            </div>
+            <div id="soulDrafts"><div class="vazio2">Carregando rascunhos…</div></div>
+          </div>
+        </div>
+
+        <div id="soulSecaoConexao" style="display:none">
+          <div class="conn">
+            <div class="et" style="margin-top:0">CONEXÃO COM PROJETOSOUL.COM.BR</div>
+            <div class="campo">
+              <label for="soulUrl">URL do site</label>
+              <input id="soulUrl" type="url" placeholder="https://projetosoul.com.br" value="https://projetosoul.com.br">
+            </div>
+            <div class="campo">
+              <label for="soulUser">Usuário WordPress</label>
+              <input id="soulUser" autocomplete="username" placeholder="ex: frederico">
+            </div>
+            <div class="campo">
+              <label for="soulPass">Application Password (Senha de Aplicação)</label>
+              <input id="soulPass" type="password" autocomplete="new-password" placeholder="Deixe vazio para manter a senha salva">
+            </div>
+            <div class="campo">
+              <label for="soulOut">Pasta local de saída</label>
+              <input id="soulOut" placeholder="Padrão: memoria/soul">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <button class="bt forte" onclick="soulSalvar()">Salvar Configuração</button>
+              <button class="bt" onclick="soulTestar()">Testar Conexão</button>
+            </div>
+            <div id="soulCats" class="campo" style="display:none;margin-top:14px">
+              <label>Categorias WordPress</label>
+              <div id="soulCatsLista"></div>
+              <button class="bt forte" style="margin-top:8px" onclick="soulSalvarCategorias()">Salvar Categorias</button>
+            </div>
+            <div class="expl" id="soulStatus" style="margin-top:10px">Verificando estado da conexão…</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+<div class="painel" id="pn-projetos">
       <div class="et">SEUS PROJETOS</div>
       <div id="listaProj"></div>
       <div class="et">CRIAR UM NOVO</div>
@@ -1462,25 +2167,6 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
         <label class="cel4-qual"><input type="checkbox" id="celMax" checked> Qualidade máxima (textura 2048 e mais detalhe na malha — ~1 min a mais)</label>
         <button class="bt forte larga" id="celCriar" onclick="celCriar()" disabled>Tire pelo menos a foto de frente</button>
         <div class="b3-nota" id="celLink" style="margin-top:8px"></div>
-      </div>
-
-      <!-- ESCANEAR AMBIENTE / OBJETO (29/09): iPhone/iPad Pro com LiDAR.
-           O app escaneia; o Bigode importa em escala real e mede. -->
-      <div class="b3-hero cel4" id="scan3d">
-        <div class="b3-passo"><b><i class="ic" data-ic="regua"></i></b> Escanear cômodo ou objeto (iPhone/iPad Pro com LiDAR)</div>
-        <div class="b3-nota" style="margin:0 0 10px">Escaneie com um app no iPhone, exporte o arquivo e envie aqui.
-          O Bigode coloca no Blender <b>em tamanho real</b> e mede paredes, portas, janelas e móveis.</div>
-        <details class="cel4-dicas"><summary>Qual app usar e como exportar</summary>
-          <ul>
-            <li><b>Scaniverse</b> (grátis): escaneie e exporte em <b>USDZ, GLB ou OBJ</b>.</li>
-            <li><b>Polycam</b>: no plano grátis só exporta <b>GLTF</b> (vem em .zip) — pode mandar o .zip direto.</li>
-            <li>Apps com <b>RoomPlan</b> da Apple geram <b>.usdz</b> com paredes, portas e janelas separadas — é o que dá a planta mais limpa.</li>
-            <li>Cômodo de até ~9 × 9 m por vez, com luz, sem passar de 5 minutos. Espelho e vidro atrapalham o sensor.</li>
-          </ul></details>
-        <input type="file" id="scanInput" accept=".usdz,.usd,.usdc,.glb,.gltf,.obj,.ply,.fbx,.stl,.zip" style="display:none">
-        <button class="bt forte larga" id="driveBt" onclick="driveAbrir()">Escolher do Google Drive</button>
-        <button class="bt larga" id="scanBt" style="margin-top:8px" onclick="$('scanInput').value='';$('scanInput').click()">Enviar deste aparelho (.usdz, .glb, .obj, .zip…)</button>
-        <div id="driveNav" class="drive-nav" style="display:none"></div>
       </div>
 
       <details class="b3-mais">
@@ -1780,7 +2466,10 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
         <div class="barra"><i id="ligBarra"></i></div>
         <div class="lm" id="ligMsg"></div>
       </div>
-      <div id="avisoPlaca" class="aviso-motor" role="status" hidden></div>
+      <div class="seletor-ambiente-ia">
+        <button class="bt-aba-ia ativo" id="abaLocal" type="button" onclick="alternarAbaIA('local')">💻 Local (Offline no Notebook / Pendrive)</button>
+        <button class="bt-aba-ia" id="abaNuvem" type="button" onclick="alternarAbaIA('nuvem')">☁️ Nuvem (Hugging Face / Modal)</button>
+      </div>
       <div id="listaModelos"></div>
       <div class="mstat">
         <div><b id="stEstado">—</b><span>situação</span></div>
@@ -1861,9 +2550,6 @@ input[type=range],input[type=radio],input[type=checkbox]{accent-color:var(--ac)}
         aqui. Só o crachá da sessão fica guardado no Chrome — a senha, não.</div>
       <div class="expl" id="estadoExt">Verificando…</div>
 
-      <div class="et">PIPI IA · IMAGENS</div>
-      <div class="aviso-motor" id="cartaoPipi" role="status">Conferindo a Pipi…</div>
-
       <div class="et">LIGAR NO CLAUDE</div>
       <div class="expl" style="margin-top:0">O Claude Desktop pode usar o Bigode como ferramenta (arquivo
         <code>mcp_servidor.py</code>). Em <code>%APPDATA%\Claude\claude_desktop_config.json</code>, dentro de
@@ -1884,7 +2570,6 @@ let historico=[],ocupado=false,CX={},CFG={},PERS={},conversaId=null,projetoAtivo
 let CHROME_LIGADO=false;   // a extensao do Chrome deu sinal nos ultimos 15s
 let ULTIMAS=[];            // as conversas da barra lateral, para renomear
 let LIGADO=false,ESTADO='parado';
-let RAM_LIVRE=null, BLOQUEIO_WIN=null;
 
 /* ---------- logos e icones ---------- */
 const LOGO={
@@ -2092,14 +2777,14 @@ async function verImagem(arquivo){
 }
 
 /* ---------- painel ---------- */
-const TITULOS={memoria:'Memória — o que ele sabe sobre você',estudio:'Estúdio musical — separar e mixar',clonar:'Clonar site — print ou link vira código',blender:'Blender 3D — o que o Bigode faz',conexoes:'O que está conectado',projetos:'Meus projetos',
+const TITULOS={soul:'Projeto Soul — Hub Científico e Redação',memoria:'Memória — o que ele sabe sobre você',estudio:'Estúdio musical — separar e mixar',clonar:'Clonar site — print ou link vira código',blender:'Blender 3D — o que o Bigode faz',conexoes:'O que está conectado',projetos:'Meus projetos',
  historico:'Conversas anteriores',personalidade:'Jeito de responder',
  ajustes:'Configurações',habilidades:'Meus manuais','editar-hab':'Editar manual',
  artefatos:'Arquivos que ele criou',programados:'Tarefas programadas',
  resultado:'Resultado da tarefa',especialistas:'Especialistas'};
 function abrirPainel(p){
   if(p==='blender'){setTimeout(b3Status,0);setTimeout(celMostrarLink,0);}
-  $('gaveta').classList.toggle('larga',p==='clonar');
+  $('gaveta').classList.toggle('larga',p==='clonar'||p==='soul');
   $('gaveta').classList.toggle('larga2',p==='estudio');
   if(p==='estudio')setTimeout(emCarregar,0);
   if(p==='memoria')setTimeout(mfCarregar,0);
@@ -2107,9 +2792,9 @@ function abrirPainel(p){
   document.querySelectorAll('.painel').forEach(x=>x.classList.remove('on'));
   $('pn-'+p).classList.add('on'); $('tituloPainel').textContent=TITULOS[p]||p;
   $('veu').classList.add('on'); $('gaveta').classList.add('on');
-  if(p==='conexoes')carregarConn(); if(p==='projetos')carregarProjetos();
+  if(p==='conexoes')carregarConn(); if(p==='soul')soulCarregar(); if(p==='projetos')carregarProjetos();
   if(p==='historico')carregarHistorico(); if(p==='personalidade')carregarPers();
-  if(p==='ajustes'){carregarAjustes();pintarPipi();} if(p==='habilidades')carregarHabilidades();
+  if(p==='ajustes')carregarAjustes(); if(p==='habilidades')carregarHabilidades();
   if(p==='artefatos')carregarArtefatos(); if(p==='programados')carregarProgramados();
   if(p==='especialistas')carregarEspecialistas();
 }
@@ -2124,28 +2809,98 @@ function abrirLateral(){$('lateral').classList.add('on');$('laterveu').classList
 function fecharLateral(){$('lateral').classList.remove('on');$('laterveu').classList.remove('on');}
 function irPara(p){abrirPainel(p);fecharLateral();pintarNav(p);}
 
+// ── O MENU ENXUGOU, SEM PERDER NADA ───────────────── (20/11/2026)
+//
+//   Eram onze itens soltos, cada um com um numerozinho ao lado. Onze
+//   escolhas de peso igual nao sao um menu: sao uma lista. E numero em
+//   todo item faz tudo parecer pendencia.
+//
+//   Agora: cinco em cima -- os que o Fred abre todo dia -- e o resto
+//   atras de "Mais ferramentas". Os numerozinhos sairam do menu.
+//
+//   NADA foi removido: os onze destinos continuam a um ou dois cliques,
+//   e `Conexoes` virou a chave no alto da tela.
 const NAV=[
- ['pessoa',    'Especialistas','especialistas'],
+ ['folha',     'Projeto Soul', 'soul'],
  ['pasta',     'Projetos',     'projetos'],
- ['folha',     'Arquivos',     'artefatos'],
  ['livro',     'Manuais',      'habilidades'],
- ['plug2',     'Conexões',     'conexoes'],
- ['codigo',    'Clonar site',  'clonar'],
- ['musica',    'Estúdio musical','estudio'],
  ['memoria',   'Memória',      'memoria'],
- ['calendario','Programados',  'programados'],
  ['lapis',     'Personalizar', 'personalidade']];
 
+const NAV_MAIS=[
+ ['pessoa',    'Especialistas','especialistas'],
+ ['folha',     'Arquivos',     'artefatos'],
+ ['codigo',    'Clonar site',  'clonar'],
+ ['musica',    'Estúdio musical','estudio'],
+ ['calendario','Programados',  'programados'],
+ ['plug2',     'Conexões',     'conexoes']];
+
 let NAV_ATIVO='';
+let NAV_ABERTO=false;   // "Mais ferramentas" aberto?
+
 function pintarNav(ativo){
   NAV_ATIVO=ativo||'';
-  $('navLateral').innerHTML=NAV.map(([ic,rot,alvo])=>
+  // Se o destino ativo estiver no grupo de baixo, o grupo nasce aberto --
+  // senao o item marcado ficaria escondido, e a marca nao serviria.
+  if(NAV_MAIS.some(([,,alvo])=>alvo===NAV_ATIVO)) NAV_ABERTO=true;
+
+  const linha=([ic,rot,alvo])=>
     '<button class="lit'+(alvo===NAV_ATIVO?' on':'')+'" data-p="'+alvo+'">'+
-    S(IC[ic],16)+rot+'<span class="num" id="num-'+alvo+'"></span></button>').join('');
-  document.querySelectorAll('#navLateral .lit').forEach(el=>
+    S(IC[ic],16)+rot+'</button>';
+
+  $('navLateral').innerHTML =
+    NAV.map(linha).join('') +
+    '<button class="lit" id="navMais" aria-expanded="'+NAV_ABERTO+'">'+
+      '<span style="width:16px;display:inline-grid;place-items:center;'+
+      'transition:transform .18s ease;transform:rotate('+(NAV_ABERTO?90:0)+'deg)">›</span>'+
+      '<span style="color:var(--fraco)">Mais ferramentas</span></button>' +
+    '<div id="navExtra" style="display:'+(NAV_ABERTO?'block':'none')+'">'+
+      NAV_MAIS.map(linha).join('')+'</div>';
+
+  document.querySelectorAll('#navLateral .lit[data-p]').forEach(el=>
     el.onclick=()=>irPara(el.dataset.p));
+  const mais=$('navMais');
+  if(mais) mais.onclick=()=>{ NAV_ABERTO=!NAV_ABERTO; pintarNav(NAV_ATIVO); };
+
   $('iconeAjustes').innerHTML=S(IC.engrenagem,16);
   contarNav();
+}
+
+// ── A CHAVE ────────────────────────────────────────── (20/11/2026)
+function abrirChaveiro(ev){
+  if(ev) ev.stopPropagation();
+  const cx=$('chaveiro'), bt=$('btChave');
+  const abrindo=!cx.classList.contains('on');
+  cx.classList.toggle('on',abrindo);
+  if(bt) bt.setAttribute('aria-expanded',String(abrindo));
+  if(abrindo){
+    // Fecha ao clicar fora ou com Esc. `once` para nao empilhar ouvintes a
+    // cada abertura -- o vazamento classico de popover.
+    setTimeout(()=>{
+      document.addEventListener('click',fecharChaveiro,{once:true});
+      document.addEventListener('keydown',_escChave);
+    },0);
+  }
+}
+function fecharChaveiro(){
+  const cx=$('chaveiro'), bt=$('btChave');
+  if(cx) cx.classList.remove('on');
+  if(bt) bt.setAttribute('aria-expanded','false');
+  document.removeEventListener('keydown',_escChave);
+}
+function _escChave(e){ if(e.key==='Escape') fecharChaveiro(); }
+
+// O ponto aceso na chave: quantas conexoes estao ligadas. Se a conta
+// falhar, o ponto apaga em vez de mostrar numero errado.
+function pintarChave(){
+  try{
+    const n=Object.entries(CX||{})
+      .filter(([k,v])=>typeof v==='object'&&k!=='claude'&&v.ativa).length;
+    $('btChave').classList.toggle('tem',n>0);
+    $('btChave').title = n>0
+      ? 'Conexões — '+n+(n===1?' ligada':' ligadas')
+      : 'Conexões — nenhuma ligada';
+  }catch(e){ try{$('btChave').classList.remove('tem');}catch(_){} }
 }
 
 // Os numerinhos ao lado de cada item. Se a conta falhar, o item fica sem
@@ -2553,7 +3308,7 @@ async function status(){
     // se o motor ligou/desligou com o painel aberto, redesenha os cartoes
     if(mudou&&$('listaModelos')&&$('listaModelos').innerHTML)pintarModelos();
     $('pulso').className='pulso '+(d.pronto?'on':'off');
-    if($('ajudaEstado')){$('ajudaEstado').textContent=d.pronto?'Pronto para conversar':(d.estado==='parado'?'Escolha um motor para começar':'O motor está ligando…');$('estadoRapido').textContent=d.pronto?'pronto':(d.estado==='parado'?'desligado':'carregando');}
+    if($('ajudaEstado')){$('ajudaEstado').textContent=(d.pronto&&ocupado)?'Trabalhando na sua resposta…':d.pronto?'Pronto para conversar':(d.estado==='parado'?'Escolha um motor para começar':'O motor está ligando…');$('estadoRapido').textContent=(d.pronto&&ocupado)?'ocupado':d.pronto?'on-line':(d.estado==='parado'?'desligado':'carregando');if($('ajudaRapida'))$('ajudaRapida').className='ajuda-rapida '+((d.pronto&&ocupado)?'carregando':d.pronto?'pronto':(d.estado==='parado'?'desligado':'carregando'));}
     if(d.estado==='parado'){
       $('modNome').textContent='escolher motor';
       $('nota').textContent='Nenhum motor ligado. Clique em "escolher motor" '+
@@ -2690,88 +3445,6 @@ async function celCriar(){
   celAtualizar();
   b3Enviar(pedido);
 }
-/* ESCANEAMENTO LiDAR (29/09): sobe o arquivo e pede ao Bigode para importar e medir. */
-async function scanEnviar(arq){
-  if(!arq)return;
-  if(arq.size>75*1024*1024)return toast('Arquivo grande demais (máx. 75 MB). Exporte com menos detalhe ou em .usdz.','erro');
-  const b=$('scanBt'); b.disabled=true; b.textContent='Enviando '+arq.name+'…';
-  let r={};
-  try{
-    const dados=await new Promise((ok,erro)=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=erro;f.readAsDataURL(arq);});
-    r=await(await fetch('/api/blender/arquivo',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nome:arq.name,dados})})).json();
-  }catch(e){r={ok:false};}
-  b.disabled=false; b.textContent='Enviar deste aparelho (.usdz, .glb, .obj, .zip…)';
-  if(!r.ok)return toast(r.erro||'Não consegui enviar o arquivo. Confira o Wi-Fi.','erro');
-  b3Enviar('importe no blender o escaneamento '+r.caminho);
-}
-document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='scanInput')scanEnviar(ev.target.files[0]);});
-/* GOOGLE DRIVE DO PC (29/09): o Drive ja esta montado no computador (G:\Meu Drive).
-   A tela navega pelas pastas de la e o Bigode importa o arquivo do lugar dele:
-   nada sobe pelo 4G, sem limite de 75 MB, e o .obj continua junto do .mtl. */
-const DRV={raiz:0,caminho:''};
-function driveAbrir(){
-  const n=$('driveNav');
-  if(n.style.display==='block'){n.style.display='none';return;}
-  n.style.display='block'; driveIr(DRV.caminho);
-}
-function driveData(t){try{return new Date(t*1000).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});}catch(e){return '';}}
-function driveArqHtml(a,caminho){
-  return '<button class="drive-item drive-arq" data-arq="'+esc(caminho)+'">'+S(IC.caixa,18)+
-    '<span>'+esc(a.nome)+'</span><small>'+esc(String(a.mb))+' MB · '+driveData(a.quando)+'</small></button>';
-}
-async function driveIr(caminho){
-  const n=$('driveNav');
-  n.innerHTML='<div class="drive-vazio">Abrindo o Drive…</div>';
-  let r={};
-  try{r=await(await fetch('/api/drive/listar?raiz='+DRV.raiz+'&caminho='+encodeURIComponent(caminho||''))).json();}
-  catch(e){r={ok:false,erro:'Sem conexão com o Bigode.'};}
-  if(!r.ok){
-    if(caminho){DRV.caminho='';return driveIr('');}
-    n.innerHTML='<div class="drive-vazio" style="color:var(--erro)">'+esc(r.erro||'Não deu certo.')+'</div>';return;
-  }
-  DRV.caminho=r.caminho; DRV.raiz=r.raiz;
-  const partes=r.caminho?r.caminho.split('/'):[];
-  const nomeRaiz=(r.raizes[r.raiz]||'Drive').split(/[\\/]/).filter(Boolean).pop();
-  let h='<div class="drive-top">';
-  if(partes.length)h+='<button class="bt" data-ir="'+esc(partes.slice(0,-1).join('/'))+'">← Voltar</button>';
-  if(r.raizes.length>1)h+='<select id="driveRaiz">'+r.raizes.map((x,i)=>'<option value="'+i+'"'+(i===r.raiz?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>';
-  h+='<span class="drive-caminho">'+esc([nomeRaiz].concat(partes).join(' / '))+'</span>';
-  h+='<button class="bt" data-fechar="1">Fechar</button></div>';
-  if(!r.caminho)h+='<div id="driveRecentes"><div class="drive-et">RECENTES</div><div class="drive-vazio">Procurando escaneamentos no Drive…</div></div>';
-  if(r.arquivos.length)h+='<div class="drive-et">ARQUIVOS 3D NESTA PASTA</div>'+
-    r.arquivos.map(a=>driveArqHtml(a,(r.caminho?r.caminho+'/':'')+a.nome)).join('');
-  if(r.pastas.length)h+='<div class="drive-et">PASTAS</div>'+r.pastas.map(p=>
-    '<button class="drive-item" data-ir="'+esc((r.caminho?r.caminho+'/':'')+p)+'">'+S(IC.pasta||MARCA.pasta,18)+'<span>'+esc(p)+'</span></button>').join('');
-  if(!r.arquivos.length&&!r.pastas.length)h+='<div class="drive-vazio">Nenhum arquivo 3D (.usdz, .glb, .obj, .zip…) nesta pasta.</div>';
-  n.innerHTML=h; n.scrollTop=0;
-  if(!r.caminho)driveRecentes();
-}
-async function driveRecentes(){
-  let r={};
-  try{r=await(await fetch('/api/drive/recentes?raiz='+DRV.raiz)).json();}catch(e){}
-  const el=$('driveRecentes'); if(!el||DRV.caminho)return;
-  if(!r.ok||!r.arquivos||!r.arquivos.length){el.remove();return;}
-  el.innerHTML='<div class="drive-et">RECENTES NO DRIVE</div>'+r.arquivos.slice(0,8).map(a=>driveArqHtml(a,a.caminho)).join('');
-}
-async function driveUsar(caminho){
-  const nome=caminho.split('/').pop();
-  toast('Importando '+nome+' no Blender…');
-  let r={};
-  try{r=await(await fetch('/api/drive/usar',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({raiz:DRV.raiz,caminho})})).json();}catch(e){r={ok:false,erro:'Sem conexão com o Bigode.'};}
-  if(!r.ok)return toast(r.erro||'Não consegui usar esse arquivo.','erro');
-  $('driveNav').style.display='none';
-  b3Enviar('importe no blender o escaneamento '+r.caminho);
-}
-document.addEventListener('click',ev=>{
-  const nav=$('driveNav'); if(!nav||!nav.contains(ev.target))return;
-  const b=ev.target.closest('[data-ir],[data-arq],[data-fechar]'); if(!b)return;
-  if(b.dataset.fechar){nav.style.display='none';return;}
-  if(b.dataset.arq!==undefined)return driveUsar(b.dataset.arq);
-  driveIr(b.dataset.ir);
-});
-document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='driveRaiz'){DRV.raiz=+ev.target.value;DRV.caminho='';driveIr('');}});
 /* No computador, mostra o endereco para abrir no celular. */
 async function celMostrarLink(){
   const el=$('celLink'); if(!el)return;
@@ -3165,47 +3838,24 @@ async function pintarCtx(){
   try{
     CX=await(await fetch('/api/conexoes')).json();
     try{pintarBlender();}catch(e){}
-    const on=Object.values(CX).filter(v=>typeof v==='object'&&v.ativa);
     let h='';
-    // O que MUDA a resposta vem primeiro e com destaque: especialista e
-    // projeto. As conexões ligadas vêm depois, apagadas — são pano de fundo,
-    // não decisão do momento.
     if(espAtivo)h+='<span class="tag proj" style="border-color:#4B4A7A;color:var(--ac2)">'+
       S(IC.pessoa,12)+esc(espAtivo.nome)+' · '+esc(espAtivo.rigor_rotulo)+
       '<button class="fechar" onclick="usarEsp(null)">'+S(IC.x,11)+'</button></span>';
     if(projetoAtivo)h+='<span class="tag proj">'+S(IC.pasta,12)+esc(projetoAtivo.nome)+
       '<button class="fechar" onclick="soltarProjeto()">'+S(IC.x,11)+'</button></span>';
 
-    // ── INTERRUPTORES, NÃO ETIQUETAS ────────────────────────────────────
-    // Antes esta barra só INFORMAVA o que estava ligado, e para desligar
-    // algo era preciso abrir Configurações → Conexões. Só que cada conexão
-    // ligada custa tokens em TODA mensagem — o Drive sozinho custa 1.448,
-    // que são ~22 segundos de espera. A decisão de ligar e desligar é do
-    // momento, não de um painel escondido.
-    //
-    // Agora cada uma é um botão: clique e alterna. Apagada = desligada e
-    // fora do prompt. O Claude não aparece aqui — é ponte, não ferramenta,
-    // e fica sempre ligado.
-    const CUSTO={arquivos:1448,navegador:714,github:637,utilidades:554,web:179,terminal:119};
+    const CUSTO={arquivos:1448,navegador:714,github:637,utilidades:554,web:179,terminal:119,blender:320};
+    const ICONS={
+      arquivos: LOGO.drive,
+      github: LOGO.github,
+      web: LOGO.web,
+      navegador: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>',
+      terminal: LOGO.terminal,
+      blender: LOGO.blender,
+      dados_brasil: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FBBF24" stroke-width="2"><path d="M12 2L2 12l10 10 10-10L12 2z"/></svg>'
+    };
     const todas=Object.entries(CX).filter(([k,v])=>typeof v==='object'&&k!=='claude');
-    /* LIGADA SEM CREDENCIAL NÃO É LIGADA                       (18/09)
-
-       O GitHub aparecia verde nesta barra. O Fred pediu os repositórios,
-       e o log contou o que a tela escondia:
-
-         [ferramenta] github_repos args={} 0.0s -> GitHub sem token.
-
-       Zero segundo: não houve chamada nenhuma à API. E como a barra dizia
-       "ligada", o modelo insistiu três vezes na mesma ferramenta, gastou
-       37s, e numa tentativa anterior chegou a listar 34 pastas do disco
-       como se fossem repositórios do GitHub.
-
-       O `ativa` é só o interruptor — diz que VOCÊ quer usar aquilo. Não
-       diz que dá para usar. Faltava a segunda pergunta: tem credencial?
-
-       O `tem_token` já vinha do servidor desde sempre, pronto, sem
-       ninguém olhar. A luz âmbar que nasceu hoje para a extensão muda
-       serve igual aqui: ligada, mas não vai funcionar. */
     const PRECISA_TOKEN = {github:1};
     h+=todas.map(([chave,v])=>{
       const ehNav = /navegador|chrome/i.test(v.nome||'');
@@ -3213,24 +3863,23 @@ async function pintarCtx(){
       const semCred = lig && PRECISA_TOKEN[chave] && !v.tem_token;
       const vivo  = lig && (ehNav ? CHROME_LIGADO : true) && !semCred;
       const custo = CUSTO[chave]||0;
+      const icone = ICONS[chave] || LOGO.plug;
       const dica  = semCred
-        ? 'Ligada, mas sem credencial — cole o token em Configurações › Conexões'
+        ? 'Ligada, mas sem credencial — configure o token nas configurações'
         : ehNav && lig && !CHROME_LIGADO
-        ? 'Extensão do Chrome não está respondendo'
+        ? 'Extensão Chrome aguardando aba ativa'
         : (lig ? 'Ligada' : 'Desligada') +
           (custo?' · '+custo+' tokens (~'+Math.round(custo/68)+'s) por mensagem':'') +
           ' · clique para '+(lig?'desligar':'ligar');
       return '<button class="tag interruptor'+(lig?'':' off')+(vivo?'':' apagada')+
-        '" title="'+esc(dica)+'" onclick="virarConexao(\''+chave+'\')">'+
-        '<span class="luz"></span>'+esc(v.nome)+'</button>';
+        '" title="'+esc(dica)+'" data-chave="'+esc(chave)+'" onclick="virarConexao(this.dataset.chave)">'+
+        '<span class="luz"></span>'+icone+'<span>'+esc(v.nome)+'</span></button>';
     }).join('');
     $('ctx').innerHTML=h;
+    pintarChave();   // (20/11) acende o ponto na chave, no alto da tela
   }catch(e){}
 }
 
-/* Liga/desliga uma conexão pela barra, na hora. Grava e repinta.
-   Guardamos o estado anterior para devolver a chave ao lugar se o servidor
-   recusar — pior que não alternar é a tela dizer que alternou. */
 async function virarConexao(chave){
   const item=CX[chave]; if(!item)return;
   const antes=!!item.ativa;
@@ -3395,7 +4044,7 @@ function painelTrabalho(f){
 }
 function desenharPasso(f,ev){
   const p=painelTrabalho(f),corpo=p.querySelector('.tp');
-  let el=corpo.querySelector('.passo[data-id="'+CSS.escape(ev.id||'')+'"]');
+  let el=ev.id?f.querySelector('.passo[data-id="'+CSS.escape(ev.id)+'"]'):null;
   if(!el){el=document.createElement('div');el.dataset.id=ev.id||'';corpo.appendChild(el);}
   const pronto=ev.estado==='ok';
   el.className='passo'+(pronto?' ok':'');
@@ -3586,7 +4235,7 @@ function faixaNav(ligar, passo, site){
 
 async function responder(){
   if(ocupado||!historico.length)return;
-  ocupado=true;
+  ocupado=true;try{status()}catch(e){}
   // Você acabou de mandar uma mensagem: quer ver ela. Aqui a tela desce por
   // conta própria, uma vez só. Depois disso o controle volta a ser seu.
   colado=true; rolar(true);
@@ -3862,7 +4511,7 @@ async function responder(){
       d.textContent='— interrompido por você —';f.appendChild(d);
     }
   }
-  tirar();ocupado=false;abortador=null;
+  tirar();ocupado=false;abortador=null;try{status()}catch(e){}
   document.body.classList.remove('trabalhando');
   if(window.Conversa)Conversa.fimDaResposta();
   // A faixa do Chrome sai AQUI, no fim do turno, aconteca o que acontecer:
@@ -3882,8 +4531,13 @@ async function responder(){
 }
 $('entrada').addEventListener('input',e=>{e.target.style.height='28px';
   e.target.style.height=Math.min(e.target.scrollHeight,220)+'px';});
+const entradaEhTouch=window.matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0;
 $('entrada').addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();enviar();}});
+  if(e.key!=='Enter'||e.isComposing||e.keyCode===229)return;
+  if(e.ctrlKey||e.metaKey){e.preventDefault();enviar();return;}
+  if(entradaEhTouch)return; // Enter no teclado touch insere uma nova linha.
+  if(!e.shiftKey){e.preventDefault();enviar();}
+});
 
 /* ---------- clicar na caixa põe o cursor no texto ----------
    Sem isto, só os 28px do campo respondiam. O resto da caixa — a maior
@@ -4286,143 +4940,117 @@ function PERFIL(x){
   return x.tok_s_medido? rot+' · '+String(x.tok_s_medido).replace('.',',')+' tok/s' : rot;
 }
 
-/* AVISOS DO MOTOR                                           (29/09)
-   1. O Windows barrou o llamafile na última partida (lido do motor.log).
-   2. Motor na placa: botão "Acordar agora". A tela NUNCA acorda a placa
-      sozinha -- consultar a Modal liga a GPU e foi isso que gastou os
-      créditos de setembro. Só acorda quando você manda. */
-function pintarAvisoMotor(m){
-  const el=$('avisoPlaca'); if(!el)return;
-  const partes=[];
-  if(m.bloqueio_windows){
-    partes.push('<div class="aviso-linha" style="color:var(--erro)"><span><b>Bloqueado pelo Windows</b> '+
-      (m.bloqueio_windows.quando?'('+esc(m.bloqueio_windows.quando)+')':'')+
-      ': o motor local não pôde abrir. Use um modelo <b>NA PLACA</b> ou peça a liberação do arquivo '+
-      '<code>'+esc((m.bloqueio_windows.exe||'llamafile').split('\\').pop())+'</code>.</span></div>');
-  }
-  if(m.placa&&m.placa.provedor==='modal'){
-    const a=m.acordar||{};
-    const txt=a.estado==='acordando'?'Acordando a placa… (pode levar até 3 min)'
-             :a.estado==='pronta'?esc(a.msg||'Placa pronta.')
-             :a.estado==='erro'?esc(a.msg||'A placa não respondeu.')
-             :'A placa dorme quando ninguém usa e acorda na primeira pergunta. Para não esperar, acorde antes.';
-    partes.push('<div class="aviso-linha"><span>'+txt+'</span>'+
-      '<button class="modtag usar" id="btAcordar" '+(a.estado==='acordando'?'disabled':'')+
-      '>Acordar agora</button></div>');
-  }
-  el.hidden=!partes.length;
-  el.className='aviso-motor'+(m.bloqueio_windows?' erro':'');
-  el.innerHTML=partes.join('');
-  const bt=$('btAcordar');
-  if(bt)bt.onclick=acordarPlaca;
+let MODO_IA_VISIVEL = 'local';
+
+function alternarAbaIA(modo) {
+  MODO_IA_VISIVEL = modo;
+  if($('abaNuvem'))$('abaNuvem').classList.toggle('ativo', modo === 'nuvem');
+  if($('abaLocal'))$('abaLocal').classList.toggle('ativo', modo === 'local');
+  pintarModelos();
 }
 
-async function acordarPlaca(){
-  let r={};
-  try{
-    r=await(await fetch('/api/modelo/acordar',{method:'POST',
-      headers:{'Content-Type':'application/json'},body:'{}'})).json();
-  }catch(e){return toast('Não consegui falar com o Bigode.','erro');}
-  if(r.ok===false)return toast(r.msg||'Não deu.','erro');
-  toast('Acordando a placa…');
-  const passo=async()=>{
-    let m; try{m=await(await fetch('/api/modelos')).json();}catch(e){return;}
-    pintarAvisoMotor(m);
-    if((m.acordar||{}).estado==='acordando')return setTimeout(passo,4000);
-    status();
-    toast((m.acordar||{}).msg||'Pronto.', (m.acordar||{}).estado==='erro'?'erro':undefined);
-  };
-  setTimeout(passo,3000);
-}
-
-/* CARTÃO DA PIPI                                            (29/09)
-   Pergunta só se a porta 7300 responde (local, não acorda placa). O botão
-   "Abrir a Pipi" roda o pipi.bat -- e o servidor só aceita esse pedido
-   vindo deste computador, nunca do celular. */
-async function pintarPipi(){
-  const el=$('cartaoPipi'); if(!el)return;
-  let d={};
-  try{d=await(await fetch('/api/pipi/estado')).json();}
-  catch(e){el.textContent='Não consegui conferir a Pipi.';return;}
-  if(!d.pasta){el.innerHTML='Não achei a pasta <b>Pipi IA</b> ao lado do Cerebro.';return;}
-  const linha=d.aberta
-    ?'<span><b style="color:var(--ok)">Aberta</b> em <a href="'+esc(d.endereco)+'" target="_blank" rel="noopener">'+
-      esc(d.endereco)+'</a> · FLUX.1-schnell na Modal (L40S)'+
-      (d.configurada?'':' · <b style="color:var(--erro)">Modal não configurada</b>')+'</span>'
-    :'<span><b>Fechada.</b> O Bigode pede imagens à Pipi; com ela fechada, desenhar não funciona.'+
-      (d.configurada?'':' <b style="color:var(--erro)">A Modal dela também não está configurada.</b>')+'</span>';
-  el.innerHTML='<div class="aviso-linha">'+linha+
-    (d.aberta?'':'<button class="modtag usar" id="btPipi">Abrir a Pipi</button>')+'</div>';
-  const bt=$('btPipi');
-  if(bt)bt.onclick=async()=>{
-    bt.disabled=true;
-    let r={};
-    try{r=await(await fetch('/api/pipi/abrir',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();}
-    catch(e){bt.disabled=false;return toast('Não consegui falar com o Bigode.','erro');}
-    toast(r.msg||'…',r.ok===false?'erro':undefined);
-    if(r.ok===false){bt.disabled=false;return;}
-    let n=0;const passo=async()=>{await pintarPipi();
-      if(!(($('cartaoPipi')||{}).textContent||'').includes('Aberta')&&++n<10)setTimeout(passo,3000);};
-    setTimeout(passo,3000);
-  };
-}
+const CATALOGO_NUVEM = [
+  {
+    id: "hf:meta-llama/Llama-3.3-70B-Instruct",
+    modelo_nome: "meta-llama/Llama-3.3-70B-Instruct",
+    nome: "Llama 3.3 (70B) — Redator & Conselheiro",
+    badge: "ESTRATÉGIA & REDAÇÃO",
+    descricao: "A inteligência mais versátil e completa na nuvem. Excelente em textos longos, artigos científicos, raciocínio aprofundado e uso autônomo de ferramentas.",
+    quando: "💡 Ideal para: redação de alta qualidade, tomada de decisão e tarefas gerais do dia a dia.",
+    provedor: "huggingface",
+    subinfo: "Hugging Face · 70B parâmetros · Ferramentas Nativas"
+  },
+  {
+    id: "hf:Qwen/Qwen2.5-72B-Instruct",
+    modelo_nome: "Qwen/Qwen2.5-72B-Instruct",
+    nome: "Qwen 2.5 (72B) — Automação & Raciocínio Pesado",
+    badge: "LÓGICA & CÓDIGO COMPLEXO",
+    descricao: "Poder computacional bruto. Especialista em resolver problemas lógicos densos, automação estruturada de dados e código avançado.",
+    quando: "💡 Ideal para: scripts difíceis, lógica complexa e manipulação avançada de dados.",
+    provedor: "huggingface",
+    subinfo: "Hugging Face · 72B parâmetros · Alto Desempenho Lógico"
+  },
+  {
+    id: "modal:olho",
+    modelo_nome: "Modal (Placa)",
+    nome: "Qwen 2.5 VL (7B) — Bigode Olho",
+    badge: "VISÃO & AUDITORIA",
+    descricao: "O modelo com visão multimodal na Modal. Lê e interpreta prints de tela, imagens do Blender, tabelas escaneadas e fotos de documentos.",
+    quando: "💡 Ideal para: colar prints de erros, conferir renderizações 3D ou ler contratos em imagem.",
+    provedor: "modal",
+    subinfo: "Modal GPU · Multimodal · Reconhecimento Visual e OCR"
+  }
+];
 
 async function pintarModelos(){
-  const m=await(await fetch('/api/modelos')).json();
-  const lista=m.modelos||[];
-  RAM_LIVRE=(typeof m.ram_livre_gb==='number')?m.ram_livre_gb:null;
-  BLOQUEIO_WIN=m.bloqueio_windows||null;
-  pintarAvisoMotor(m);
-  if(!lista.length){
-    $('listaModelos').innerHTML='<div class="vazio2">Nenhum modelo encontrado. '+
-      'Copie um arquivo .gguf para a pasta de IAs do seu Drive.</div>';
+  let m = {modelos:[]};
+  try {
+    m = await(await fetch('/api/modelos')).json();
+  } catch(e){}
+  
+  const lista = m.modelos || [];
+  RAM_LIVRE = (typeof m.ram_livre_gb === 'number') ? m.ram_livre_gb : null;
+  BLOQUEIO_WIN = m.bloqueio_windows || null;
+  try { pintarAvisoMotor(m); } catch(e){}
+
+  if (MODO_IA_VISIVEL === 'nuvem') {
+    $('listaModelos').innerHTML = CATALOGO_NUVEM.map(item => {
+      const emUso = (PROVEDOR_ATUAL === item.provedor);
+      return `
+        <div class="card-ia-moderno ${emUso ? 'em-uso' : ''}">
+          <div class="card-ia-header">
+            <span class="card-ia-badge">${item.badge}</span>
+            ${emUso ? '<span class="modtag uso">EM USO</span>' : ''}
+          </div>
+          <div class="card-ia-titulo">${item.nome}</div>
+          <div class="card-ia-desc">${item.descricao}</div>
+          <div class="card-ia-quando">${item.quando}</div>
+          <div class="card-ia-rodape">
+            <span class="card-ia-subinfo">${item.subinfo}</span>
+            <div>
+              ${emUso 
+                ? '<span class="modtag uso" style="font-size:12px;padding:4px 10px;">● Ativo agora</span>' 
+                : `<button class="bt forte" type="button" style="padding:5px 14px;font-size:12px;" data-id="${item.id}" data-provedor="${item.provedor}" onclick="ativarIA(this.dataset.id, this.dataset.provedor)">
+                    Ativar
+                  </button>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
     return;
   }
-  // "atual" e so a escolha salva; nao quer dizer que o motor esteja de pe.
-  // Enquanto nada estiver ligado, todo cartao e clicavel e diz LIGAR.
-  /* ═══ DOIS LUGARES, UM CARTÃO ═══════════════════════════ (18/09)
 
-     O cartão listava só o .gguf do disco, e clicar queria dizer sempre
-     "sobe na minha CPU". Mas o mesmo Qwen 7B e o mesmo DeepSeek estão
-     publicados na Modal, onde rodam dezenas de vezes mais rápido — e não
-     havia como escolher isso daqui.
+  // MODO LOCAL: lista dinamica com TODAS as IAs do disco / pendrive / Google Drive
+  if(!lista.length){
+    $('listaModelos').innerHTML = '<div class="vazio2">Nenhum modelo encontrado nas pastas locais ou no Drive.</div>';
+    return;
+  }
 
-     Agora quem tem cópia na placa mostra os DOIS botões, e o clique
-     pergunta ONDE, não SE. Quem não tem continua com um botão só.
-
-     A ordem dos botões não é estética: NA PLACA vem primeiro porque é a
-     escolha certa quase sempre. O caminho local vira o que ele de fato é
-     hoje — a alternativa para quando a internet ou a Modal caírem. */
-  $('listaModelos').innerHTML=lista.map(x=>{
-    const ruim=x.incompleto;
-    const naPlaca=!!x.na_placa_agora;
-    const emUso=(x.atual&&LIGADO&&PROVEDOR_ATUAL!=='modal')||naPlaca;
-    const ligando=x.atual&&ESTADO==='carregando'&&PROVEDOR_ATUAL!=='modal';
-    const p=x.placa;
-
-    /* SÓ NA PLACA: sem botão AQUI                            (20/09)
-
-       O guru de 32B não tem arquivo nesta máquina, e não deve ter — são
-       20 GB que ela não roda. Mostrar "AQUI" nele seria oferecer um
-       caminho que termina em erro, e o Fred clicaria: botão que parece
-       pronto e não está é pior que botão nenhum. */
-    const soPlaca=!!x.so_na_placa;
+  $('listaModelos').innerHTML = lista.map(x => {
+    const ruim = x.incompleto;
+    const naPlaca = !!x.na_placa_agora;
+    const emUso = (x.atual && LIGADO && PROVEDOR_ATUAL === 'local') || naPlaca;
+    const ligando = x.atual && ESTADO === 'carregando' && PROVEDOR_ATUAL === 'local';
+    const p = x.placa;
+    const soPlaca = !!x.so_na_placa;
 
     let botoes;
     if(ruim){
-      botoes='<span class="modtag erro">INCOMPLETO</span>';
-    }else if(naPlaca){
-      botoes='<span class="modtag uso">NA PLACA</span>';
-    }else{
-      botoes=(p?'<button class="modtag placa" data-perfil="'+esc(p.perfil)+'"'+
-                (p.publicado?'':' data-falta="1"')+'>'+
-                (p.publicado?'NA PLACA':'PLACA')+'</button>':'')+
-             (soPlaca?'<span class="modtag" style="background:transparent;'+
-                      'color:var(--fraco);border:1px dashed var(--borda)">'+
-                      'SÓ NA PLACA</span>'
-              :x.atual&&LIGADO?'<span class="modtag uso">EM USO</span>'
-              :ligando?'<span class="modtag uso">LIGANDO…</span>'
-                      :'<button class="modtag usar" data-local="1">AQUI</button>');
+      botoes = '<span class="modtag erro">INCOMPLETO</span>';
+    } else if(naPlaca){
+      botoes = '<span class="modtag uso">NA PLACA</span>';
+    } else {
+      botoes = (p ? '<button class="modtag placa" data-perfil="'+esc(p.perfil)+'"'+
+                (p.publicado ? '' : ' data-falta="1"')+'>'+
+                (p.publicado ? 'NA PLACA' : 'PLACA')+'</button>' : '')+
+               (soPlaca ? '<span class="modtag" style="background:transparent;'+
+                        'color:var(--fraco);border:1px dashed var(--borda)">'+
+                        'SÓ NA PLACA</span>'
+                : emUso ? '<span class="modtag uso">EM USO</span>'
+                : ligando ? '<span class="modtag uso">LIGANDO…</span>'
+                        : '<button class="modtag usar" data-local="1">AQUI</button>');
     }
 
     return '<div class="mod'+(emUso?' atual':'')+(ruim?' ruim':'')+'" data-id="'+
@@ -4438,26 +5066,69 @@ async function pintarModelos(){
       '<div class="modbotoes">'+botoes+'</div></div>';
   }).join('');
 
-  /* O clique é no BOTÃO, não no cartão inteiro. Com dois destinos no mesmo
-     cartão, clicar em qualquer lugar teria de escolher um por você — e a
-     escolha errada aqui custa minutos de carga ou dinheiro de placa. */
-  document.querySelectorAll('.mod .modtag.placa').forEach(b=>b.onclick=ev=>{
+  document.querySelectorAll('.mod .modtag.placa').forEach(b => b.onclick = ev => {
     ev.stopPropagation();
     ligarNaPlaca(b.dataset.perfil, !!b.dataset.falta);
   });
-  document.querySelectorAll('.mod .modtag.usar').forEach(b=>b.onclick=ev=>{
+  document.querySelectorAll('.mod .modtag.usar').forEach(b => b.onclick = ev => {
     ev.stopPropagation();
-    const el=b.closest('.mod');
+    const el = b.closest('.mod');
     if(el.classList.contains('ruim'))
-      return toast('Esse arquivo está incompleto. Termine o download antes de usar.','erro');
+      return toast('Esse arquivo está incompleto. Termine o download antes de usar.','alerta');
     trocarModelo(el.dataset.id, el.querySelector('.modnome').firstChild.textContent,
                  parseFloat(el.dataset.gb||0));
   });
 }
 
-/* Liga o modelo na Modal. Não publica nada: só troca para onde as
-   perguntas vão. Publicar baixa GB e passa a cobrar Volume por mês — isso
-   é decisão de dinheiro, e decisão de dinheiro não se toma por clique. */
+async function ativarIA(id, provedor) {
+  toast('Configurando IA selecionada…');
+  try {
+    if (provedor === 'huggingface') {
+      const modeloNome = id.replace('hf:', '');
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          modelo_provedor: 'huggingface',
+          huggingface: { ativo: true, texto_modelo: modeloNome }
+        })
+      });
+      PROVEDOR_ATUAL = 'huggingface';
+      MODELO_ATUAL = modeloNome;
+    } else if (provedor === 'modal') {
+      await fetch('/api/modelo/placa', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ perfil: 'conversa' })
+      });
+      PROVEDOR_ATUAL = 'modal';
+      MODELO_ATUAL = 'Modal (Placa)';
+    } else {
+      const arquivo = id.replace('local:', '');
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          modelo_provedor: 'local',
+          llm_url: 'http://localhost:8082/v1/chat/completions',
+          llm_chave: ''
+        })
+      });
+      await fetch('/api/trocar_modelo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ caminho: arquivo, voltar_para_local: true })
+      });
+      PROVEDOR_ATUAL = 'local';
+      MODELO_ATUAL = arquivo;
+    }
+    toast('IA ativada com sucesso!');
+    setTimeout(() => { status(); pintarModelos(); }, 1200);
+  } catch(e) {
+    toast('Falha ao alternar IA.', 'erro');
+  }
+}
+
 async function ligarNaPlaca(perfil,falta){
   if(falta){
     const r=await(await fetch('/api/modelo/placa',{method:'POST',
@@ -4482,28 +5153,9 @@ async function trocarModelo(caminho,nome,gb){
   // 3 GB livres, o sistema começa a trocar memória com o disco, e a leitura
   // de um prompt vai de 2 para 14 minutos. Sem este aviso, você descobre
   // depois de duas horas esperando.
-  if(BLOQUEIO_WIN){
+  if(gb && gb>=10){
     const ok=confirm(
-      'O Windows BLOQUEOU o motor local na última tentativa ('+
-      ((BLOQUEIO_WIN.exe||'llamafile').split('\\').pop())+').\n\n'+
-      'Enquanto o arquivo não for liberado no Windows, ligar aqui vai falhar de novo. '+
-      'Um modelo NA PLACA não tem esse problema.\n\nTentar mesmo assim?');
-    if(!ok)return;
-  }
-  if(gb && RAM_LIVRE!==null && gb+1.5>RAM_LIVRE){
-    /* Conta com a memória livre MEDIDA agora, não com um número fixo.
-       +1,5 GB: o motor precisa de espaço além do arquivo (janela e sistema).
-       Pergunta em vez de travar: fechando programas, a memória sobe. */
-    const ok=confirm(
-      'NÃO CABE AGORA: este modelo tem '+String(gb).replace('.',',')+' GB e há '+
-      String(RAM_LIVRE).replace('.',',')+' GB de memória livre.\n\n'+
-      'O Windows vai usar o disco como memória e cada resposta pode levar '+
-      'mais de 10 minutos. Feche programas pesados (Chrome, Blender) ou use '+
-      'um modelo menor ou NA PLACA.\n\nLigar mesmo assim?');
-    if(!ok)return;
-  }else if(gb && RAM_LIVRE===null && gb>=10){
-    const ok=confirm(
-      'ATENÇÃO: este modelo tem '+String(gb).replace('.',',')+' GB.\n\n'+
+      'ATENÇÃO: este modelo tem '+gb+' GB.\n\n'+
       'Um modelo desse tamanho quase não deixa memória livre. O sistema '+
       'passa a trocar memória com o disco e ler uma pergunta leva mais de '+
       '10 minutos.\n\n'+
@@ -4589,7 +5241,10 @@ function faixaOuvindo(m,t){
   let e=$('faixaOuvindo');
   if(!m){if(e)e.remove();return;}
   if(!e){e=document.createElement('div');e.id='faixaOuvindo';e.className='ouvindo';
-    $('ctx').parentNode.insertBefore(e,$('ctx').nextSibling);}
+    // ANCORA PROPRIA (20/11/2026): era `$('ctx').parentNode`, e o #ctx
+    // mudou para dentro do chaveiro fechado. A faixa nasceria invisivel.
+    const base=$('ancoraVoz')||$('blenderBar');
+    base.parentNode.insertBefore(e,base.nextSibling);}
   e.innerHTML='<span class="onda"><i></i><i></i><i></i><i></i></span><span>'+esc(t)+'</span>'+
     '<button class="tag" style="margin-left:auto" onclick="pararVoz()">Parar</button>';
 }
@@ -4610,7 +5265,8 @@ if(window.Voz){
   Voz.ligar({
     campo: ()=>$('entrada'),
     botao: $('btMic'),
-    faixa: ()=>$('ctx')?.parentNode || document.body,
+    // `ancoraVoz`, nao `ctx`: ver o comentario na faixaOuvindo. (20/11)
+    faixa: ()=>$('ancoraVoz')?.parentNode || document.body,
     enviar: wav => fetch('/api/transcrever',{method:'POST',
       headers:{'Content-Type':'audio/wav'},body:wav}).then(r=>r.json())
       .catch(()=>({ok:false})),
@@ -4625,7 +5281,7 @@ if(window.Voz){
 if(window.Conversa){
   Conversa.ligar({
     botao: $('btConversa'),
-    faixa: ()=>$('ctx')?.parentNode || document.body,
+    faixa: ()=>$('ancoraVoz')?.parentNode || document.body,   // (20/11)
     whisperLigado: ()=>!!(VOZ&&VOZ.disponivel),
     transcrever: wav => fetch('/api/transcrever',{method:'POST',
       headers:{'Content-Type':'audio/wav'},body:wav}).then(r=>r.json())
@@ -4788,6 +5444,7 @@ setInterval(()=>{if(!document.hidden&&!ocupado)carregarRecentes();},45000);
 #logs-discreto summary{list-style:none;cursor:pointer;opacity:.28;font-size:12px;padding:6px 8px;border-radius:9px;background:rgba(10,15,20,.55);border:1px solid rgba(255,255,255,.12)}
 #logs-discreto summary::-webkit-details-marker{display:none}
 #logs-discreto[open] summary{opacity:.9}
+#logs-discreto[open]{bottom:auto;top:64px}
 #logs-caixa{width:min(680px,calc(100vw - 24px));max-height:52vh;overflow:auto;margin-top:7px;padding:10px;border-radius:12px;background:rgba(8,12,18,.96);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 35px rgba(0,0,0,.4)}
 #logs-caixa button{padding:6px 9px;border:1px solid rgba(255,255,255,.2);border-radius:7px;color:inherit;background:rgba(255,255,255,.08);cursor:pointer}
 #logs-texto{white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;color:#d7f5df;margin:8px 0 0}
@@ -4795,6 +5452,460 @@ setInterval(()=>{if(!document.hidden&&!ocupado)carregarRecentes();},45000);
 <details id="logs-discreto"><summary>diagnóstico</summary><div id="logs-caixa"><button type="button" onclick="carregarLogsBigode()">Atualizar logs</button><pre id="logs-texto">Clique em “Atualizar logs” para consultar os últimos eventos.</pre></div></details>
 <script>
 async function carregarLogsBigode(){const out=document.getElementById('logs-texto');try{const r=await fetch('/api/logs',{cache:'no-store'});const d=await r.json();out.textContent=(d.arquivos||[]).map(x=>'=== '+x.arquivo+' ===\n'+(x.linhas||[]).join('\n')).join('\n\n')||'Nenhum log registrado ainda.'}catch(e){out.textContent='Não foi possível consultar os logs: '+e}}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// PROJETO SOUL — HUB CIENTÍFICO, REDAÇÃO & WORDPRESS
+// ═══════════════════════════════════════════════════════════════════
+let SOUL_CATALOGO = [
+  {
+    tema: "O Sistema Endocanabinoide e a regulação da homeostase: bases farmacológicas e moleculares",
+    pubmed_query: "endocannabinoid system homeostasis pharmacology cannabinoid receptors",
+    prompt_capa: "Sophisticated scientific 3D biological visualization of endocannabinoid receptors CB1 and CB2 on a neural cell surface, soft luminous emerald and teal accents, clean minimalist dark depth background, award-winning medical publication cover, highly detailed, photorealistic 8k"
+  },
+  {
+    tema: "Cannabis medicinal no manejo da dor crônica: mecanismos neurobiológicos e ensaios clínicos",
+    pubmed_query: "cannabis medicinal chronic pain clinical trial analgesia",
+    prompt_capa: "Editorial scientific magazine cover, minimalist organic pharmaceutical glass dropper bottle with amber herbal extract, soft morning sunbeams on clean wooden laboratory table, blurred botanical greenhouse background, sage green and warm neutral color grading, ultra-realistic 8k"
+  },
+  {
+    tema: "Canabidiol (CBD) no transtorno de ansiedade generalizada: receptores 5-HT1A e limites da literatura",
+    pubmed_query: "cannabidiol anxiety clinical trial 5-HT1A neurobiology",
+    prompt_capa: "Calm and serene editorial medical photography, human silhouette in peaceful contemplation by large sunny window with natural green plants, warm organic morning light, soft atmospheric depth, premium mental wellness magazine aesthetic, 8k resolution"
+  },
+  {
+    tema: "Canabinoides no manejo dos distúrbios do sono e insônia: revisão de evidências e segurança",
+    pubmed_query: "cannabinoids sleep insomnia clinical trial safety",
+    prompt_capa: "Serene and peaceful scientific concept of deep restorative sleep, abstract flowing organic ribbons of soft indigo, twilight blue and warm amber, subtle neural circadian rhythm waves, elegant minimalist health publication aesthetic, photorealistic 8k"
+  },
+
+  // ───────────── OS 4 PILARES EDITORIAIS ─────────────── (04/10/2026)
+  //  Espelho do CATALOGO do gerar_artigo_soul.py. Os quatro primeiros
+  //  acima sao o pilar 1 (Medicina & Farmacologia).
+  //
+  //  ATENCAO: esta lista e o CATALOGO do Python sao DUAS copias da mesma
+  //  coisa. Reduzi de tres para duas (os cards do HTML sumiram), mas as
+  //  duas restantes ainda podem divergir. Se o Fred mexer numa, tem de
+  //  mexer na outra. O conserto definitivo seria a tela buscar o catalogo
+  //  por uma rota /api/soul/catalogo -- nao fiz porque e mudanca de
+  //  arquitetura e nao foi pedida.
+  {
+    tema: "Fotoperíodo, luz e desenvolvimento da Cannabis: bases fisiológicas do cultivo em ambiente controlado",
+    pubmed_query: "cultivo cannabis fotoperiodo luz fisiologia vegetal ambiente controlado agronomia",
+    prompt_capa: "Editorial agricultural science photography, modern research greenhouse interior with controlled LED grow lighting, orderly rows of healthy green leafy plants in clean substrate pots, humidity sensors and data probes visible, soft volumetric light rays, deep green and warm neutral color grading, award-winning agronomy publication cover, photorealistic 8k"
+  },
+  {
+    tema: "Solo, substrato e nutrição mineral: manejo agronômico e seu efeito no perfil de terpenos",
+    pubmed_query: "substrato nutricao mineral solo manejo agronomico terpenos perfil quimico planta",
+    prompt_capa: "Macro editorial botanical photography, close-up cross-section of rich dark organic soil with visible root structure and mineral granules, single young green seedling emerging, scientific soil sample containers blurred behind, earthy brown and sage green palette, natural diffused daylight, premium botany journal aesthetic, ultra-detailed 8k"
+  },
+  {
+    tema: "A construção do proibicionismo no Brasil: imprensa, racismo e as raízes da política de drogas",
+    pubmed_query: "historia proibicionismo cannabis Brasil politica de drogas racismo imprensa sociologia",
+    prompt_capa: "Archival editorial still life, aged sepia manuscripts and early twentieth century newspaper clippings layered on dark wooden desk, antique botanical illustration plate of a leafy plant, brass magnifying glass and fountain pen, warm candlelit side lighting, deep amber and faded parchment tones, museum archive photography aesthetic, photorealistic 8k"
+  },
+  {
+    tema: "Salvo-conduto para cultivo medicinal: o que o STJ decidiu, o que ainda não é regra geral",
+    pubmed_query: "STJ salvo-conduto habeas corpus cultivo cannabis fins medicinais jurisprudencia lei 11343 direito",
+    prompt_capa: "Formal institutional editorial still life, classical brass scales of justice beside stacked leather-bound law volumes, a single fresh green botanical leaf placed on one scale pan, dark walnut courtroom desk, deep charcoal background with warm gold rim lighting, restrained and serious tone, premium legal publication cover, ultra-realistic 8k"
+  }
+];
+
+// O rotulo e o pilar de cada tema, na ordem do SOUL_CATALOGO.
+const SOUL_PILARES = [
+  "Medicina & Farmacologia", "Medicina & Farmacologia",
+  "Medicina & Farmacologia", "Medicina & Farmacologia",
+  "Cultivo & Botânica", "Cultivo & Botânica",
+  "História & Sociedade", "Direito & Regulação"
+];
+
+function soulDesenharCatalogo(){
+  const caixa = document.getElementById('soulCatalogo');
+  if(!caixa) return;   // tela antiga ou secao ainda nao montada
+  const esc = s => String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+  caixa.innerHTML = SOUL_CATALOGO.map((item, i) =>
+    '<button type="button" class="soul-card-tema' + (i === 0 ? ' selecionado' : '') +
+    '" id="cardTema-' + i + '" role="radio" aria-checked="' + (i === 0) + '"' +
+    ' onclick="soulEscolherCatalogo(' + i + ')">' +
+    '<div class="tema-tag">' + esc(SOUL_PILARES[i] || 'Projeto Soul') + '</div>' +
+    '<div class="tema-titulo">' + esc(item.tema) + '</div>' +
+    '</button>'
+  ).join('');
+}
+soulDesenharCatalogo();
+
+let SOUL_TEMA_ATUAL = SOUL_CATALOGO[0].tema;
+let SOUL_PROMPT_CAPA = SOUL_CATALOGO[0].prompt_capa;
+let SOUL_FONTES_ATUAIS = [];
+let SOUL_ARTIGO_ATUAL = null;
+let SOUL_CAPA_ATUAL = "";
+let SOUL_CAPA_URL = "";
+
+function soulMudarAba(aba){
+  $('tabBt-passos').classList.toggle('on', aba==='passos');
+  $('tabBt-rascunhos').classList.toggle('on', aba==='rascunhos');
+  $('tabBt-conexao').classList.toggle('on', aba==='conexao');
+  $('soulSecaoPassos').style.display = (aba==='passos' ? 'block' : 'none');
+  $('soulSecaoRascunhos').style.display = (aba==='rascunhos' ? 'block' : 'none');
+  $('soulSecaoConexao').style.display = (aba==='conexao' ? 'block' : 'none');
+  if(aba==='rascunhos') soulRascunhos();
+}
+
+function soulEscolherCatalogo(idx){
+  // ERA `i<4` FIXO                                        (04/10/2026)
+  //   Com 8 temas, os cards 4 a 7 nunca eram desmarcados: dava para
+  //   deixar dois cards acesos ao mesmo tempo, e o tema que valia era o
+  //   ultimo clicado -- divergindo do que a tela mostrava.
+  for(let i=0; i<SOUL_CATALOGO.length; i++){
+    const el = $('cardTema-'+i);
+    if(el){
+      el.classList.toggle('selecionado', i===idx);
+      el.setAttribute('aria-checked', String(i===idx));
+    }
+  }
+  const sel = SOUL_CATALOGO[idx];
+  if(sel){
+    SOUL_TEMA_ATUAL = sel.tema;
+    SOUL_PROMPT_CAPA = sel.prompt_capa;
+    $('soulTema').value = sel.tema;
+  }
+}
+
+function soulAtualizarStepper(faseAtiva){
+  for(let i=1; i<=5; i++){
+    const el = $('sStep-'+i);
+    if(!el) continue;
+    el.classList.remove('on', 'concluido');
+    if(i < faseAtiva) el.classList.add('concluido');
+    else if(i === faseAtiva) el.classList.add('on');
+  }
+}
+
+function soulVoltarFase(fase){
+  $('soulFase1').style.display = (fase===1 ? 'block' : 'none');
+  $('soulFase2').style.display = (fase===2 ? 'block' : 'none');
+  $('soulFase3').style.display = (fase===3 ? 'block' : 'none');
+  $('soulFase4').style.display = (fase===4 ? 'block' : 'none');
+  $('soulFase5').style.display = (fase===5 ? 'block' : 'none');
+  soulAtualizarStepper(fase);
+}
+
+async function soulIniciarPasso1(){
+  const tema = $('soulTema').value.trim();
+  if(!tema) return toast('Digite o tema do artigo.', 'alerta');
+  SOUL_TEMA_ATUAL = tema;
+  const urls = $('soulFontes').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+
+  soulVoltarFase(2);
+  $('soulFontesContador').innerHTML = '<span style="color:var(--alerta)">⏳ Executando código Python: consultando API do PubMed (NCBI) e Marco Regulatório ANVISA...</span>';
+  $('soulFontesLista').innerHTML = '<div class="vazio2">Consultando literatura médica…</div>';
+  $('soulDlgFase2').style.display = 'none';
+
+  try {
+    const res = await (await fetch('/api/soul/fontes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tema: tema, urls: urls})
+    })).json();
+
+    if(!res.ok) throw new Error(res.erro || 'Falha ao coletar fontes.');
+    SOUL_FONTES_ATUAIS = res.fontes || [];
+
+    $('soulFontesContador').innerHTML = '<span style="color:var(--ok)">✓ Sucesso: ' + SOUL_FONTES_ATUAIS.length + ' fontes científicas e regulatórias verificadas!</span>';
+
+    $('soulFontesLista').innerHTML = SOUL_FONTES_ATUAIS.map((f, i) => {
+      // AS ORIGENS NOVAS DOS 4 PILARES                      (04/10/2026)
+      //   Qualquer fonte que nao fosse ANVISA ou SciELO recebia a classe
+      //   'pubmed'. Com o roteamento por eixo, uma decisao do STJ e uma
+      //   lei federal apareciam com selo azul de PubMed -- rotulo errado
+      //   num artigo que cita jurisprudencia nao e detalhe de cor.
+      let bClass = 'pubmed';
+      const orig = String(f.fonte || '');
+      if(orig === 'ANVISA') bClass = 'anvisa';
+      else if(orig.includes('SciELO')) bClass = 'scielo';
+      else if(orig === 'OpenAlex') bClass = 'openalex';
+      else if(orig === 'STJ' || orig.includes('STF')) bClass = 'stj';
+      else if(orig.includes('Presid') || orig.includes('Legisla')) bClass = 'lei';
+      return '<div class="soul-fonte-item">' +
+        '<div class="soul-fonte-meta">' +
+          '<span class="soul-fonte-badge ' + bClass + '">' + esc(f.fonte || 'PubMed') + '</span>' +
+          '<span style="color:var(--txt2)">' + esc(f.ano || 's.d.') + '</span>' +
+        '</div>' +
+        '<div class="soul-fonte-titulo">[' + (i+1) + '] ' + esc(f.titulo || '') + '</div>' +
+        '<div class="soul-fonte-resumo">' + esc((f.resumo || '').slice(0, 180)) + '...</div>' +
+        (f.url ? '<a class="soul-fonte-link" href="' + esc(f.url) + '" target="_blank" rel="noopener">Ver fonte oficial ↗</a>' : '') +
+      '</div>';
+    }).join('');
+
+    $('soulDlgFase2').style.display = 'block';
+  } catch(e) {
+    $('soulFontesContador').innerHTML = '<span style="color:var(--erro)">[ERRO] ' + esc(e.message) + '</span>';
+  }
+}
+
+async function soulAvancarParaRedacao(){
+  soulVoltarFase(3);
+  $('soulRedacaoStatus').innerHTML = '<span style="color:var(--alerta)">⏳ Redigindo artigo estruturado com a IA (tom educativo, citações canônicas)...</span>';
+  $('soulArtigoWrapper').style.display = 'none';
+
+  try {
+    const urls = $('soulFontes').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const res = await (await fetch('/api/soul/redigir', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tema: SOUL_TEMA_ATUAL, urls: urls})
+    })).json();
+
+    if(!res.ok) throw new Error(res.erro || 'Falha ao redigir artigo.');
+    SOUL_ARTIGO_ATUAL = res.artigo;
+
+    $('soulRedacaoStatus').innerHTML = '<span style="color:var(--ok)">✓ Artigo científico redigido com sucesso!</span>';
+    $('soulArtigoTitulo').textContent = SOUL_ARTIGO_ATUAL.titulo || SOUL_TEMA_ATUAL;
+    $('soulArtigoPalavras').textContent = '~' + (SOUL_ARTIGO_ATUAL.palavras || 0) + ' palavras';
+
+    let htmlFormatado = SOUL_ARTIGO_ATUAL.html || '';
+    if(!htmlFormatado && SOUL_ARTIGO_ATUAL.markdown){
+      htmlFormatado = SOUL_ARTIGO_ATUAL.markdown
+        .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+        .replace(/## (.*?)\n/g, '<h2>$1</h2>')
+        .replace(/# (.*?)\n/g, '<h1>$1</h1>')
+        .replace(/\n\n/g, '</p><p>');
+      htmlFormatado = '<p>' + htmlFormatado + '</p>';
+    }
+    $('soulArtigoConteudo').innerHTML = htmlFormatado;
+    $('soulArtigoWrapper').style.display = 'block';
+  } catch(e) {
+    $('soulRedacaoStatus').innerHTML = '<span style="color:var(--erro)">[ERRO] ' + esc(e.message) + '</span>';
+  }
+}
+
+function soulAlternarKitSocial(tipo){
+  const el = $('soulKitSocialView');
+  if(!SOUL_ARTIGO_ATUAL){ el.style.display='none'; return; }
+  if(tipo==='carrossel'){
+    const slides = SOUL_ARTIGO_ATUAL.slides || [];
+    el.innerHTML = '<b>7 Slides do Carrossel (Instagram/LinkedIn):</b><br><ol style="padding-left:20px;margin-top:8px">' +
+      slides.map(s => '<li style="margin-bottom:6px">' + esc(s) + '</li>').join('') + '</ol>';
+    el.style.display = (el.style.display==='block' ? 'none' : 'block');
+  } else if(tipo==='whats'){
+    el.innerHTML = '<b>Resumo para WhatsApp:</b><br><div style="margin-top:6px;white-space:pre-wrap">' +
+      esc(SOUL_ARTIGO_ATUAL.whatsapp_summary || 'Resumo executivo pronto.') + '</div>';
+    el.style.display = (el.style.display==='block' ? 'none' : 'block');
+  }
+}
+
+async function soulAvancarParaCapa(){
+  soulVoltarFase(4);
+  $('soulCapaStatus').innerHTML = '<span style="color:var(--alerta)">⏳ Chamando a API da Pipi IA para gerar a imagem da capa em proporção 16:9...</span>';
+  $('soulCapaWrapper').style.display = 'none';
+
+  try {
+    const prompt = SOUL_PROMPT_CAPA || ("Sophisticated scientific 3D biological visualization for: " + (SOUL_ARTIGO_ATUAL?.titulo || SOUL_TEMA_ATUAL) + ", soft luminous emerald accents, minimalist depth, 8k");
+    const res = await (await fetch('/api/soul/capa', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: prompt, titulo: SOUL_ARTIGO_ATUAL?.titulo || SOUL_TEMA_ATUAL})
+    })).json();
+
+    if(!res.ok) throw new Error(res.erro || 'Falha ao gerar capa.');
+    SOUL_CAPA_ATUAL = res.caminho || '';
+    SOUL_CAPA_URL = res.imagem_url || '';
+
+    $('soulCapaStatus').innerHTML = '<span style="color:var(--ok)">✓ Imagem gerada com sucesso pela Pipi IA!</span>';
+    $('soulCapaImg').src = SOUL_CAPA_URL;
+    $('soulCapaPromptDesc').textContent = 'Prompt visual: "' + prompt.slice(0, 120) + '..."';
+    $('soulCapaWrapper').style.display = 'block';
+  } catch(e) {
+    $('soulCapaStatus').innerHTML = '<span style="color:var(--erro)">[ERRO] ' + esc(e.message) + '</span>';
+  }
+}
+
+function soulRegerarCapa(){
+  soulAvancarParaCapa();
+}
+
+function soulAvancarParaFinal(){
+  soulVoltarFase(5);
+  $('soulMiniCapa').src = SOUL_CAPA_URL;
+  $('soulResumoTitulo').textContent = SOUL_ARTIGO_ATUAL?.titulo || SOUL_TEMA_ATUAL;
+  $('soulSucessoBox').style.display = 'none';
+  $('soulBtEnviarWP').disabled = false;
+}
+
+async function soulEnviarParaWordPress(publicarDireto){
+  if(publicarDireto){
+    const confirma = confirm("Atenção: Publicar diretamente tornará o artigo IMEDIATAMENTE público no site projetosoul.com.br. Deseja realmente publicar agora?");
+    if(!confirma) return;
+  }
+
+  $('soulBtEnviarWP').disabled = true;
+  $('soulBtEnviarWP').textContent = 'Injetando no WordPress…';
+
+  try {
+    const res = await (await fetch('/api/soul/rascunho', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({artigo: SOUL_ARTIGO_ATUAL, capa: SOUL_CAPA_ATUAL, categorias: [1, 17]})
+    })).json();
+
+    if(!res.ok) throw new Error(res.erro || 'Falha ao salvar no WordPress.');
+    const rascunho = res.rascunho || {};
+
+    if(publicarDireto && rascunho.id){
+      await fetch('/api/soul/publicar', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: rascunho.id, confirmacao_explicita: true})
+      });
+    }
+
+    $('soulSucessoBox').style.display = 'block';
+    $('soulSucessoTexto').innerHTML = 'Post ID: <b>#' + rascunho.id + '</b><br>' +
+      'Status: <b>' + (publicarDireto ? 'PUBLICADO OFICIALMENTE' : 'DRAFT (Rascunho seguro)') + '</b><br>' +
+      'Imagem de Destaque: ' + (rascunho.media_id ? 'Anexada com sucesso' : 'Sem imagem') + '<br>' +
+      'Link público/rascunho: <a href="' + esc(rascunho.link) + '" target="_blank" style="color:var(--neon)">' + esc(rascunho.link) + '</a>';
+    
+    $('soulLinkEdicaoWP').href = rascunho.edit_link || (rascunho.link || '#');
+    toast('Sucesso! Artigo injetado no Projeto Soul!', 'ok');
+  } catch(e) {
+    alert('Erro ao enviar para o WordPress: ' + e.message);
+    $('soulBtEnviarWP').disabled = false;
+    $('soulBtEnviarWP').textContent = '🚀 DAR DE ACORDO: Criar Rascunho no WordPress com Capa';
+  }
+}
+
+function soulReiniciarFluxo(){
+  soulVoltarFase(1);
+  soulEscolherCatalogo(0);
+}
+
+async function soulCarregar(){
+  try {
+    const d = await (await fetch('/api/soul/estado', {cache: 'no-store'})).json();
+    $('soulUrl').value = d.url || 'https://projetosoul.com.br';
+    $('soulUser').value = d.usuario || '';
+    $('soulOut').value = d.pasta_saida || '';
+    const badge = $('soulStatusTexto');
+    const led = $('soulLed');
+    if(d.configurado){
+      badge.textContent = 'Conectado a ' + (d.url || 'projetosoul.com.br') + ' (Usuário: ' + d.usuario + ')';
+      if(led) led.style.background = 'var(--ok)';
+    } else {
+      badge.textContent = 'Não configurado (clique em Conexão & Categorias)';
+      if(led) led.style.background = 'var(--alerta)';
+    }
+  } catch(e) {
+    $('soulStatusTexto').textContent = 'Status indisponível: ' + e.message;
+  }
+}
+
+async function soulSalvar(){
+  const dados = {
+    url: $('soulUrl').value.trim(),
+    usuario: $('soulUser').value.trim(),
+    app_password: $('soulPass').value,
+    pasta_saida: $('soulOut').value.trim()
+  };
+  try {
+    const r = await (await fetch('/api/soul/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(dados)
+    })).json();
+    if(!r.ok) throw new Error(r.erro || 'Falha ao salvar.');
+    $('soulPass').value = '';
+    $('soulStatus').textContent = 'Configuração salva com sucesso!';
+    $('soulStatus').style.color = 'var(--ok)';
+    soulCarregar();
+    toast('Configuração guardada!', 'ok');
+  } catch(e) {
+    $('soulStatus').textContent = 'Erro ao salvar: ' + e.message;
+    $('soulStatus').style.color = 'var(--erro)';
+  }
+}
+
+async function soulTestar(){
+  await soulSalvar();
+  try {
+    const d = await (await fetch('/api/soul/testar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: '{}'
+    })).json();
+    $('soulStatus').textContent = d.mensagem || 'Sem resposta do WordPress.';
+    $('soulStatus').style.color = d.ok ? 'var(--ok)' : 'var(--erro)';
+    if(d.categorias && d.categorias.length){
+      $('soulCatsLista').innerHTML = d.categorias.map(c =>
+        '<label style="display:flex;gap:8px;align-items:center;margin:4px 0"><input type="checkbox" data-soul-cat="' + c.id + '" style="width:auto" ' + ([1, 17].includes(c.id) ? 'checked' : '') + '> ' + esc(c.nome) + ' (ID ' + c.id + ')</label>'
+      ).join('');
+      $('soulCats').style.display = 'block';
+    }
+    soulCarregar();
+  } catch(e) {
+    $('soulStatus').textContent = 'Falha ao testar: ' + e.message;
+  }
+}
+
+async function soulSalvarCategorias(){
+  const categorias = [...document.querySelectorAll('[data-soul-cat]:checked')].map(x => Number(x.dataset.soulCat));
+  try {
+    const r = await (await fetch('/api/soul/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({categorias: categorias})
+    })).json();
+    if(!r.ok) throw new Error(r.erro || 'Falha ao salvar categorias.');
+    toast('Categorias salvas com sucesso!', 'ok');
+  } catch(e) {
+    toast('Erro ao salvar categorias: ' + e.message, 'erro');
+  }
+}
+
+async function soulRascunhos(){
+  $('soulDrafts').innerHTML = '<div class="vazio2">Carregando rascunhos do WordPress…</div>';
+  try {
+    const d = await (await fetch('/api/soul/rascunhos', {cache: 'no-store'})).json();
+    const lista = d.rascunhos || [];
+    if(!lista.length){
+      $('soulDrafts').innerHTML = '<div class="vazio2">Nenhum rascunho encontrado no WordPress.</div>';
+      return;
+    }
+    $('soulDrafts').innerHTML = lista.map(p =>
+      '<div class="conn" style="margin-bottom:8px">' +
+        '<div class="li-t">' + esc(p.titulo || 'Sem título') + '</div>' +
+        '<div class="li-s">Rascunho #' + Number(p.id) + '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:8px">' +
+          '<a class="bt" href="' + esc(p.edit_link || '#') + '" target="_blank" rel="noopener">Editar no WordPress ↗</a>' +
+          '<button class="bt forte" data-soul-publicar="' + Number(p.id) + '">Publicar</button>' +
+        '</div>' +
+      '</div>'
+    ).join('');
+    document.querySelectorAll('[data-soul-publicar]').forEach(b => {
+      b.onclick = () => soulPublicar(Number(b.dataset.soulPublicar), 'Rascunho #' + b.dataset.soulPublicar);
+    });
+  } catch(e) {
+    $('soulDrafts').innerHTML = '<div class="vazio2">Não consegui carregar rascunhos: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function soulPublicar(id, titulo){
+  if(!confirm("Deseja realmente publicar publicamente no site o post: " + titulo + "?")) return;
+  try {
+    const r = await (await fetch('/api/soul/publicar', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id: id, confirmacao_explicita: true})
+    })).json();
+    if(!r.ok) throw new Error(r.erro || 'Falha ao publicar.');
+    toast('Publicado com sucesso!', 'ok');
+    soulRascunhos();
+  } catch(e) {
+    toast('Erro ao publicar: ' + e.message, 'erro');
+  }
+}
+
 </script>
 
 </body>

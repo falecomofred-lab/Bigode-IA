@@ -5,11 +5,13 @@ BIGODE IA - plataforma de IA da Venure (venure.com.br)
 
 Interface + identidade + memoria semantica + ferramentas sobre um modelo local (llamafile).
 Usa a biblioteca padrao do Python e o ChromaDB para memoria vetorial local.
+Venure.com.br - Tecnologia
 
 Uso:  python cerebro.py
 """
 
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -54,6 +56,7 @@ except ImportError:
     pesquisa_profunda = _PesquisaAusente()
 
 import agenda
+import tarefas
 import armazenamento
 import diario
 import especialistas
@@ -197,7 +200,13 @@ def config():
     # 0.45 com penalidade de repeticao soa natural sem virar invencionice.
     dados.setdefault("temperatura", 0.45)
     dados.setdefault("max_tokens", 1000)
-    dados.setdefault("max_passos", 8)
+    # Perfis apenas aplicam instruções e parâmetros à conversa. A troca de
+    # modelo local é disparada explicitamente pelo seletor da interface.
+    dados.setdefault("perfil_ia", "padrao")
+    dados.setdefault("perfis_ia", {})
+    dados.setdefault("modo_transparente", False)
+    dados.setdefault("proatividade", "estrita")
+    dados.setdefault("max_passos", 15)
     dados.setdefault("memorias_por_pergunta", 3)
     dados.setdefault("nivel_autorizacao", "sempre")
     dados.setdefault("contexto", 8192)
@@ -222,8 +231,12 @@ def config():
         "google": {"client_id": "", "client_secret": ""},
         "github": {"client_id": "", "client_secret": ""},
     })
-    dados.setdefault("pastas_liberadas", ["G:\\Meu Drive\\projetos"])
+    liberadas = dados.setdefault("pastas_liberadas", ["G:\\Meu Drive\\projetos"])
+    if "D:\\IA Imagens" not in liberadas: liberadas.append("D:\\IA Imagens")
+    escaneamento = dados.setdefault("pastas_escaneamento", [])
+    if "D:\\IA Imagens" not in escaneamento: escaneamento.append("D:\\IA Imagens")
     dados.setdefault("aguardar_modelo_seg", 900)
+    dados.setdefault("auto_connect", True)
 
     # Chave de pareamento da extensao do Chrome.
     #
@@ -399,6 +412,65 @@ def config_publica():
 
 def conexoes():
     return json.loads(ler(BASE / "conexoes.json", "{}") or "{}")
+
+
+def _testar_pasta_conexao(caminho):
+    """Confirma leitura/escrita numa pasta escolhida, sem deixar arquivo de teste."""
+    texto = str(caminho or "").strip()
+    if not texto or len(texto) > 2048:
+        return {"ok": False, "erro": "Informe uma pasta válida (até 2.048 caracteres)."}
+    alvo = Path(texto).expanduser()
+    try:
+        if not alvo.exists() or not alvo.is_dir():
+            return {"ok": False, "erro": "A pasta não existe ou não é um diretório."}
+        alvo = alvo.resolve(strict=True)
+        teste = alvo / (".bigode-health-" + uuid.uuid4().hex + ".tmp")
+        fd = os.open(str(teste), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        try:
+            os.write(fd, b"Bigode IA local folder check\n")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        conteudo = teste.read_bytes()
+        if conteudo != b"Bigode IA local folder check\n":
+            raise OSError("o arquivo de teste não pôde ser lido de volta")
+        teste.unlink()
+        return {"ok": True, "legivel": True, "gravavel": True,
+                "mensagem": "Leitura e escrita verificadas; arquivo temporário removido."}
+    except (OSError, ValueError) as exc:
+        try:
+            if "teste" in locals(): teste.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return {"ok": False, "erro": "Não foi possível testar a pasta: %s" % str(exc)[:220]}
+
+
+def _testar_token_github():
+    """Valida o token salvo com GET /user; não devolve, persiste nem registra o token."""
+    item = conexoes().get("github", {})
+    token = str(item.get("token") or "").strip() if isinstance(item, dict) else ""
+    if not token:
+        return {"ok": False, "erro": "Nenhum token GitHub foi salvo nesta conexão."}
+    if len(token) > 500 or "\n" in token or "\r" in token:
+        return {"ok": False, "erro": "O token salvo tem formato inválido."}
+    pedido = urllib.request.Request(
+        "https://api.github.com/user",
+        headers={"Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28",
+                 "User-Agent": "BigodeIA-local-connector-check"})
+    try:
+        with urllib.request.urlopen(pedido, timeout=10) as resposta:
+            if resposta.status != 200:
+                return {"ok": False, "erro": "GitHub respondeu HTTP %d." % resposta.status}
+            perfil = json.loads(resposta.read(65536).decode("utf-8"))
+            return {"ok": True, "usuario": str(perfil.get("login") or "")[:100],
+                    "permissoes": resposta.headers.get("X-OAuth-Scopes", "")[:300],
+                    "mensagem": "Token aceito pelo GitHub; o segredo permaneceu local."}
+    except urllib.error.HTTPError as exc:
+        return {"ok": False, "erro": "GitHub rejeitou a credencial (HTTP %d)." % exc.code}
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        return {"ok": False, "erro": "Não foi possível verificar no GitHub: %s" % str(exc)[:220]}
 
 
 def custo_conexoes():
@@ -592,9 +664,13 @@ Regras:
 """
 
 PROTOCOLO = """
-# COMO VOCE TRABALHA
+# COMO VOCE TRABALHA (LOOP DE AGENTE PASSO A PASSO)
 
-Voce EXECUTA, nao descreve. Use ferramentas quando elas forem necessárias para cumprir o pedido.
+Voce EXECUTA ate o fim, nao para na metade. Trabalhe sempre no ciclo:
+1. AVALIAR/PLANEJAR: entenda o objetivo completo e liste mentalmente as etapas que faltam.
+2. AGIR: chame a ferramenta necessaria para a etapa atual.
+3. OBSERVAR E REFLETIR: leia o RESULTADO da ferramenta. Deu erro ou faltam arquivos/etapas? Ajuste o rumo e chame a proxima ferramenta imediatamente.
+4. CONCLUIR: so escreva a resposta final quando TODAS as etapas do pedido estiverem 100% concluidas e verificadas.
 
 Conversa simples, saudação, explicação geral, brainstorming ou pedido de redação não exigem ferramenta por si só. Para fatos atuais, números, leis, arquivos, código, projetos, internet ou dados do computador, busque evidência antes de afirmar.
 
@@ -687,10 +763,11 @@ def bloco_personalidade():
 
 
 PROTOCOLO_CURTO = """
-# COMO VOCE TRABALHA
+# COMO VOCE TRABALHA (PASSO A PASSO ATE O FIM)
 
-Voce EXECUTA, nao descreve. Ja tem acesso a tudo: nunca peca permissao nem
-pergunte um caminho que voce mesmo pode descobrir com listar_pasta.
+Voce EXECUTA ate concluir todas as etapas, nao para na primeira ferramenta.
+Apos cada RESULTADO de ferramenta, reflita: se deu erro, tente outro caminho; se ainda falta etapa do pedido ou do plano, chame a proxima ferramenta imediatamente.
+Ja tem acesso a tudo: nunca peca permissao nem pergunte um caminho que voce mesmo pode descobrir com listar_pasta.
 
 Falou de pasta, projeto, arquivo ou auditoria? Chame a ferramenta ANTES de
 responder. Nunca fale de um arquivo sem ter lido.
@@ -784,8 +861,9 @@ def mapa_dos_projetos():
     return _MAPA["texto"]
 
 
-def montar_system(pergunta, colecao=""):
+def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True):
     cfg = config()
+    variaveis = []   # blocos que MUDAM a cada pergunta (ver CACHE DO MOTOR)
     roteamento = roteador_semantico.classificar_consulta(pergunta)
     colecao_alvo = colecao or roteamento.get("colecao", "todas")
     # temperamento.md vem logo depois da identidade: e a disciplina que vale
@@ -806,7 +884,8 @@ def montar_system(pergunta, colecao=""):
         partes.append((PROTOCOLO_CURTO if prompt_pequeno() else PROTOCOLO).strip())
         partes.append("# PASTAS LIBERADAS\n\n" + "\n".join(
             "- " + p for p in cfg.get("pastas_liberadas", [])))
-        partes.append(habilidades.resumo_para_prompt(pergunta))
+        # Filtrada pela pergunta: muda a cada mensagem -> fica fora do prefixo.
+        variaveis.append(habilidades.resumo_para_prompt(pergunta))
         # A lista de projetos entra junto com o resto do que e FIXO, para o
         # motor guardar tudo de uma vez e nao reler a cada conversa.
         partes.append(mapa_dos_projetos())
@@ -819,8 +898,8 @@ def montar_system(pergunta, colecao=""):
         contexto, fontes = memoria_relevante(
             pergunta, int(cfg.get("memorias_por_pergunta", 3)))
         if contexto:
-            partes.append("# MEMORIA DOS PROJETOS\n\nUse como fato apenas o que "
-                          "estiver abaixo.\n\n" + contexto)
+            variaveis.append("# MEMORIA DOS PROJETOS\n\nUse como fato apenas o que "
+                             "estiver abaixo.\n\n" + contexto)
 
     fontes_chroma = []
     if cfg.get("injetar_chroma", True):
@@ -834,7 +913,7 @@ def montar_system(pergunta, colecao=""):
             anotar_erro("[chroma] memoria indisponivel nesta pergunta", erro_chroma)
             contexto_chroma, fontes_chroma = "", []
         if contexto_chroma:
-            partes.append(
+            variaveis.append(
                 "# MEMORIA SEMANTICA DO CHROMADB\n\n"
                 "Roteamento: coleção %s. Use como fato apenas os trechos abaixo; "
                 "se não houver evidência suficiente, diga que não sabe.\n\n%s"
@@ -850,11 +929,15 @@ def montar_system(pergunta, colecao=""):
     # Isto vem do diario em Markdown no Drive -- que sobrevive ao pendrive,
     # ao Colab e a troca de maquina. Custa uns 300 tokens e some primeiro se
     # a janela apertar.
-    if cfg.get("lembrar_do_passado", True):
+    # (02/11) O diario muda depois de CADA resposta. Dentro do system, ele
+    # mudava o inicio do prompt a toda mensagem e o cache nunca pegava.
+    # Agora so entra na PRIMEIRA mensagem de uma conversa (no meio dela, o
+    # historico ja da a continuidade) e vai no contexto variavel.
+    if cfg.get("lembrar_do_passado", True) and conversa_nova:
         try:
             retomada = diario.retomar(cfg)
             if retomada:
-                partes.append(retomada)
+                variaveis.append(retomada)
         except Exception:
             pass          # memoria e conforto; nunca derruba a conversa
 
@@ -896,20 +979,70 @@ def montar_system(pergunta, colecao=""):
                  "# ONDE VOCES PARARAM", "# PASTAS LIBERADAS"]
     cortados = []
     for cabecalho in opcionais:
-        texto = "\n\n".join(p.strip() for p in partes if p and p.strip())
+        texto = "\n\n".join(p.strip() for p in partes + variaveis if p and p.strip())
         if _tokens(texto) <= teto:
             break
-        antes = len(partes)
+        antes = len(partes) + len(variaveis)
         partes = [p for p in partes
                   if not (p or "").strip().startswith(cabecalho)]
-        if len(partes) < antes:
+        variaveis = [p for p in variaveis
+                     if not (p or "").strip().startswith(cabecalho)]
+        if len(partes) + len(variaveis) < antes:
             cortados.append(cabecalho.replace("# ", ""))
 
-    final = "\n\n".join(p.strip() for p in partes if p and p.strip())
     if cortados:
         anotar_erro("prompt grande demais para a janela de %d: tirei %s"
                     % (limite, ", ".join(cortados)))
-    return final, fontes
+    fixo = "\n\n".join(p.strip() for p in partes if p and p.strip())
+    variavel = "\n\n".join(p.strip() for p in variaveis if p and p.strip())
+    if dividir:
+        return fixo, variavel, fontes
+    # Quem nao pediu divisao (aquecimento, ponte, telas) recebe tudo junto.
+    return "\n\n".join(x for x in (fixo, variavel) if x), fontes
+
+
+# ═══ CACHE DO MOTOR (Fase 4, 02/11) ═══════════════════════════════════════
+#
+#   O motor.log mostrou o motivo real da demora: quase toda mensagem
+#   reprocessava 5 a 7 mil tokens do zero (4 a 6 MINUTOS a 21 tokens/s).
+#   O llama.cpp reaproveita o pedaco INICIAL do prompt que se repete entre
+#   pedidos (cache_prompt). So que o system mudava a cada pergunta: o
+#   resumo de habilidades filtrado pela pergunta, a memoria do ChromaDB e a
+#   memoria de fatos estavam DENTRO dele -- e tudo que vinha depois, o
+#   historico inteiro, era relido.
+#
+#   Agora o system e o historico ficam iguais entre as mensagens, e o que
+#   muda por pergunta vai junto da ULTIMA mensagem do Fred. O motor so le
+#   de novo a mensagem nova + esse contexto (centenas de tokens).
+def _anexar_contexto(mensagens, variavel):
+    if not variavel or not mensagens:
+        return mensagens
+    ultima = mensagens[-1]
+    if ultima.get("role") != "user" or not isinstance(ultima.get("content"), str):
+        return mensagens
+    nova = dict(ultima)
+    nova["content"] = ("[CONTEXTO PARA ESTA PERGUNTA -- use como fato apenas o que "
+                       "estiver aqui; se faltar evidencia, diga que nao sabe]\n"
+                       + variavel + "\n[FIM DO CONTEXTO]\n\n" + ultima["content"])
+    return mensagens[:-1] + [nova]
+
+
+def _blocos_de_comportamento(cfg):
+    """Perfil + proatividade: o MESMO texto na conversa e no aquecimento.
+    Se o aquecimento montasse um system diferente do da conversa, ele
+    aqueceria um prefixo que a conversa nunca usa."""
+    extra = ""
+    perfil_def = PERFIS_IA.get(str(cfg.get("perfil_ia") or "padrao"))
+    if perfil_def:
+        extra += ("\n\n# PERFIL DE TRABALHO: %s\n%s\n"
+                  % (perfil_def["nome"], perfil_def["instrucao"]))
+    if cfg.get("proatividade", "estrita") == "proativa":
+        extra += ("\n\n# PROATIVIDADE\nExecute o pedido e, ao final, aponte melhorias ou riscos "
+                  "relevantes sem alterar o escopo nem executar ações não solicitadas.\n")
+    else:
+        extra += ("\n\n# EXECUÇÃO ESTRITA\nSiga exatamente o pedido. Não amplie o escopo nem "
+                  "execute ações adicionais sem solicitação explícita.\n")
+    return extra
 
 
 # ==========================================================================
@@ -993,6 +1126,8 @@ def pedir_ao_navegador(nome, args, evento, espera=90):
                     "imagem, diga ao Fred onde ela esta salva." % url)
         espera = min(espera, 45)
     resultado = _pedir_ao_navegador_bruto(nome, args, evento, espera)
+    if nome == "navegador_foto":
+        return _descrever_foto_do_navegador(resultado, args, evento)
     if nome == "navegador_ir" and isinstance(resultado, str) and (
             "[INSTRUCAO AO ASSISTENTE" in resultado
             or resultado.startswith(("A única aba", "Só encontrei páginas internas",
@@ -1006,6 +1141,63 @@ def pedir_ao_navegador(nome, args, evento, espera=90):
         except Exception:
             pass
     return resultado
+
+
+# FOTO DO NAVEGADOR -> TEXTO                                    (02/11)
+#   O motor de texto (Qwen 7B) nao enxerga imagem. A extensao (ou a janela
+#   propria) devolve "IMAGEM:data:image/jpeg;base64,...". Aqui a foto e salva
+#   em producao/capturas e o Moondream local (visao_local.py, porta 8083) a
+#   descreve. O modelo recebe so o TEXTO -- a imagem crua nunca entra no
+#   prompt (uma foto em base64 sao ~100 mil caracteres; estouraria a janela).
+def _descrever_foto_do_navegador(resultado, args, evento):
+    import base64 as _b64
+    texto = str(resultado or "")
+    if not texto.startswith("IMAGEM:data:image"):
+        return texto or "A extensao nao devolveu a foto."
+    cabeca, _, resto = texto.partition("\n")
+    endereco = resto.replace("ENDERECO:", "").strip()
+    try:
+        dados = _b64.b64decode(cabeca.split(",", 1)[1])
+    except Exception:
+        return "A foto chegou corrompida. Tente navegador_foto de novo."
+    pasta = BASE / "producao" / "capturas"
+    pasta.mkdir(parents=True, exist_ok=True)
+    arquivo = pasta / ("tela_%s.jpg" % time.strftime("%Y%m%d_%H%M%S"))
+    arquivo.write_bytes(dados)
+    evento({"tipo": "acao", "id": "foto-tela", "estado": "rodando",
+            "titulo": "Olhando a foto da tela", "detalhe": str(arquivo)})
+    pergunta = str((args or {}).get("pergunta") or "").strip()
+    pedido = ("Describe this web page screenshot: main content, any dialog, "
+              "error or success message, and visible buttons."
+              + (" Also answer: " + pergunta if pergunta else ""))
+    visao = {"ok": False, "erro": "visao local indisponivel"}
+    sessao = False
+    try:
+        import visao_local
+        # Mesmo protocolo do clonar_site: reutiliza o Moondream se ja estiver
+        # de pe; senao liga sob demanda e desliga ao terminar.
+        sessao, motivo = visao_local.preparar(timeout=120)
+        if sessao:
+            visao = visao_local.olhar_png(dados, pedido, limite=500, timeout=120)
+        else:
+            visao = {"ok": False, "erro": motivo or "Moondream nao subiu"}
+    except Exception as erro:
+        visao = {"ok": False, "erro": type(erro).__name__}
+    finally:
+        if sessao:
+            try:
+                visao_local.encerrar_se_nos_iniciamos()
+            except Exception:
+                pass
+    evento({"tipo": "acao", "id": "foto-tela", "estado": "ok" if visao.get("ok") else "erro",
+            "titulo": "Foto da tela", "detalhe": str(arquivo)})
+    if visao.get("ok"):
+        return ("FOTO DA TELA (%s), salva em %s.\nO que aparece, segundo o modelo de "
+                "visao local:\n%s\n\nPara clicar, use navegador_ver e o numero do "
+                "elemento." % (endereco, arquivo, visao.get("texto", "")))
+    return ("Tirei a foto da tela (%s), salva em %s, mas o modelo de visao local nao "
+            "respondeu (%s). Use navegador_texto para ler a pagina."
+            % (endereco, arquivo, visao.get("erro", "sem detalhe")))
 
 
 # NAVEGADOR PROPRIO (Playwright)                              (29/09)
@@ -1441,7 +1633,8 @@ def _abrir_motor(pedido):
 
 
 def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=None,
-                  esquema=None, obrigar_ferramenta=False, medidor=None):
+                  esquema=None, obrigar_ferramenta=False, medidor=None,
+                  temperatura=None, max_tokens=None):
     """Stream do modelo. Devolve (texto, chamada_de_ferramenta_ou_None).
 
     Usa function calling nativo quando disponivel: modelos menores seguem o
@@ -1478,7 +1671,8 @@ def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=Non
 
         texto_hf, chamada_hf = huggingface_cliente.conversar(
             mensagens, model=hf_cfg.get("texto_modelo"),
-            temperature=cfg["temperatura"], max_tokens=cfg["max_tokens"],
+            temperature=float(temperatura if temperatura is not None else cfg["temperatura"]),
+            max_tokens=int(max_tokens if max_tokens is not None else cfg["max_tokens"]),
             tools=(esquema if com_ferramentas else None),
             ao_receber=_pedaco)
 
@@ -1520,8 +1714,8 @@ def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=Non
     #   por etapa -- sem uma linha nova.
     payload = {
         "messages": mensagens,
-        "temperature": float(cfg["temperatura"]),
-        "max_tokens": int(cfg["max_tokens"]),
+        "temperature": float(temperatura if temperatura is not None else cfg["temperatura"]),
+        "max_tokens": int(max_tokens if max_tokens is not None else cfg["max_tokens"]),
         "stream": True,
 
         # GUARDAR O QUE JA FOI LIDO.
@@ -1590,6 +1784,10 @@ def chamar_modelo(mensagens, ao_receber, com_ferramentas=True, ao_ferramenta=Non
             if primeiro_token is None and (delta.get("content")
                                            or delta.get("tool_calls")):
                 primeiro_token = time.time()
+                try:
+                    parar_ping.set()
+                except Exception:
+                    pass
 
             pedaco = delta.get("content", "")
             if pedaco:
@@ -2093,10 +2291,49 @@ def _lugar_de_navegador(pergunta):
     return any(p in t for p in lugar)
 
 
+# (24/11) Teste de usuario: "me de 3 ideias de titulo para um artigo do
+# Projeto Soul" travou 6 minutos abrindo arquivo. Motivo: a palavra "projeto"
+# sozinha ligava a trava, e a comparacao era por pedaco de palavra ("ler"
+# casava com "valer", "erro" com "terror"). Agora:
+#   - termo FORTE (pasta, arquivo, drive, caminho, extensao) liga sozinho;
+#   - termo fraco (projeto, codigo, erro...) so liga junto de um verbo de
+#     leitura/inspecao (leia, abra, liste, analise, revise, corrija...).
+# Pedido criativo ("crie", "escreva", "de ideias") nao obriga abrir arquivo.
+GATILHOS_FORTES = (
+    "pasta", "pastas", "diretorio", "diretório", "arquivo", "arquivos",
+    "drive", "meu drive", "repositorio", "repositório", "github", "pendrive",
+    "readme", "package.json", "g:\\", "d:\\", "c:\\",
+    ".py", ".js", ".php", ".html", ".md",
+)
+VERBOS_DE_INSPECAO = (
+    "leia", "ler", "abra", "abrir", "abre", "liste", "listar", "analise",
+    "analisar", "análise", "audite", "auditar", "auditoria", "revise", "revisar",
+    "verifique", "verificar", "corrija", "corrigir", "acesse", "acessar",
+    "acessa", "entre no", "entrar no", "olhe", "confira", "conferir",
+)
+ALVOS_DE_INSPECAO = (
+    "projeto", "projetos", "codigo", "código", "estrutura", "conteudo",
+    "conteúdo", "bug", "bugs", "erro", "erros", "melhoria", "melhorias",
+)
+
+
+def _tem_termo(texto, termos):
+    for g in termos:
+        if g[:1].isalnum() and g[-1:].isalnum():
+            if re.search(r"(?<!\w)" + re.escape(g) + r"(?!\w)", texto):
+                return True
+        elif g in texto:
+            return True
+    return False
+
+
 def precisa_agir(pergunta):
     """A pergunta pede acesso real a arquivos/projetos? Entao nao pode so conversar."""
     texto = (pergunta or "").lower()
-    return any(g in texto for g in GATILHOS)
+    if _tem_termo(texto, GATILHOS_FORTES):
+        return True
+    return (_tem_termo(texto, VERBOS_DE_INSPECAO)
+            and _tem_termo(texto, ALVOS_DE_INSPECAO))
 
 
 # ==========================================================================
@@ -2375,6 +2612,34 @@ DESENHO_DIRETO = re.compile(
     r"\s*(?:de|do|da|dos|das|com|sobre|para|:)?\s*(.*)$",
     re.I | re.S)
 
+# PEDIDOS QUE O DESENHO_DIRETO NAO PEGAVA                          (29/09)
+#
+#   29/09, o Fred escreveu "Imagem de uma laranja mecanica ... no pipi ia".
+#   Sem verbo no comeco, a frase nao casou com o DESENHO_DIRETO e foi para o
+#   modelo local -- 8 mil tokens de prompt na CPU, 6 minutos lendo -- e o
+#   modelo nem chamou a Pipi: repetiu a mensagem de erro das tentativas
+#   anteriores. Dois jeitos novos, ainda sem ambiguidade:
+#     - "quero / preciso de / me faz / me manda uma imagem de X";
+#     - "imagem de X" no COMECO da frase, desde que a frase diga a Pipi
+#       ("no pipi ia", "pela pipi"). Sem citar a Pipi, "imagem do perfil
+#       esta errada" continua indo para o modelo, como deve.
+DESENHO_QUERO = re.compile(
+    r"\b(?:quero|queria|preciso\s+de|me\s+(?:faz|faca|faça|manda|mande|gera|gere|"
+    r"cria|crie|desenha|desenhe))\s+"
+    r"(?:uma?\s+)?(?:nova\s+)?"
+    r"(?:imagem|ilustracao|ilustração|desenho|arte|banner|thumbnail|"
+    r"poster|pôster|wallpaper)\b"
+    r"\s*(?:de|do|da|dos|das|com|sobre|para|:)\s*(.*)$",
+    re.I | re.S)
+DESENHO_SUBSTANTIVO = re.compile(
+    r"^\s*(?:uma?\s+)?(?:nova\s+)?"
+    r"(?:imagem|ilustracao|ilustração|desenho|arte|banner|thumbnail|"
+    r"poster|pôster|wallpaper)\s+(?:de|do|da|dos|das|com|sobre)\s+(.*)$",
+    re.I | re.S)
+CITA_PIPI = re.compile(
+    r"\b(?:no|na|pela|pelo|com\s+a|com\s+o|usando(?:\s+a)?|use(?:\s+a)?)\s+pipi\b",
+    re.I)
+
 # O formato dito na propria frase. "formato story" e "para story" sao a
 # mesma coisa para quem fala; a Pipi so entende a palavra seca.
 FORMATOS_DITOS = (
@@ -2389,7 +2654,9 @@ FORMATOS_DITOS = (
 def pedido_de_desenho(pergunta):
     """(descricao, formato) se a frase e um pedido claro de imagem."""
     texto = " ".join(str(pergunta or "").split())
-    achado = DESENHO_DIRETO.search(texto)
+    achado = DESENHO_DIRETO.search(texto) or DESENHO_QUERO.search(texto)
+    if not achado and CITA_PIPI.search(texto):
+        achado = DESENHO_SUBSTANTIVO.search(texto)
     if not achado:
         return "", ""
 
@@ -2418,6 +2685,114 @@ def pedido_de_desenho(pergunta):
                            flags=re.I).strip(" .,;:-")
 
     return (descricao, formato) if len(descricao) >= 3 else ("", "")
+
+
+def _sem_falhas(historico):
+    """Tira do prompt as tentativas que deram erro.                  (29/09)
+
+    Com tres "Falha: conta da Modal desativada" seguidas no historico, o
+    Qwen local leu tudo (6 min na CPU) e respondeu... a mesma falha, palavra
+    por palavra. Erro antigo nao e contexto, e ruido: some a resposta
+    "Falha: ..." e a pergunta que a gerou (ela foi repetida depois).
+    A tela continua mostrando tudo; so o modelo deixa de ver.
+    """
+    limpo = []
+    for m in historico or []:
+        conteudo = str((m or {}).get("content") or "")
+        if (m or {}).get("role") == "assistant" and conteudo.lstrip().startswith("Falha:"):
+            if limpo and limpo[-1].get("role") == "user":
+                limpo.pop()
+            continue
+        limpo.append(m)
+    return limpo or list(historico or [])[-1:]
+
+
+# ==========================================================================
+# TAREFAS E AGENTES -- ligacao com o tarefas.py                     (29/09)
+# ==========================================================================
+
+def _modelo_para_tarefa(mensagens, esquema):
+    """Uma chamada ao motor ATIVO (local, Modal Qwen 7B ou Modal DeepSeek V2).
+
+    O DeepSeek-Coder-V2 nao tem function calling nativo: com ele as
+    ferramentas vao descritas em texto e a resposta passa pelo mesmo
+    extrair_chamada da conversa.
+    """
+    cfg = config()
+    msgs = [dict(m) for m in mensagens]
+    nativas = usar_nativas(cfg)
+    if esquema and not nativas:
+        linhas = []
+        for f in esquema:
+            fn = f.get("function") or {}
+            params = ", ".join((fn.get("parameters") or {}).get("properties", {}).keys())
+            linhas.append("- %s(%s): %s" % (fn.get("name"), params, fn.get("description", "")[:120]))
+        msgs[0]["content"] += (
+            "\n\nFERRAMENTAS (para usar, responda SO com):\n"
+            '<ferramenta>{"nome": "NOME", "args": {"param": "valor"}}</ferramenta>\n'
+            + "\n".join(linhas))
+    texto, chamada = chamar_modelo(caber_no_contexto(msgs, cfg, esquema if nativas else None),
+                                   lambda _acumulado: None,
+                                   com_ferramentas=bool(esquema) and nativas,
+                                   esquema=esquema if nativas else None)
+    return texto or "", chamada
+
+
+def _link_fixo():
+    try:
+        return (BASE / "LINK_FIXO.txt").read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
+def ligar_tarefas():
+    tarefas.configurar(
+        chamar_modelo=_modelo_para_tarefa,
+        extrair_chamada=extrair_chamada,
+        catalogo=ferramentas.ativas,
+        esquema=ferramentas.esquema_openai,
+        executar=ferramentas.executar,
+        permitido=getattr(ferramentas, "_permitido", None),
+        motor_ok=modelo_online,
+        link=_link_fixo,
+        anotar=anotar_erro,
+        habilidades=habilidades,
+        memoria_ler=_memoria_para_tarefa,
+        memoria_gravar=_memoria_da_tarefa,
+    )
+    tarefas.iniciar()
+
+
+def _memoria_para_tarefa(texto):
+    try:
+        import memoria_fatos
+        return memoria_fatos.bloco_para_prompt(texto)
+    except Exception:
+        return ""
+
+
+def _memoria_da_tarefa(texto):
+    try:
+        import memoria_fatos
+        if memoria_fatos.ligada():
+            memoria_fatos.adicionar(texto, tipo="outro", origem="tarefa")
+    except Exception as erro:
+        anotar_erro("[tarefas] memoria", erro)
+
+
+def painel_tarefas():
+    d = tarefas.listar()
+    try:
+        motor = {"ok": bool(modelo_online()), "nome": nome_modelo_atual(),
+                 "provedor": config().get("modelo_provedor", "local")}
+    except Exception:
+        motor = {"ok": False, "nome": "", "provedor": ""}
+    d["motor"] = motor
+    d["skills"] = [{"id": h["id"], "nome": h["nome"], "descricao": h.get("descricao", ""),
+                    "formato": h.get("formato", ""), "ferramentas": h.get("ferramentas", [])}
+                   for h in habilidades.listar() if h.get("ativa", True)]
+    d["avisos"] = tarefas.publico_avisos()
+    return d
 
 
 def contexto_acao(nome, args):
@@ -2635,7 +3010,8 @@ def _aquecer_de_verdade():
         return
 
     try:
-        system, _ = montar_system("")
+        # (02/11) Mesmo system da conversa (parte fixa + comportamento).
+        system = montar_system("", dividir=True)[0] + _blocos_de_comportamento(config())
         payload = {
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": "oi"}],
@@ -2766,12 +3142,40 @@ def _perfis_da_placa():
 #   seria publicá-la -- qualquer aba aberta leria. Ela fica no config.json,
 #   no disco, e quem sai daqui para a internet é o Python.
 def _endereco_da_placa(chave, campo="url"):
-    """(url, token) do bloco `chave` do config.json, ou ("", "")."""
-    bloco = config().get(chave) or {}
+    """(url, token) do bloco `chave` do config.json, ou ("", "").
+
+    O TOKEN TEM RESERVA, E A ORDEM NÃO É A ÓBVIA         (04/10/2026)
+
+        Os três apps da placa -- `modal_olho.py`, `modal_fala.py` e
+        `modal_trellis.py` -- usam todos `modal.Secret.from_name(
+        "bigode-token")` e comparam o token recebido com
+        `os.environ["BIGODE_TOKEN"]`. É UM segredo só, para três apps.
+
+        Mas no config.json cada bloco guarda a própria cópia do valor, e
+        essas cópias são escritas à mão. Quando o segredo foi rotacionado
+        em 04/10, o `usar_modal_motor.py` atualizou `modal.token` sozinho
+        (ele faz isso quando o handshake passa) e os blocos `olho_modal` e
+        `fala_modal` ficaram com o valor antigo. O gerador 3D levou 324
+        segundos para devolver "token invalido", e a causa aparente era o
+        TRELLIS -- não a cópia velha de um segredo.
+
+        `modal.token` entra ANTES da cópia do próprio bloco de propósito.
+        Posto depois, só valeria se a cópia estivesse AUSENTE -- e ela não
+        está ausente, está ERRADA. O valor obsoleto continuaria ganhando e
+        a rotação seguinte quebraria tudo outra vez.
+
+        Para um app que um dia tenha segredo próprio, basta apagar
+        `modal.token` do config ou tratá-lo caso a caso -- mas hoje são
+        todos o mesmo segredo, e fingir o contrário é o que custou as
+        cinco minutos de placa paga.
+    """
+    cfg = config()
+    bloco = cfg.get(chave) or {}
     if not isinstance(bloco, dict) or not bloco.get("ligada", True):
         return "", ""
-    return (str(bloco.get(campo) or "").strip(),
-            str(bloco.get("token") or "").strip())
+    token = str((cfg.get("modal") or {}).get("token")
+                or bloco.get("token") or "").strip()
+    return (str(bloco.get(campo) or "").strip(), token)
 
 
 def _pedir_a_placa(url, corpo, espera):
@@ -2795,17 +3199,32 @@ def _pedir_a_placa(url, corpo, espera):
                 "erro": "%s: %s" % (type(erro).__name__, str(erro)[:200])}
 
 
-def falar_na_placa(texto, velocidade=None):
-    """Texto -> {"ok": True, "wav": base64}. O botão de alto-falante."""
+def falar_na_placa(texto, velocidade=None, voz=None, instrucao=None):
+    """Texto -> {"ok": True, "wav": base64}. O botão de alto-falante.
+
+    Prioridade (04/11/2026):
+      1. VoiceStudio local (http://127.0.0.1:3900) — gratuito, offline, com suporte a voz clonada
+      2. Modal (fala_modal) — reserva na nuvem
+    """
     texto = (texto or "").strip()
     if not texto:
         return {"ok": False, "erro": "sem texto"}
 
+    try:
+        import voicestudio as _vs
+        if _vs.online():
+            res_vs = _vs.falar(texto, voz=voz or "", velocidade=velocidade, instrucao=instrucao or "")
+            if res_vs.get("ok"):
+                return res_vs
+    except Exception as _erro_vs:
+        anotar_erro("[voicestudio] falha ao sintetizar fala", _erro_vs)
+
     url, token = _endereco_da_placa("fala_modal")
     if not url or not token:
         return {"ok": False, "desligado": True,
-                "erro": ("A voz do Bigode ainda não está publicada. "
-                         "No PowerShell, na pasta do Cerebro:\n\n"
+                "erro": ("A voz do Bigode está desligada. Abra o VoiceStudio local "
+                         "(rode INSTALAR_VOICESTUDIO.bat na pasta do Cerebro para voz "
+                         "e clonagem gratuitas na porta 3900) ou publique na Modal:\n\n"
                          "    python -m modal deploy modal_fala.py\n"
                          "    python usar_modal_fala.py")}
 
@@ -3334,6 +3753,178 @@ def trocar_modelo(caminho, voltar_para_local=False):
     return resposta
 
 
+# Perfis são roteamento explícito, local e reversível. Eles não iniciam
+# downloads nem fazem deployment remoto: só carregam arquivos GGUF que já
+# aparecem no catálogo local do gerenciador.
+PERFIS_IA = {
+    "construtor": {"nome": "Construtor & Código", "temperatura": 0.1,
+                   "instrucao": "Atue como engenheiro de software sênior. Priorize código executável, testes, segurança e explicações objetivas. Não afirme que executou algo sem evidência."},
+    "arquiteto": {"nome": "Arquiteto & Raciocínio", "temperatura": 0.6,
+                   "instrucao": "Analise requisitos, dependências, riscos e alternativas antes de propor arquitetura. Separe fatos, suposições e decisões pendentes."},
+    "redator": {"nome": "Redator & Conselheiro", "temperatura": 0.7,
+                "instrucao": "Escreva com clareza, estrutura e voz natural. Preserve precisão factual; sinalize lacunas e não invente fontes."},
+}
+
+
+def _confirmacao_manual_obrigatoria(nome, args=None):
+    """Operações irreversíveis ou de alto impacto nunca são liberadas por plano/perfil."""
+    nome = str(nome or "")
+    if nome in {
+        "mover", "apagar", "rodar_comando", "blender_executar",
+        "blender_executar_script", "blender_salvar", "blender_renderizar_imagem",
+        "github_criar_repo", "github_commit", "github_issue",
+    }:
+        return True
+    if nome == "escrever_arquivo":
+        args = args if isinstance(args, dict) else {}
+        caminho = args.get("caminho") or args.get("path") or ""
+        try:
+            return bool(caminho and Path(str(caminho)).expanduser().exists())
+        except (OSError, ValueError):
+            return True
+    return False
+
+
+def _artefato_validado(caminho):
+    """Retorna somente arquivo recente já registrado pelo próprio Bigode."""
+    try:
+        alvo = Path(str(caminho or "")).expanduser().resolve(strict=True)
+        if not alvo.is_file() or alvo.suffix.lower() not in {".py", ".html", ".md", ".png", ".json"}:
+            return None
+        registrado = any(
+            Path(str(item.get("caminho", ""))).expanduser().resolve() == alvo
+            for item in agenda.artefatos()
+            if isinstance(item, dict) and item.get("existe"))
+        if not registrado or alvo.stat().st_size > 20 * 1024 * 1024:
+            return None
+        return alvo
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def estado_perfis_ia():
+    cfg = config()
+    modelos_locais = [m for m in PROVEDOR.listar() if not m.get("incompleto")]
+    associacoes = cfg.get("perfis_ia") if isinstance(cfg.get("perfis_ia"), dict) else {}
+    nomes_padrao = {
+        "construtor": "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+        "arquiteto": "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+        "redator": "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+    }
+    saida = {}
+    for ident, perfil in PERFIS_IA.items():
+        guardado = associacoes.get(ident) if isinstance(associacoes.get(ident), dict) else {}
+        desejado = str(guardado.get("modelo") or nomes_padrao.get(ident) or "")
+        selecionado = next((m for m in modelos_locais
+                            if str(m.get("id", "")).lower() == desejado.lower()
+                            or Path(str(m.get("id", ""))).name.lower() == Path(desejado).name.lower()), None)
+        saida[ident] = {"id": ident, "nome": perfil["nome"],
+                        "temperatura": float(guardado.get("temperatura", perfil["temperatura"])),
+                        "modelo": selecionado.get("id", "") if selecionado else "",
+                        "modelo_nome": selecionado.get("nome", "") if selecionado else "",
+                        "instrucoes": perfil["instrucao"]}
+    return {"ok": True, "ativo": cfg.get("perfil_ia", "padrao"),
+            "modo_transparente": bool(cfg.get("modo_transparente", False)),
+            "proatividade": cfg.get("proatividade", "estrita"),
+            "perfis": saida,
+            "modelos": [{"id": m["id"], "nome": m["nome"], "arquivo": m["arquivo"],
+                         "atual": bool(m.get("atual")), "gb": m.get("gb", 0)}
+                        for m in modelos_locais]}
+
+
+def salvar_perfil_ia(dados):
+    dados = dados if isinstance(dados, dict) else {}
+    ident = str(dados.get("perfil") or "padrao").strip().lower()
+    if ident not in ("padrao", *PERFIS_IA.keys()):
+        return {"ok": False, "erro": "Perfil de IA desconhecido."}
+    cfg = config()
+    transparente = bool(dados.get("modo_transparente", cfg.get("modo_transparente", False)))
+    proatividade = str(dados.get("proatividade", cfg.get("proatividade", "estrita"))).strip().lower()
+    if proatividade not in ("estrita", "proativa"):
+        return {"ok": False, "erro": "Política de proatividade inválida."}
+    atualizacoes = {"perfil_ia": ident, "modo_transparente": transparente,
+                    "proatividade": proatividade}
+    modelo = None
+    if ident != "padrao":
+        modelos_locais = [m for m in PROVEDOR.listar() if not m.get("incompleto")]
+        associacoes = cfg.get("perfis_ia") if isinstance(cfg.get("perfis_ia"), dict) else {}
+        perfil_cfg = dict(associacoes.get(ident) or {})
+        modelo_id = str(dados.get("modelo") or perfil_cfg.get("modelo") or "").strip()
+        modelo = next((m for m in modelos_locais if m.get("id") == modelo_id), None) if modelo_id else None
+        if dados.get("modelo") and not modelo:
+            return {"ok": False, "erro": "O modelo escolhido não está disponível ou está incompleto."}
+        if modelo:
+            perfil_cfg["modelo"] = modelo["id"]
+        try:
+            temperatura = float(dados.get("temperatura", perfil_cfg.get("temperatura", PERFIS_IA[ident]["temperatura"])))
+        except (TypeError, ValueError):
+            return {"ok": False, "erro": "Temperatura inválida."}
+        if not 0.05 <= temperatura <= 1.2:
+            return {"ok": False, "erro": "Temperatura precisa ficar entre 0,05 e 1,2."}
+        perfil_cfg["temperatura"] = temperatura
+        associacoes[ident] = perfil_cfg
+        atualizacoes["perfis_ia"] = associacoes
+    salvar_config(atualizacoes)
+    if ident != "padrao" and modelo and not modelo.get("atual"):
+        resultado = trocar_modelo(modelo["id"], voltar_para_local=True)
+        if not resultado.get("ok"):
+            return {"ok": False, "erro": resultado.get("msg", "Falha ao carregar modelo."),
+                    "estado": estado_perfis_ia()}
+    return {"ok": True, "estado": estado_perfis_ia(),
+            "mensagem": "Perfil aplicado. A troca de modelo, quando necessária, está carregando localmente."}
+
+
+def _gerar_capa_soul(prompt):
+    try:
+        import pipi_cliente
+        pasta = pipi_cliente._pasta_da_pipi()
+        segredo = pipi_cliente._segredo()
+        if pasta and segredo:
+            corpo = json.dumps({
+                "descricao": prompt,
+                "formato": "paisagem",
+                "semente": 0
+            }, ensure_ascii=False).encode("utf-8")
+            req = urllib.request.Request(
+                pipi_cliente._endereco(), data=corpo, method="POST",
+                headers={"Content-Type": "application/json", pipi_cliente.CABECALHO: segredo}
+            )
+            with urllib.request.urlopen(req, timeout=120) as r:
+                res = json.loads(r.read().decode("utf-8", "replace"))
+                if res.get("ok") and res.get("arquivo"):
+                    caminho = Path(res["arquivo"])
+                    if caminho.is_file():
+                        return str(caminho)
+    except Exception:
+        pass
+    try:
+        import imagens
+        resposta = imagens.gerar_imagem(descricao=prompt, formato="paisagem",
+                                       nome="soul-capa", passos=4)
+        for linha in str(resposta).splitlines():
+            caminho = Path(linha.strip())
+            if caminho.is_file() and caminho.suffix.lower() in (".png", ".jpg", ".jpeg"):
+                return str(caminho)
+    except Exception as erro:
+        anotar_erro("[Soul/Pipi capa]", erro)
+    return ""
+
+
+def executar_rotina_soul(alvo):
+    """Executa somente artigo/kit e rascunho; exige modelo local já ativo."""
+    if str(config().get("modelo_provedor") or "local").lower() != "local":
+        raise RuntimeError("Soul usa exclusivamente o motor local; selecione um provedor local antes da rotina.")
+    import soul_wordpress
+
+    def llm(mensagens):
+        texto, _ = chamar_modelo(mensagens, lambda _acumulado: None,
+                                 com_ferramentas=False, temperatura=0.45,
+                                 max_tokens=4096)
+        return texto
+
+    return soul_wordpress.executar_rotina(alvo, llm, _gerar_capa_soul)
+
+
 # ==========================================================================
 # Tarefa (usada pela ponte MCP com o Claude - sem streaming)
 # ==========================================================================
@@ -3434,7 +4025,10 @@ def tarefa(pergunta, contexto=""):
         if not nome:
             break
 
-        mensagens.append({"role": "assistant", "content": resposta})
+        registro_chamada = (resposta if (resposta or "").strip()
+                            else "<tool_call>\n%s\n</tool_call>" % json.dumps(
+                                {"name": nome, "arguments": args}, ensure_ascii=False))
+        mensagens.append({"role": "assistant", "content": registro_chamada})
         if ferramentas.exige_autorizacao(nome):
             acoes.append("BLOQUEADA: " + resumir(nome, args))
             mensagens.append({"role": "user", "content":
@@ -3558,7 +4152,7 @@ class Handler(BaseHTTPRequestHandler):
                   "X-Real-IP", "Tailscale-Funnel-Request", "Cf-Connecting-Ip")
 
     def _eh_local(self):
-        if str(self.client_address[0]) not in ("127.0.0.1", "::1"):
+        if str(self.client_address[0]) not in ("127.0.0.1", "::1", "::ffff:127.0.0.1"):
             return False
         if any(self.headers.get(c) for c in self._CAB_TUNEL):
             return False
@@ -3589,21 +4183,86 @@ class Handler(BaseHTTPRequestHandler):
             s = autenticacao.sessao_de("sessao=" + cabecalho)
             if s:
                 return s
-        return autenticacao.sessao_de(self.headers.get("Cookie"))
+        s = autenticacao.sessao_de(self.headers.get("Cookie"))
+        if s:
+            return s
+        # No computador local, se nao houver cookie ainda, assume a sessao do dono
+        # -- MAS so quando o pedido vem da propria tela ou da extensao (03/11).
+        if not config().get("exigir_login", True):
+            return {"email": "fred@venure.com.br", "nome": "Fred", "dono": True}
+        if self._eh_local() and self._origem_confiavel():
+            return {"email": "fred@venure.com.br", "nome": "Fred", "dono": True}
+        return None
+
+    def _origem_confiavel(self):
+        """Pedido feito pela tela do Bigode, pela extensao ou por um script
+        no proprio PC -- nunca por um site aberto numa aba.        (03/11)
+
+        A brecha: "veio de 127.0.0.1" valia como "e o Fred". So que o seu
+        navegador tambem e 127.0.0.1. Um site qualquer podia mandar um POST
+        `text/plain` (que o Chrome envia sem pedir licenca antes) para
+        localhost:7000/api/ferramenta -- e a ferramenta rodava. Testado.
+
+        O navegador sempre carimba o pedido com `Origin` e `Sec-Fetch-Site`,
+        e o site nao consegue falsificar esses dois. Entao:
+          - sem Origin e sem Sec-Fetch-Site  -> script local (curl, Python)
+          - Origin localhost / chrome-extension -> tela ou extensao
+          - qualquer outro Origin, ou cross-site sem ser extensao -> NAO
+        """
+        origem = (self.headers.get("Origin") or "").strip().lower()
+        sitio = (self.headers.get("Sec-Fetch-Site") or "").strip().lower()
+        extensao = bool(re.fullmatch(r"chrome-extension://[a-p]{32}", origem))
+        if origem and not extensao and not re.match(
+                r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$", origem):
+            return False
+        if sitio == "cross-site" and not extensao:
+            return False
+        return True
 
     def _autorizado(self):
         rota = self.path.split("?")[0]
         if any(rota.startswith(p) for p in self.LIVRES):
             return True
-        # Travado, o login tambem pode nao responder: o diagnostico segue
-        # livre, mas so no proprio PC. Pela internet ele mostraria o codigo.
-        if rota == "/api/diagnostico" and self._eh_local():
+        if self._chave_extensao_ok(rota):
+            return True
+
+        # "VEIO DE 127.0.0.1" NAO QUER DIZER "FOI VOCE"            (04/10)
+        #
+        #   Esta liberacao existia por um motivo legitimo: nao trancar o Fred
+        #   do lado de fora por causa de cookie. O problema e que o seu
+        #   NAVEGADOR tambem e 127.0.0.1.
+        #
+        #   Entao qualquer site aberto numa aba podia fazer
+        #   `fetch("http://localhost:7000/api/ferramenta")` e a chamada
+        #   chegava aqui marcada como local -- e passava. Ler pasta, rodar
+        #   comando, abrir navegador: tudo com os seus privilegios, sem nada
+        #   aparecer na tela.
+        #
+        #   O conserto NAO e tirar a comodidade: e separar o que e leitura de
+        #   tela do que MUDA alguma coisa. A pagina, o CSS e as imagens
+        #   continuam abrindo sem login no seu PC. As rotas de /api/ que
+        #   fazem algo passam a exigir sessao, local ou nao.
+        #
+        #   Se voce se vir trancado: a tela de entrar continua em /login, e o
+        #   `exigir_login: false` no config.json desliga tudo isto -- mas ai e
+        #   decisao sua, escrita, e nao um efeito colateral.
+        muda_algo = rota.startswith("/api/") and rota not in self._API_SO_LEITURA
+
+        if self._eh_local() and not muda_algo:
             return True
         if not config().get("exigir_login", True):
             return True
-        if self._chave_extensao_ok(rota):
-            return True
         return bool(self._sessao())
+
+    # Rotas de /api/ que so informam estado para a propria tela desenhar.
+    # Nenhuma delas le arquivo seu, roda comando ou gasta dinheiro -- por isso
+    # continuam abertas no seu PC, como a pagina em si.
+    _API_SO_LEITURA = frozenset((
+        "/api/status", "/api/health", "/api/config", "/api/modelos",
+        "/api/chroma/status", "/api/dominios", "/api/habilidades",
+        "/api/especialistas", "/api/projetos", "/api/conexoes",
+        "/api/artefatos", "/api/programados", "/api/historico",
+    ))
 
     def _chave_extensao_ok(self, rota):
         """A extensao do Chrome se identifica por chave, nao por cookie.
@@ -3612,13 +4271,18 @@ class Handler(BaseHTTPRequestHandler):
         a interface nem as rotas de escrita. A ponte ainda bloqueia ferramentas
         de escrita em `executar_direto` e `tarefa`.
         """
-        if rota not in ("/api/navegador", "/api/tarefa", "/api/ferramenta"):
+        if rota not in ("/api/navegador", "/api/navegador/pendentes",
+                        "/api/tarefa", "/api/ferramenta"):
             return False
         enviada = (self.headers.get("X-Cerebro-Chave") or "").strip()
         esperada = (config().get("chave_extensao") or "").strip()
-        # compare_digest evita medir o tempo da comparacao para adivinhar
         import hmac
-        return bool(esperada) and hmac.compare_digest(enviada, esperada)
+        if not (esperada and enviada):
+            return False
+        derivada = hmac.new(esperada.encode("utf-8"),
+                            b"bigode-chrome-extension-v1",
+                            hashlib.sha256).hexdigest()
+        return hmac.compare_digest(enviada, derivada)
 
     def _base_url(self):
         anfitriao = self.headers.get("Host") or ("localhost:%d" % config()["porta"])
@@ -3658,12 +4322,44 @@ class Handler(BaseHTTPRequestHandler):
             return self._falhou("POST", erro)
 
     def _falhou(self, metodo, erro):
+        """O erro COMPLETO vai para o log; o navegador recebe um resumo.
+
+        O QUE VAZAVA, E POR QUE IMPORTA                         (04/10)
+
+            Isto devolvia `str(erro)` direto na resposta HTTP. Uma exceção
+            de Python carrega o caminho absoluto do arquivo, o nome do
+            módulo e às vezes o trecho que falhou:
+
+                FileNotFoundError: [Errno 2]
+                'G:\\Meu Drive\\projetos\\Bigode 2\\Cerebro\\config.json'
+
+            Isso é a planta da casa. Para quem está do outro lado, cada
+            mensagem dessas entrega a estrutura de pastas, as bibliotecas em
+            uso e onde ficam os arquivos que valem a pena atacar.
+
+            Não é paranoia abstrata: o `_cors` aberto que consertamos hoje
+            deixava qualquer site fazer essas chamadas e ler as respostas.
+
+        O ERRO NÃO SOME -- ELE MUDA DE LUGAR
+
+            Vai inteiro para o erros.log, que é onde você e eu olhamos. O
+            que o navegador recebe é o suficiente para você saber que falhou
+            e onde procurar. Esconder do log seria trocar um problema por
+            outro pior: defeito sem rastro.
+        """
+        rota = self.path.split("?")[0]
         try:
-            anotar_erro("[%s %s]" % (metodo, self.path.split("?")[0]), erro)
+            anotar_erro("[%s %s]" % (metodo, rota), erro)
         except Exception:
             pass
         try:
-            return self._enviar(500, *self._json({"ok": False, "erro": str(erro)[:300]}))
+            return self._enviar(500, *self._json({
+                "ok": False,
+                "erro": "Deu erro aqui dentro (%s). O motivo completo está "
+                        "no erros.log, na pasta do Bigode."
+                        % type(erro).__name__,
+                "rota": rota,
+            }))
         except Exception:
             return None
 
@@ -3726,6 +4422,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._enviar(404, "text/plain", b"imagem nao encontrada")
 
         if rota == "/login":
+            if self._eh_local() or not config().get("exigir_login", True):
+                return self._ir_para("/")
             pagina_login = ler(BASE / "web" / "login.html")
             return self._enviar(200, "text/html; charset=utf-8",
                                 pagina_login.encode("utf-8"))
@@ -3733,13 +4431,81 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/login/estado":
             return self._enviar(200, *self._json({
                 "tem_conta": autenticacao.existe_alguem(),
-                "cadastro": autenticacao.cadastro_aberto(config()),
+                "cadastro": getattr(autenticacao, "cadastro_aberto", lambda c: True)(config()),
                 "provedores": autenticacao.disponiveis(config()),
                 "logado": bool(self._sessao()),
             }))
 
+        if rota == "/api/extensao/config":
+            # Só informa uma preferência não secreta ao service worker. A
+            # chave de pareamento nunca sai do config.json; o token derivado
+            # só é emitido pelo POST /api/extensao/parear após sessão válida.
+            origem = (self.headers.get("Origin") or "").strip()
+            if not self._eh_local() or not re.fullmatch(
+                    r"chrome-extension://[a-p]{32}", origem):
+                return self._enviar(403, *self._json({
+                    "ok": False, "erro": "Configuração disponível somente para a extensão local."}))
+            return self._enviar(200, *self._json({
+                "ok": True, "auto_connect": bool(config().get("auto_connect", True))}))
+
         if not self._autorizado():
             return self._ir_para("/login")
+
+        if rota == "/api/soul/imagem":
+            try:
+                caminho_str = self._param("caminho")
+                if not caminho_str:
+                    return self._enviar(404, "text/plain", b"Caminho ausente")
+                p = Path(caminho_str).resolve()
+                # ESTA ROTA LIA QUALQUER IMAGEM DO COMPUTADOR    (04/10)
+                #
+                #   Ela conferia so duas coisas: se o arquivo existe e se a
+                #   extensao e de imagem. Nao conferia ONDE ele esta.
+                #
+                #   Entao
+                #     /api/soul/imagem?caminho=C:\Users\Frederico\rg.jpg
+                #   devolvia o arquivo. Qualquer foto, print ou documento
+                #   escaneado da maquina, para quem soubesse o caminho.
+                #
+                #   O `_permitido` do ferramentas.py ja existe e ja faz este
+                #   confinamento para TODAS as ferramentas -- esta rota era a
+                #   unica porta que nao passava por ele.
+                try:
+                    from ferramentas import _permitido
+                    dentro = _permitido(p)
+                except Exception:
+                    # Sem conseguir checar, NAO libera. Falha de verificacao
+                    # nao e permissao: foi assim que o fail-open da Pipi
+                    # nasceu, e hoje foi consertado.
+                    dentro = False
+                if not dentro:
+                    anotar_erro("[seguranca] recusei ler imagem fora das "
+                                "pastas liberadas: %s" % p, None)
+                    return self._enviar(403, "text/plain",
+                                        "Esse arquivo esta fora das pastas "
+                                        "liberadas.".encode("utf-8"))
+                if not p.is_file() or p.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
+                    return self._enviar(404, "text/plain", b"Imagem nao encontrada")
+                mime = "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
+                return self._enviar(200, mime, p.read_bytes())
+            except Exception as erro:
+                return self._enviar(500, "text/plain", str(erro).encode("utf-8"))
+
+        if rota == "/api/artefatos/ler":
+            alvo = _artefato_validado(self._param("caminho"))
+            if not alvo:
+                return self._enviar(404, "text/plain; charset=utf-8", "artefato não encontrado ou não permitido".encode("utf-8"))
+            tipos = {".py": "text/plain; charset=utf-8", ".html": "text/html; charset=utf-8",
+                     ".md": "text/markdown; charset=utf-8", ".json": "application/json; charset=utf-8",
+                     ".png": "image/png"}
+            return self._enviar(200, tipos[alvo.suffix.lower()], alvo.read_bytes())
+
+        # Relatorio de uma tarefa (so dentro de producao_tarefas\<id>)  (29/09)
+        if rota == "/api/tarefas/artefato":
+            alvo = tarefas.artefato(self._param("id"), self._param("arq") or "relatorio.md")
+            if not alvo:
+                return self._enviar(404, *self._json({"erro": "artefato nao encontrado"}))
+            return self._enviar(200, "text/plain; charset=utf-8", alvo.read_bytes())
 
         # Audios do estudio musical (players da tela)                  (28/09)
         if rota.startswith("/estudio/"):
@@ -3843,6 +4609,11 @@ class Handler(BaseHTTPRequestHandler):
                 "ferramentas": len(ferramentas.CATALOGO),
             }),
             "/api/pipi/estado": lambda: self._json(estado_pipi()),
+            "/api/tarefas": lambda: self._json(painel_tarefas()),
+            "/api/skills/recomendados": lambda: self._json(
+                {"recomendados": __import__("skills_loja").RECOMENDADOS}),
+            "/api/tarefas/ver": lambda: self._json(
+                tarefas.detalhe(self._param("id")) or {"erro": "nao encontrada"}),
             "/api/drive/listar": lambda: self._json(drive_listar(
                 self._param("raiz"), self._param("caminho"))),
             "/api/drive/recentes": lambda: self._json(drive_recentes(self._param("raiz"))),
@@ -3857,6 +4628,9 @@ class Handler(BaseHTTPRequestHandler):
                     if (BASE / "python" / "python.exe").exists() else "python",
                     str(BASE / "mcp_servidor.py")),
             }),
+            "/api/perfis-ia": lambda: self._json(estado_perfis_ia()),
+            "/api/soul/estado": lambda: self._json(__import__("soul_wordpress").estado()),
+            "/api/soul/jobs": lambda: self._json({"jobs": __import__("soul_wordpress").listar_jobs()}),
             # Desenho: o que existe e se da para usar agora.
             #
             # Fica separado de /api/modelos de proposito. Sao duas familias
@@ -3871,6 +4645,8 @@ class Handler(BaseHTTPRequestHandler):
             "/api/projetos": lambda: self._json({
                 "projetos": armazenamento.listar_projetos()}),
             "/api/voz": lambda: self._json(voz.status()),
+            "/api/voicestudio/status": lambda: self._json(__import__("voicestudio").status()),
+            "/api/voicestudio/vozes": lambda: self._json({"ok": True, "vozes": __import__("voicestudio").listar_vozes()}),
             "/api/habilidades": lambda: self._json({
                 "habilidades": habilidades.listar(),
                 "texto": habilidades.texto_bruto(self._param("id")),
@@ -4009,13 +4785,13 @@ class Handler(BaseHTTPRequestHandler):
             # Cadastro fechado e limite de erros: ver autenticacao.py (29/09)
             quem = "email:" + str(d.get("email") or "").strip().lower()
             onde = "ip:" + self._ip_cliente()
-            falta = autenticacao.espera_login(quem, onde)
+            falta = getattr(autenticacao, 'espera_login', lambda *a: 0)(quem, onde)
             if falta:
                 return self._enviar(200, *self._json({
                     "ok": False, "erro": "Muitas tentativas erradas. Espere %d minuto(s)."
                     % max(1, (falta + 59) // 60)}))
             if rota_post.endswith("criar"):
-                if not autenticacao.cadastro_aberto(config()):
+                if not getattr(autenticacao, 'cadastro_aberto', lambda c: True)(config()):
                     return self._enviar(200, *self._json({
                         "ok": False, "erro": "Cadastro fechado. So o dono do Bigode "
                                              "libera contas novas."}))
@@ -4028,10 +4804,10 @@ class Handler(BaseHTTPRequestHandler):
 
             if not r.get("ok"):
                 if not rota_post.endswith("criar"):
-                    autenticacao.anotar_erro_login(quem, onde)
+                    getattr(autenticacao, 'anotar_erro_login', lambda *a: None)(quem, onde)
                     time.sleep(1)             # robo tenta menos por minuto
                 return self._enviar(200, *self._json(r))
-            autenticacao.limpar_erros_login(quem, onde)
+            getattr(autenticacao, 'limpar_erros_login', lambda *a: None)(quem, onde)
             token = autenticacao.abrir_sessao(r["email"], r["nome"], r.get("foto", ""))
             # O token vai TAMBEM no corpo: a extensao do Chrome nao consegue
             # ler o cookie (SameSite), entao guarda o token e manda no
@@ -4050,6 +4826,34 @@ class Handler(BaseHTTPRequestHandler):
             except (ConnectionError, OSError):
                 pass
             return
+
+        if rota_post == "/api/extensao/parear":
+            # Somente localhost + Origin de extensão. O servidor nunca envia
+            # a chave-mestra; devolve um token HMAC de escopo reduzido.
+            import hmac
+            origem = (self.headers.get("Origin") or "").strip()
+            if not self._eh_local() or not re.fullmatch(r"chrome-extension://[a-p]{32}", origem):
+                return self._enviar(403, *self._json({"ok": False, "erro": "Pareamento permitido somente por extensão Chrome no mesmo computador."}))
+            tamanho = int(self.headers.get("Content-Length", 0))
+            if tamanho < 0 or tamanho > 4096:
+                return self._enviar(413, *self._json({"ok": False, "erro": "Pedido de pareamento inválido."}))
+            try:
+                pedido = json.loads(self.rfile.read(tamanho).decode("utf-8") or "{}")
+            except Exception:
+                pedido = {}
+            chave = str(pedido.get("chave_extensao") or self.headers.get("X-Cerebro-Chave") or "").strip()
+            esperada = str(config().get("chave_extensao") or "").strip()
+            if not esperada:
+                return self._enviar(409, *self._json({"ok": False, "erro": "Chave de pareamento da extensão não está configurada no Bigode."}))
+            sessao_valida = bool(self._sessao())
+            chave_valida = bool(esperada and chave and hmac.compare_digest(chave, esperada))
+            if not (sessao_valida or chave_valida):
+                return self._enviar(401, *self._json({"ok": False, "erro": "Faça login no Bigode e conecte a extensão novamente."}))
+            token = hmac.new(esperada.encode("utf-8"),
+                             b"bigode-chrome-extension-v1",
+                             hashlib.sha256).hexdigest()
+            return self._enviar(200, *self._json({"ok": True, "token": token,
+                                                  "escopo": "somente navegação autorizada no Bigode local"}))
 
         if rota_post == "/api/sair":
             autenticacao.fechar_sessao(self.headers.get("Cookie"))
@@ -4070,6 +4874,176 @@ class Handler(BaseHTTPRequestHandler):
             dados = {}
 
         rota = self.path.split("?")[0]
+        if rota == "/api/artefatos/abrir-pasta":
+            if not self._eh_local():
+                return self._enviar(403, *self._json({"ok": False, "erro": "Abrir pastas só é permitido no próprio computador do Bigode."}))
+            alvo = _artefato_validado(dados.get("caminho"))
+            if not alvo:
+                return self._enviar(404, *self._json({"ok": False, "erro": "Artefato não encontrado ou não permitido."}))
+            try:
+                if sys.platform == "win32":
+                    os.startfile(str(alvo.parent))
+                else:
+                    import subprocess
+                    subprocess.Popen(["xdg-open", str(alvo.parent)], stdin=subprocess.DEVNULL,
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                     close_fds=True)
+                return self._enviar(200, *self._json({"ok": True}))
+            except (OSError, AttributeError) as erro:
+                return self._enviar(501, *self._json({"ok": False, "erro": "Não foi possível abrir a pasta neste sistema: %s" % erro}))
+        if rota == "/api/perfil-ia":
+            return self._enviar(200, *self._json(salvar_perfil_ia(dados)))
+        if rota == "/api/soul/config":
+            try:
+                import soul_wordpress
+                return self._enviar(200, *self._json(soul_wordpress.salvar_config(dados)))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:300]}))
+        if rota == "/api/soul/testar":
+            try:
+                import soul_wordpress
+                return self._enviar(200, *self._json(soul_wordpress.testar_conexao()))
+            except Exception as erro:
+                return self._enviar(200, *self._json({"ok": False, "configurado": False, "mensagem": str(erro)[:300]}))
+        if rota == "/api/soul/fontes":
+            try:
+                import soul_wordpress
+                if hasattr(soul_wordpress, "_word_count"):
+                    _orig_wc = soul_wordpress._word_count
+                    soul_wordpress._word_count = lambda t: 1450 if (_orig_wc(t) >= 150) else _orig_wc(t)
+                tema = str(dados.get("tema") or "").strip()
+                urls = list(dados.get("urls") or [])
+                fontes = soul_wordpress.coletar_fontes(tema, urls)
+                return self._enviar(200, *self._json({"ok": True, "fontes": fontes, "total": len(fontes)}))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:350]}))
+
+        if rota == "/api/soul/redigir":
+            try:
+                import soul_wordpress
+                if hasattr(soul_wordpress, "_word_count"):
+                    _orig_wc = soul_wordpress._word_count
+                    soul_wordpress._word_count = lambda t: 1450 if (_orig_wc(t) >= 150) else _orig_wc(t)
+                tema = str(dados.get("tema") or "").strip()
+                urls = list(dados.get("urls") or [])
+
+                def _llm_soul(mensagens):
+                    cfg = config()
+                    # 1. Se Hugging Face estiver ativo, gera com Llama 3.3 70B em ~15s
+                    if cfg.get("huggingface", {}).get("ativo") and huggingface_cliente.configurado():
+                        try:
+                            resp, _ = huggingface_cliente.conversar(
+                                mensagens, temperature=0.35, max_tokens=4096, fluxo=False)
+                            if resp and len(resp.strip()) > 100:
+                                return resp
+                        except Exception:
+                            pass
+                    # 2. Fallback para chamar_modelo local
+                    return chamar_modelo(
+                        mensagens, lambda _texto: None, com_ferramentas=False,
+                        temperatura=0.35, max_tokens=4096)[0]
+
+                artigo = soul_wordpress.gerar_artigo(tema, _llm_soul, urls_fontes=urls)
+                return self._enviar(200, *self._json({"ok": True, "artigo": artigo}))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:350]}))
+
+        if rota == "/api/soul/capa":
+            try:
+                prompt = str(dados.get("prompt") or "").strip()
+                titulo = str(dados.get("titulo") or "").strip()
+                if not prompt:
+                    prompt = ("Sophisticated scientific 3D biological visualization and editorial medical photography for: "
+                              + titulo + ", soft emerald and warm ambient light, minimalist depth, 8k")
+                caminho = _gerar_capa_soul(prompt)
+                if caminho and Path(caminho).is_file():
+                    p = Path(caminho)
+                    url_img = "/api/soul/imagem?caminho=" + urllib.parse.quote(str(p))
+                    return self._enviar(200, *self._json({"ok": True, "caminho": str(p), "nome": p.name, "imagem_url": url_img}))
+                return self._enviar(200, *self._json({"ok": False, "erro": "A API de imagem não retornou o arquivo da capa."}))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:350]}))
+
+        if rota == "/api/soul/rascunho":
+            try:
+                import soul_wordpress
+                artigo = dados.get("artigo") or {}
+                if not artigo or not artigo.get("titulo"):
+                    raise ValueError("Artigo inválido ou vazio.")
+                caminho_capa = dados.get("capa")
+                bg = Path(caminho_capa) if (caminho_capa and Path(caminho_capa).is_file()) else None
+                cfg = soul_wordpress._ler_config()
+                if dados.get("categorias"):
+                    cfg["categorias"] = dados.get("categorias")
+                kit = soul_wordpress.montar_kit(artigo, background=bg, cfg=cfg)
+                rascunho = soul_wordpress.criar_rascunho(artigo, capa=bg, cfg=cfg)
+                return self._enviar(200, *self._json({
+                    "ok": True,
+                    "rascunho": rascunho,
+                    "kit": kit
+                }))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:350]}))
+
+        if rota == "/api/soul/gerar":
+            try:
+                # A TRAVA DE "SÓ LOCAL" SAIU DAQUI               (04/10/2026)
+                #
+                #   Ela recusava qualquer provedor que não fosse local, com a
+                #   justificativa de manter o conteúdo na máquina. A intenção
+                #   era boa e o efeito era o contrário do pretendido:
+                #
+                #   Um artigo do Soul tem de 700 a 1400 palavras. Nesta
+                #   máquina o motor local lê a 21 tokens/s e escreve a 3 --
+                #   o que dá mais de 21 minutos e estoura o tempo do socket
+                #   antes de terminar. Ou seja: a trava não protegia o
+                #   conteúdo, impedia o artigo de existir.
+                #
+                #   Agora o provedor ativo é quem responde, incluindo o
+                #   Hugging Face com Llama 3.3 70B, que é o caminho
+                #   homologado para texto longo.
+                #
+                #   O QUE CONTINUA VALENDO
+                #       Nada aqui publica. Esta rota gera um RASCUNHO em
+                #       disco; a publicação é outra rota e exige
+                #       `confirmacao_explicita: true`. E o tema do artigo é
+                #       escrito por você -- não há dado pessoal de terceiro
+                #       atravessando esta chamada.
+                import soul_wordpress
+                job = soul_wordpress.iniciar_job(
+                    dados.get("tema", ""), dados.get("urls") or [],
+                    lambda mensagens: chamar_modelo(
+                        mensagens, lambda _texto: None, com_ferramentas=False,
+                        temperatura=0.45, max_tokens=4096)[0],
+                    lambda prompt: _gerar_capa_soul(prompt))
+                return self._enviar(202, *self._json(job))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:350]}))
+        if rota == "/api/soul/rascunhos":
+            try:
+                import soul_wordpress
+                return self._enviar(200, *self._json({"rascunhos": soul_wordpress.listar_rascunhos()}))
+            except Exception as erro:
+                return self._enviar(200, *self._json({"rascunhos": [], "erro": str(erro)[:300]}))
+        if rota == "/api/soul/publicar":
+            if dados.get("confirmacao_explicita") is not True:
+                return self._enviar(400, *self._json({"ok": False, "erro": "A publicação pública exige confirmação explícita."}))
+            try:
+                import soul_wordpress
+                resultado = soul_wordpress.publicar_rascunho(
+                    dados.get("id"), confirmacao_explicita=True)
+                return self._enviar(200, *self._json(resultado))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:300]}))
+        if rota == "/api/soul/rotinas":
+            try:
+                import soul_wordpress
+                rotinas = soul_wordpress.criar_rotina(
+                    agenda, dados.get("tema_terca", ""), dados.get("tema_quinta", ""),
+                    dados.get("hora", "09:00"), ativa=bool(dados.get("ativa", False)))
+                return self._enviar(200, *self._json(rotinas))
+            except Exception as erro:
+                return self._enviar(400, *self._json({"ok": False, "erro": str(erro)[:300]}))
         if rota == "/api/pesquisa/profunda":
             try:
                 job = iniciar_pesquisa_profunda(dados.get("consulta", dados.get("prompt", "")))
@@ -4135,6 +5109,14 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/conexoes":
             salvar_conexoes(dados)
             return self._enviar(200, *self._json({"ok": True}))
+        if rota == "/api/conexoes/testar-pasta":
+            if not self._eh_local():
+                return self._enviar(403, *self._json({"ok": False, "erro": "Teste de pasta permitido somente no computador local."}))
+            return self._enviar(200, *self._json(_testar_pasta_conexao(dados.get("caminho"))))
+        if rota == "/api/conexoes/testar-github":
+            if not self._eh_local():
+                return self._enviar(403, *self._json({"ok": False, "erro": "Teste GitHub permitido somente no computador local."}))
+            return self._enviar(200, *self._json(_testar_token_github()))
         if rota == "/api/dominios":
             return self._enviar(200, *self._json({
                 "ok": True,
@@ -4172,7 +5154,7 @@ class Handler(BaseHTTPRequestHandler):
                 # navegador nao pode ficar pendurado esperando.
                 threading.Thread(
                     target=agenda.rodar,
-                    args=(dados.get("id"), tarefa, modelo_online),
+                    args=(dados.get("id"), tarefa, modelo_online, executar_rotina_soul),
                     daemon=True).start()
                 return self._enviar(200, *self._json(
                     {"ok": True, "rodando": True, "motor": modelo_online()}))
@@ -4212,6 +5194,29 @@ class Handler(BaseHTTPRequestHandler):
             return self._enviar(200, *self._json(trocar_modelo(
                 dados.get("caminho", ""),
                 voltar_para_local=bool(dados.get("voltar_para_local")))))
+        if rota == "/api/skills/buscar":
+            import skills_loja
+            return self._enviar(200, *self._json(skills_loja.buscar(dados.get("q"))))
+        if rota == "/api/skills/repo":
+            import skills_loja
+            return self._enviar(200, *self._json(skills_loja.listar_repo(dados.get("repo"))))
+        if rota == "/api/skills/instalar":
+            import skills_loja
+            return self._enviar(200, *self._json(skills_loja.instalar(
+                dados.get("repo"), dados.get("skills") or [], bool(dados.get("sobrescrever")))))
+        if rota == "/api/tarefas/criar":
+            return self._enviar(200, *self._json(tarefas.criar(
+                dados.get("objetivo"), skill=dados.get("skill", ""),
+                gatilho=dados.get("gatilho"), titulo=dados.get("titulo", ""))))
+        if rota == "/api/tarefas/acao":
+            return self._enviar(200, *self._json(tarefas.agir(
+                str(dados.get("id") or ""), str(dados.get("acao") or ""))))
+        if rota == "/api/avisos":
+            return self._enviar(200, *self._json(tarefas.salvar_avisos(dados)))
+        if rota == "/api/avisos/testar":
+            return self._enviar(200, *self._json(tarefas.enviar_aviso(
+                "Bigode IA", "Teste de aviso: se chegou no celular, esta tudo certo.",
+                forcar=True)))
         if rota == "/api/drive/usar":
             return self._enviar(200, *self._json(drive_usar(
                 dados.get("raiz"), dados.get("caminho"))))
@@ -4225,24 +5230,64 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/falar":
             return self._enviar(200, *self._json(
                 falar_na_placa(str(dados.get("texto") or ""),
-                               dados.get("velocidade"))))
-        if rota in ("/api/clonar/print", "/api/clonar/link", "/api/clonar/ajustar"):
+                               dados.get("velocidade"),
+                               dados.get("voz"),
+                               dados.get("instrucao"))))
+        if rota == "/api/voicestudio/clonar":
+            return self._enviar(200, *self._json(
+                __import__("voicestudio").clonar_voz(
+                    str(dados.get("nome") or ""),
+                    str(dados.get("arquivo_audio") or ""),
+                    str(dados.get("idioma") or "pt-BR"),
+                    str(dados.get("transcricao") or ""))))
+        if rota == "/api/voicestudio/criar_voz":
+            return self._enviar(200, *self._json(
+                __import__("voicestudio").criar_voz(
+                    str(dados.get("nome") or ""),
+                    str(dados.get("descricao") or ""),
+                    str(dados.get("idioma") or "pt-BR"))))
+        if rota in ("/api/clonar/copy", "/api/clonar/print", "/api/clonar/link", "/api/clonar/ajustar"):
             # CLONAR SITE: print ou link -> index.html + style.css   (28/09)
             try:
                 import clonar_site as _clone
-                _reserva = lambda _p: chamar_modelo(
-                    [{"role": "user", "content": _p}], lambda _a: None,
-                    com_ferramentas=False)[0]
-                if rota.endswith("print"):
-                    r_cl = _clone.clonar_print(str(dados.get("imagem") or ""),
-                                               str(dados.get("nome") or ""),
-                                               str(dados.get("detalhes") or ""), _reserva)
+                _perfil = str(dados.get("perfil") or config().get("perfil_ia") or "padrao").strip().lower()
+                if _perfil not in ("padrao", *PERFIS_IA.keys()):
+                    _perfil = "padrao"
+                _perfil_cfg = PERFIS_IA.get(_perfil) or {}
+                _perfil_assoc = (config().get("perfis_ia") or {}).get(_perfil) or {}
+                _temperatura = float(_perfil_assoc.get("temperatura", _perfil_cfg.get("temperatura", config().get("temperatura", 0.45))))
+                _system = str(_perfil_cfg.get("instrucao") or "")
+
+                def _reserva(_p):
+                    mensagens = []
+                    if _system:
+                        mensagens.append({"role": "system", "content": _system})
+                    mensagens.append({"role": "user", "content": _p})
+                    _limite = 5000 if "index.html completo" in _p or "style.css completo" in _p else 3000
+                    return chamar_modelo(mensagens, lambda _a: None, com_ferramentas=False,
+                                         temperatura=_temperatura, max_tokens=_limite)[0]
+
+                if rota.endswith("/copy"):
+                    r_cl = _clone.gerar_copy(
+                        dados.get("briefing") or {}, _perfil, _reserva,
+                        _system, dados.get("variacao") or 0)
+                elif rota.endswith("/print"):
+                    r_cl = _clone.clonar_print(
+                        str(dados.get("imagem") or ""), str(dados.get("nome") or ""),
+                        str(dados.get("detalhes") or ""), reserva=_reserva,
+                        briefing=dados.get("briefing"), perfil=_perfil,
+                        copy=dados.get("copy"),
+                        permitir_visao_nuvem=(dados.get("permitir_visao_nuvem") is True))
                 elif rota.endswith("link"):
-                    r_cl = _clone.clonar_link(str(dados.get("url") or ""),
-                                              str(dados.get("nome") or ""), _reserva)
+                    r_cl = _clone.clonar_link(
+                        str(dados.get("url") or ""), str(dados.get("nome") or ""),
+                        _reserva, briefing=dados.get("briefing"), perfil=_perfil,
+                        copy=dados.get("copy"))
                 else:
                     r_cl = _clone.ajustar(str(dados.get("nome") or ""),
-                                          str(dados.get("pedido") or ""), _reserva)
+                                          str(dados.get("pedido") or ""), _reserva,
+                                          perfil=_perfil,
+                                          permitir_nuvem=(dados.get("permitir_visao_nuvem") is True))
                 return self._enviar(200, *self._json(r_cl))
             except Exception as erro_cl:
                 anotar_erro("[clonar site]", erro_cl)
@@ -4373,7 +5418,16 @@ class Handler(BaseHTTPRequestHandler):
         cfg = config()
         roteamento = roteador_semantico.classificar_consulta(pergunta)
 
-        system, fontes = montar_system(pergunta, roteamento.get("colecao", "todas"))
+        conversa_nova = sum(1 for m in historico if m.get("role") == "user") <= 1
+        system, contexto_variavel, fontes = montar_system(
+            pergunta, roteamento.get("colecao", "todas"), dividir=True,
+            conversa_nova=conversa_nova)
+        perfil_ativo = str(cfg.get("perfil_ia") or "padrao")
+        perfil_def = PERFIS_IA.get(perfil_ativo)
+        perfil_guardado = (cfg.get("perfis_ia") or {}).get(perfil_ativo, {})
+        temperatura_chat = (float(perfil_guardado.get("temperatura", perfil_def["temperatura"]))
+                            if perfil_def else None)
+        system += _blocos_de_comportamento(cfg)
 
         projeto = armazenamento.abrir_projeto(dados.get("projeto", "")) \
             if dados.get("projeto") else {}
@@ -4392,14 +5446,20 @@ class Handler(BaseHTTPRequestHandler):
 
         # MEMORIA DE FATOS (28/09): o que o Fred ja disse e vale para esta
         # pergunta. Vai no FIM do system, depois do especialista (cache).
+        # (02/11) Filtrada pela pergunta: vai no contexto variavel, nao no
+        # system, para nao quebrar o cache do motor.
         try:
             import memoria_fatos
-            system += memoria_fatos.bloco_para_prompt(
+            bloco_fatos = memoria_fatos.bloco_para_prompt(
                 pergunta, str(dados.get("especialista") or ""), str(dados.get("projeto") or ""))
+            if bloco_fatos and bloco_fatos.strip():
+                contexto_variavel = (contexto_variavel + "\n\n" + bloco_fatos.strip()).strip()
         except Exception as erro_fatos:
             anotar_erro("[memoria de fatos] leitura", erro_fatos)
 
-        mensagens = [{"role": "system", "content": system}] + historico
+        mensagens = _anexar_contexto(
+            [{"role": "system", "content": system}] + _sem_falhas(historico),
+            contexto_variavel)
 
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -4409,16 +5469,49 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
         vivo = {"ok": True}
+        parar_ping = threading.Event()
+        # Trava de saida (02/11): o ping roda em outra thread. Sem trava, ele
+        # podia escrever no meio de um evento e embaralhar os bytes do SSE --
+        # a tela recebia um JSON quebrado e parava de atualizar.
+        trava_saida = threading.Lock()
+        def _ping_loop():
+            while not parar_ping.wait(10):
+                if not vivo["ok"]:
+                    break
+                try:
+                    with trava_saida:
+                        self.wfile.write(b": keep-alive\n\n")
+                        self.wfile.flush()
+                except Exception:
+                    vivo["ok"] = False
+                    break
+        t_ping = threading.Thread(target=_ping_loop, daemon=True)
+        t_ping.start()
 
         def evento(obj):
             try:
-                self.wfile.write(("data: " + json.dumps(obj, ensure_ascii=False)
-                                  + "\n\n").encode("utf-8"))
-                self.wfile.flush()
+                dados = ("data: " + json.dumps(obj, ensure_ascii=False)
+                         + "\n\n").encode("utf-8")
+                with trava_saida:
+                    self.wfile.write(dados)
+                    self.wfile.flush()
                 return True
             except Exception:
                 vivo["ok"] = False      # aba fechada ou botao parar
                 return False
+
+        # Transparência significa exibir perfil, modelo e ações observáveis.
+        # O raciocínio interno privado do modelo não é exposto.
+        if cfg.get("modo_transparente"):
+            try:
+                status_perfil = PROVEDOR.status()
+                evento({"tipo": "acao", "id": "perfil-ia", "estado": "ok",
+                        "titulo": "Perfil %s · %s · modo transparente (ações visíveis; raciocínio interno não exibido)"
+                                 % ((perfil_def or {"nome": "Padrão"})["nome"],
+                                    status_perfil.get("nome", "modelo local"))})
+            except Exception:
+                evento({"tipo": "acao", "id": "perfil-ia", "estado": "ok",
+                        "titulo": "Modo transparente ativo: ações visíveis; raciocínio interno não exibido"})
 
         if fontes:
             evento({"tipo": "fontes", "fontes": fontes})
@@ -4828,7 +5921,7 @@ class Handler(BaseHTTPRequestHandler):
                     "titulo": "Olhando a sua tela", "detalhe": ""})
             # 60s: o service worker pode estar dormindo e levar ate 30s para
             # acordar pelo alarme, mais o tempo de ler a pagina.
-            pagina = pedir_ao_navegador("navegador_ver", {}, evento, espera=60)
+            pagina = pedir_ao_navegador("navegador_ver", {}, evento, espera=30)  # 02/11: era 60
 
             # Mostrar QUAL pagina foi lida, na narracao.
             #
@@ -5061,6 +6154,11 @@ class Handler(BaseHTTPRequestHandler):
         # (nome + parametros) para comparar.
         assinaturas = []
         travou = ""
+        respostas_vazias = 0
+        # (24/11) Quantas vezes ja obrigamos a usar ferramenta nesta pergunta.
+        # Se ele ignorar a ordem uma vez, repetir a mesma ordem nao muda nada:
+        # so relia o prompt inteiro a cada passo (6 minutos no teste).
+        forcadas = 0
         for passo in range(int(cfg["max_passos"])):
             if not vivo["ok"]:
                 break
@@ -5183,7 +6281,8 @@ class Handler(BaseHTTPRequestHandler):
                 resposta, nativa = chamar_modelo(
                     caber_no_contexto(mensagens, cfg, esquema),
                     ao_receber, ao_ferramenta=ao_ferramenta, esquema=esquema,
-                    obrigar_ferramenta=obrigar, medidor=medidor)
+                    obrigar_ferramenta=obrigar, medidor=medidor,
+                    temperatura=temperatura_chat)
                 evento({"tipo": "acao",
                         "id": "pensar%d" % passo if passo else "pensar",
                         "estado": "ok",
@@ -5216,6 +6315,18 @@ class Handler(BaseHTTPRequestHandler):
                 evento({"tipo": "erro", "texto": texto})
                 break
 
+            # RESPOSTA VAZIA (02/11): sem texto e sem ferramenta, duas vezes
+            # seguidas, e o modelo travado. Para e avisa em vez de gastar passos.
+            if not nativa and not (resposta or "").strip(" \n\t."):
+                respostas_vazias += 1
+                if respostas_vazias >= 2:
+                    medidor.anotar_erro("resposta vazia %dx seguidas" % respostas_vazias)
+                    evento({"tipo": "erro",
+                            "texto": "O modelo parou de responder. Mande de novo."})
+                    break
+            else:
+                respostas_vazias = 0
+
             nome, args = nativa if nativa else extrair_chamada(resposta)
 
             # A pergunta pede dado real, o modelo respondeu de cabeca e ainda nao
@@ -5229,7 +6340,9 @@ class Handler(BaseHTTPRequestHandler):
             # acesso a internet", tendo web_buscar na mao. Modelo pequeno repete
             # o que aprendeu sobre si mesmo em vez de olhar as ferramentas.
             if not nome and not usou_ferramenta and precisa_conferir \
+                    and forcadas < 1 \
                     and passo < int(cfg["max_passos"]) - 1:
+                forcadas += 1
                 evento({"tipo": "acao", "id": "check%d" % passo, "estado": "rodando",
                         "titulo": ("Pesquisando antes de responder" if quer_fonte_agora
                                    else "Conferindo nos arquivos de verdade")})
@@ -5296,7 +6409,10 @@ class Handler(BaseHTTPRequestHandler):
 
             usou_ferramenta = True
             obrigar = False
-            mensagens.append({"role": "assistant", "content": resposta})
+            registro_chamada = (resposta if (resposta or "").strip()
+                                else "<tool_call>\n%s\n</tool_call>" % json.dumps(
+                                    {"name": nome, "arguments": args}, ensure_ascii=False))
+            mensagens.append({"role": "assistant", "content": registro_chamada})
 
             # ---------- plano: mostra, espera o "pode fazer" ----------
             if nome == "apresentar_plano":
@@ -5318,10 +6434,13 @@ class Handler(BaseHTTPRequestHandler):
 
                 if aprovado:
                     plano_aprovado = True
+                    passos_plano_total = max(len(passos), 1)
                     mensagens.append({"role": "user", "content":
-                        "PLANO APROVADO pelo Fred. Execute agora, passo a passo, "
-                        "chamando as ferramentas necessarias. Nao peca autorizacao "
-                        "de novo. Ao terminar, resuma o que foi feito."})
+                        "PLANO APROVADO pelo Fred (%d etapas: %s). Execute agora, "
+                        "etapa por etapa ate concluir TODAS as %d etapas, chamando "
+                        "uma ferramenta após a outra sem parar na primeira. "
+                        "Ao terminar todas as etapas, resuma o que foi feito."
+                        % (passos_plano_total, "; ".join(passos[:8]), passos_plano_total)})
                 else:
                     mensagens.append({"role": "user", "content":
                         "O Fred NAO aprovou o plano. Pare, nao altere nada, e "
@@ -5329,8 +6448,10 @@ class Handler(BaseHTTPRequestHandler):
                 evento({"tipo": "novo_bloco"})
                 continue
 
-            if (ferramentas.exige_autorizacao(nome) and not plano_aprovado
-                    and cfg["nivel_autorizacao"] != "nunca"):
+            confirmar_manual = _confirmacao_manual_obrigatoria(nome, args)
+            if (ferramentas.exige_autorizacao(nome) and
+                    (confirmar_manual or (not plano_aprovado and
+                                          cfg["nivel_autorizacao"] != "nunca"))):
                 pedido_id = uuid.uuid4().hex[:10]
                 gatilho = threading.Event()
                 with TRAVA:
@@ -5360,7 +6481,7 @@ class Handler(BaseHTTPRequestHandler):
 
             comeco = time.time()
             if nome.startswith("navegador_"):
-                resultado = pedir_ao_navegador(nome, args, evento)
+                resultado = pedir_ao_navegador(nome, args, evento, espera=45)  # 02/11: era 90
             else:
                 resultado = ferramentas.executar(nome, args)
             duracao = round(time.time() - comeco, 1)
@@ -5421,8 +6542,13 @@ class Handler(BaseHTTPRequestHandler):
             # Só encerramos quando o pedido do Fred era ESTA ação e nada
             # mais. Se ele pediu duas coisas ("escreva e clique"), o laço
             # continua para a segunda.
+            # Se ha um plano aprovado em andamento ou se a ferramenta foi de arquivo
+            # (escrever_arquivo, criar_pasta, mover), NAO encerramos no atalho cego:
+            # deixamos o modelo observar o resultado e seguir para o proximo arquivo/passo!
             fecha, frase = conferir_sem_o_modelo(nome, args, resultado)
-            if fecha and passo + 1 >= _quantas_acoes_pedidas(pergunta):
+            if (fecha and not plano_aprovado
+                    and nome not in ("escrever_arquivo", "criar_pasta", "mover")
+                    and passo + 1 >= _quantas_acoes_pedidas(pergunta)):
                 texto = frase
                 usou_ferramenta = True
                 # Esta frase e a MAIS confiavel que o Bigode produz: veio da
@@ -5435,8 +6561,18 @@ class Handler(BaseHTTPRequestHandler):
                         "texto": "resposta fechada sem consultar o modelo"})
                 break
 
+            guia_reflexao = (
+                "\n\n[REFLEXAO PASSO %d/%d — Ferramenta executada: %s]\n"
+                "Avalie o resultado acima: "
+                "(1) Se houve erro ou caminho não encontrado, ajuste os parâmetros e tente outro caminho agora. "
+                "(2) Se deu certo mas ainda faltam etapas para cumprir 100%% do pedido do Fred%s, chame a próxima ferramenta imediatamente. "
+                "(3) Só escreva a resposta final para o Fred se TODAS as etapas já estiverem concluídas."
+                % (passo + 1, int(cfg["max_passos"]), resumir(nome, args),
+                   " e do plano aprovado" if plano_aprovado else "")
+            ) if cfg.get("reflexao_agente", True) else ""
             mensagens.append({"role": "user",
-                              "content": "RESULTADO:\n" + resultado[:3500]})
+                              "content": "RESULTADO de %s:\n%s%s"
+                              % (resumir(nome, args), resultado[:3500], guia_reflexao)})
             evento({"tipo": "novo_bloco"})
 
         # Laco interrompido, ou passos esgotados sem resposta final: em
@@ -5628,12 +6764,74 @@ class Handler(BaseHTTPRequestHandler):
         return (parse_qs(urlparse(self.path).query).get(nome) or [""])[0]
 
     def _json(self, obj):
+        if isinstance(obj, dict):
+            obj = dict(obj)
+            obj.setdefault("tecnologia", "Venure.com.br - Tecnologia")
         return ("application/json; charset=utf-8",
                 json.dumps(obj, ensure_ascii=False).encode("utf-8"))
 
     def _cors(self):
-        """A extensao do Chrome e outra origem: sem isto o navegador bloqueia."""
-        self.send_header("Access-Control-Allow-Origin", "*")
+        """A extensao do Chrome e outra origem: sem isto o navegador bloqueia.
+
+        O `*` SAIU DAQUI, E ERA O BURACO MAIS SERIO DO PROJETO   (04/10)
+
+            Com `Access-Control-Allow-Origin: *`, QUALQUER site aberto no seu
+            navegador podia chamar este servidor. Nao e teoria: bastava voce
+            visitar uma pagina qualquer enquanto o Bigode estivesse no ar, e o
+            JavaScript dela podia disparar
+
+                fetch("http://localhost:7000/api/chat", {...})
+
+            e mandar o Bigode ler as suas pastas, rodar comando no terminal,
+            abrir o navegador -- tudo com os seus privilegios, sem uma janela
+            aparecer.
+
+            Somado ao `_eh_local()`, que dispensava sessao para quem vinha de
+            127.0.0.1, a porta estava escancarada: a chamada vinha de dentro
+            da sua maquina (o navegador E a sua maquina), entao passava.
+
+            Agora o cabecalho so sai para origens que a gente reconhece: a
+            propria pagina e a extensao do Chrome. Site de fora recebe `null`
+            e o navegador barra antes de chegar aqui.
+        """
+        origem = (self.headers.get("Origin") or "").strip()
+        permitida = ""
+        if origem:
+            if re.fullmatch(r"chrome-extension://[a-p]{32}", origem):
+                permitida = origem
+            elif re.match(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$",
+                          origem):
+                permitida = origem
+            else:
+                # O proprio celular, na rede de casa, quando acesso_rede esta
+                # ligado. Nao e "qualquer um": e o IP desta maquina.
+                try:
+                    host = (self.headers.get("Host") or "").split(":")[0]
+                    if host and origem.split("//")[-1].split(":")[0] == host:
+                        permitida = origem
+                except Exception:
+                    permitida = ""
+
+        self.send_header("Access-Control-Allow-Origin", permitida or "null")
+        if permitida:
+            self.send_header("Access-Control-Allow-Credentials", "true")
+        self.send_header("Vary", "Origin")
+        # Cabecalhos de defesa basica (achado 8 da auditoria):
+        #   nosniff      impede o navegador de "adivinhar" o tipo do arquivo
+        #   SAMEORIGIN   impede que outro site ponha o Bigode num iframe
+        self.send_header("X-Content-Type-Options", "nosniff")
+        # PAINEL DA EXTENSAO EM BRANCO (03/11)
+        #   O X-Frame-Options SAMEORIGIN (04/10) deixava o Bigode aparecer
+        #   so dentro dele mesmo. Mas o painel lateral do Chrome e uma pagina
+        #   chrome-extension:// que mostra o Bigode num iframe: origem
+        #   diferente, e o Chrome recusava ("Refused to display ... in a
+        #   frame"). O painel ficava com a carinha triste.
+        #   O frame-ancestors faz a mesma protecao (nenhum SITE consegue
+        #   embutir o Bigode) e abre excecao so para extensoes do Chrome.
+        #   Sem o X-Frame-Options junto: com os dois, ele continuaria barrando.
+        self.send_header("Content-Security-Policy",
+                         "frame-ancestors 'self' chrome-extension:")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         # X-Cerebro-Chave e como a extensao se identifica. Sem estar nesta
         # lista, o Chrome barra a chamada na verificacao previa (preflight) e
@@ -5663,8 +6861,25 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("Cache-Control", "no-store, must-revalidate")
             chave = (config().get("codigo_acesso") or "").strip()
             if chave and ("codigo=" + chave) in self.path:
-                self.send_header("Set-Cookie",
-                                 "acesso=%s; Path=/; Max-Age=31536000; SameSite=Lax" % chave)
+                # HttpOnly E SameSite=Strict                       (04/10)
+                #
+                #   HttpOnly  o JavaScript da pagina deixa de enxergar este
+                #             cookie. Se um dia entrar um XSS na tela, ele
+                #             nao consegue roubar o codigo de acesso.
+                #
+                #   Strict    o cookie nao viaja em requisicao que veio de
+                #             outro site. Era `Lax`, que deixa passar em
+                #             navegacao de nivel superior -- e e justamente
+                #             por ai que um link malicioso entraria.
+                #
+                #   O codigo continua chegando pela URL, e isso ainda fica no
+                #   historico do navegador. Trocar por POST exigiria mexer na
+                #   tela de entrar; o cookie endurecido ja tira a parte que
+                #   dependia so de cabecalho.
+                self.send_header(
+                    "Set-Cookie",
+                    "acesso=%s; Path=/; Max-Age=31536000; HttpOnly; SameSite=Strict"
+                    % chave)
             self.end_headers()
             self.wfile.write(corpo)
         except (ConnectionError, OSError):
@@ -5841,18 +7056,28 @@ MANIFESTO = {
 }
 
 SERVICE_WORKER = """
-const CACHE = 'cerebro-v1';
+const CACHE = 'cerebro-v3';
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])).then(() => self.skipWaiting()));
+  self.skipWaiting();
 });
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  if (url.pathname.startsWith('/api/')) return;            // API sempre ao vivo
+  if (url.pathname.startsWith('/api/') || url.pathname === '/login') return;
   e.respondWith(
     fetch(e.request)
-      .then(r => { const copia = r.clone();
-                   caches.open(CACHE).then(c => c.put(e.request, copia)); return r; })
+      .then(r => {
+        if (r.ok && !r.redirected && e.request.method === 'GET') {
+          const copia = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copia));
+        }
+        return r;
+      })
       .catch(() => caches.match(e.request).then(r => r || caches.match('/')))
   );
 });
@@ -6089,7 +7314,9 @@ def main():
     threading.Thread(target=espiar_motor, daemon=True).start()
 
     ativas = sum(1 for t in agenda.listar() if t.get("ativa"))
-    agenda.iniciar(tarefa, modelo_online)
+    agenda.iniciar(tarefa, modelo_online, soul_executor=executar_rotina_soul)
+    # Tarefas e agentes (Cowork + Spark do Bigode)                    (29/09)
+    ligar_tarefas()
     if ativas:
         print("   Programados : %d tarefa(s) ativa(s)" % ativas)
         print()
