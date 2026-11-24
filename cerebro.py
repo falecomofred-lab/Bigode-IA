@@ -5599,7 +5599,21 @@ class Handler(BaseHTTPRequestHandler):
         #
         # Para reativar (e refazer a medicao antes de acreditar):
         #     "ferramentas_dinamicas": true   no config.json
-        if cfg.get("ferramentas_dinamicas", False):
+        # ═══ MODOS DE TRABALHO (24/11) ═══════════════════════════════════
+        # A tela manda "modo" (conversa, arquivos, navegador, pesquisa,
+        # blender, criacao). Cada modo leva so as suas ferramentas: menos
+        # para o modelo escolher, prompt menor, menos erro. "auto" ou modo
+        # desconhecido = comportamento antigo (todas as ferramentas).
+        modo = str(dados.get("modo") or "auto").strip().lower()
+        if modo not in ferramentas.MODOS:
+            modo = "auto"
+        if modo != "auto":
+            _do_modo = ferramentas.para_modo(modo)
+            # esquema_openai({}) devolveria o catalogo inteiro: conversa = [].
+            esquema = ferramentas.esquema_openai(_do_modo) if _do_modo else []
+            if modo != "navegador":
+                quer_navegador = False
+        elif cfg.get("ferramentas_dinamicas", False):
             esquema = ferramentas.esquema_openai(ferramentas.para_pergunta(
                 pergunta, garantir=("navegador",) if quer_navegador else ()))
         else:
@@ -5889,6 +5903,16 @@ class Handler(BaseHTTPRequestHandler):
             elif regras_esp.get("rigor") == "livre":
                 quer_fonte_agora = quer_arquivo_agora = False
         precisa_conferir = quer_fonte_agora or quer_arquivo_agora
+        # Num modo escolhido, so obriga a usar ferramenta que o modo TEM.
+        # Sem isto, "quando foi..." no modo Arquivos mandaria chamar a busca
+        # na web, que nem esta no catalogo.
+        if modo != "auto":
+            _nomes = {f.get("function", {}).get("name") for f in esquema}
+            if "web_buscar" not in _nomes:
+                quer_fonte_agora = False
+            if not ({"ler_arquivo", "listar_pasta"} & _nomes):
+                quer_arquivo_agora = False
+            precisa_conferir = quer_fonte_agora or quer_arquivo_agora
 
         plano_aprovado = False
         lidos, texto = [], ""     # o que ele realmente abriu, e a resposta final

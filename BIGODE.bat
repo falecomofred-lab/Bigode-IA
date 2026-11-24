@@ -68,7 +68,7 @@ rem       Foi retirado. Era sugestao minha, nao pedido seu, e a prioridade
 rem       sempre foi o DeepSeek e o Qwen -- os dois que ja funcionavam.
 rem       Nao ha mais nada aqui que aponte para ele.
 rem ---------------------------------------------------------------------
-if not defined BIGODE_PERFIL set "BIGODE_PERFIL=codigo"
+if not defined BIGODE_PERFIL set "BIGODE_PERFIL=conversa"
 "%PY%" "%ROOT%motor_perfil.py" %BIGODE_PERFIL%
 echo.
 
@@ -133,6 +133,8 @@ if not defined BIGODE_MOTOR (
 )
 
 rem Modelo textual: respeitar variavel; nunca escolher modelo de imagem.
+if not defined BIGODE_MODELO if exist "C:\Bigode-Modelos\qwen2.5-coder-7b-instruct-q4_k_m.gguf" set "BIGODE_MODELO=C:\Bigode-Modelos\qwen2.5-coder-7b-instruct-q4_k_m.gguf"
+if not defined BIGODE_MODELO if exist "%ROOT%modelos\qwen2.5-coder-7b-instruct-q4_k_m.gguf" set "BIGODE_MODELO=%ROOT%modelos\qwen2.5-coder-7b-instruct-q4_k_m.gguf"
 if not defined BIGODE_MODELO if exist "G:\Outros computadores\USB e dispositivos externos\Pen IA\qwen3-14b-Q4_K_M.gguf" set "BIGODE_MODELO=G:\Outros computadores\USB e dispositivos externos\Pen IA\qwen3-14b-Q4_K_M.gguf"
 if not defined BIGODE_MODELO if exist "%ROOT%modelos_dados\qwen3-14b-Q4_K_M.gguf" set "BIGODE_MODELO=%ROOT%modelos_dados\qwen3-14b-Q4_K_M.gguf"
 if not defined BIGODE_MODELO for %%D in ("%ROOT%" "%ROOT%..") do for %%F in ("%%~fD\*.gguf") do if not defined BIGODE_MODELO set "BIGODE_MODELO=%%~fF"
@@ -158,8 +160,8 @@ for /l %%N in (1,1,90) do (
   if not errorlevel 1 goto MOTOR_OK
   timeout /t 1 /nobreak >nul
 )
-echo [ERRO] O motor nao respondeu em 90 segundos. Consulte %LOG%.
-pause & exit /b 1
+echo [AVISO] O motor local nao respondeu na porta %PORT% (consulte %LOG%). Abrindo a interface mesmo assim...
+goto ABRIR
 
 :MOTOR_OK
 echo Motor local verificado.

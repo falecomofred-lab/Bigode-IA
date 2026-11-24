@@ -1560,6 +1560,33 @@ header{
   header,.lateral,.compor,.ajuda-rapida{
     -webkit-backdrop-filter:none!important; backdrop-filter:none!important}
 }
+/* MODOS DE TRABALHO (24/11): cada modo manda ao modelo so as suas ferramentas */
+.modo-sel{align-self:center;background:transparent;border:1px solid var(--linha2);color:var(--txt2);
+  border-radius:9px;padding:6px 8px;font-size:12.5px;max-width:150px;cursor:pointer;outline:none}
+.modo-sel:hover,.modo-sel:focus{border-color:#31445E;color:var(--txt)}
+.modo-sel option{background:var(--sup);color:var(--txt)}
+@media (max-width:600px){.modo-sel{max-width:96px;font-size:12px;padding:5px 4px}}
+/* USABILIDADE (24/11) ------------------------------------------------ */
+/* Cartoes de modo na tela inicial: ensinam o que o Bigode faz sem manual */
+.modos-ini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:640px;
+  margin:26px auto 0;text-align:left}
+.modo-card{background:var(--sup);border:1px solid var(--linha);border-radius:12px;padding:12px 14px;
+  cursor:pointer;color:var(--txt);transition:border-color .15s,background .15s;font:inherit;text-align:left}
+.modo-card:hover{border-color:#31445E;background:var(--sup2)}
+.modo-card:focus-visible{outline:2px solid #31445E;outline-offset:2px}
+.modo-card.on{border-color:var(--ac);background:var(--sup2)}
+.modo-card b{display:block;font-size:13.5px;font-weight:600;margin-bottom:3px}
+.modo-card span{display:block;font-size:12px;color:var(--mudo);line-height:1.4}
+.modos-dica{font-size:12px;color:var(--fraco);margin-top:12px}
+@media(max-width:620px){.modos-ini{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* A tela inicial respira: gato menor, menos espaco morto */
+.inicio{padding-top:6vh}
+.gato{height:clamp(96px,16vh,150px)}
+/* Faixa de estado so aparece quando ha algo a dizer (ligando, ocupado, desligado) */
+.ajuda-rapida.pronto{display:none!important}
+/* Diagnostico e ferramenta de desenvolvedor: some da tela; Ctrl+Shift+D mostra */
+#logs-discreto{display:none}
+body.diag #logs-discreto{display:block}
 </style>
 <!-- A captacao de voz, compartilhada com a Pipi. Vem ANTES do script da
      pagina para o `window.Voz` ja existir quando ele rodar. -->
@@ -1674,6 +1701,7 @@ header{
     <button class="red" id="btMais" onclick="abrirMenu(event)" title="Anexar arquivo, projeto ou manual" aria-label="Anexar arquivo, projeto ou manual">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <select id="modoTrabalho" class="modo-sel" title="Modo de trabalho: o Bigode usa só as ferramentas deste modo" aria-label="Modo de trabalho"><option value="auto">Automático</option><option value="conversa">Conversa</option><option value="arquivos">Arquivos e código</option><option value="pesquisa">Pesquisa</option><option value="navegador">Navegador</option><option value="blender">Blender 3D</option><option value="criacao">Imagem e voz</option></select>
     <textarea id="entrada" rows="1" placeholder="Mensagem…" aria-label="Sua mensagem"></textarea>
     <button class="mic" id="btMic" onclick="alternarVoz()" title="Falar em vez de digitar (Ctrl+Espaço)" aria-label="Falar em vez de digitar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1691,6 +1719,7 @@ header{
         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
   </div>
+  <script>(function(){var s=document.getElementById("modoTrabalho");if(!s)return;try{var v=localStorage.getItem("bigodeModo");if(v&&s.querySelector('option[value="'+v+'"]'))s.value=v;}catch(e){}s.onchange=function(){try{localStorage.setItem("bigodeModo",s.value);}catch(e){}};})();</script>
   <!-- ESTA LINHA NASCE VAZIA                                  (17/09)
        Ela e o canal por onde a tela avisa que o motor esta desligado ou
        ligando -- isso fica. O que saiu foi o texto de repouso, o
@@ -1702,9 +1731,7 @@ header{
        parece importante. Deixando vazio, quando algo aparecer ali, e
        porque aconteceu alguma coisa. -->
   <div class="nota" id="nota"></div>
-  <div class="rodape"><a href="https://venure.com.br" target="_blank" rel="noopener">Venure</a>
-    <span>·</span><span class="lema">Tecnologia que muda vidas</span>
-    <span class="direitos">© <span id="anoAtual">2026</span> Bigode IA · roda no seu computador; as conversas não saem daqui.</span></div>
+  <div class="rodape"><span class="direitos">© <span id="anoAtual">2026</span> Bigode IA · feito pela <a href="https://venure.com.br" target="_blank" rel="noopener">Venure</a> · roda no seu computador; as conversas não saem daqui.</span></div>
 </div>
 
 </div><!-- /tronco -->
@@ -3207,7 +3234,7 @@ function md(txt){
     return h+'</tbody></table>';});
   t=t.replace(/(?:^[ \t]*[-*+] .+$\n?)+/gm,b=>'<ul>'+b.trim().split('\n')
      .map(l=>'<li>'+l.replace(/^[ \t]*[-*+] /,'')+'</li>').join('')+'</ul>');
-  t=t.replace(/(?:^[ \t]*\d+\. .+$\n?)+/gm,b=>'<ol>'+b.trim().split('\n')
+  t=t.replace(/(?:^[ \t]*\d+\. .+$\n?)+/gm,b=>'<ol start="'+(parseInt(b.trim(),10)||1)+'">'+b.trim().split('\n')
      .map(l=>'<li>'+l.replace(/^[ \t]*\d+\. /,'')+'</li>').join('')+'</ol>');
   t=t.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
   t=t.split(/\n{2,}/).map(p=>{const x=p.trim();if(!x)return '';
@@ -3225,6 +3252,43 @@ document.addEventListener('click',e=>{
   b.innerHTML=S(IC.ok,13)+'Copiado'; setTimeout(()=>b.innerHTML=S(IC.copia,13)+'Copiar',1800);
 });
 
+/* ---------- modos de trabalho na tela (24/11) ----------
+   Os mesmos modos do seletor ao lado da caixa de mensagem. Cada cartao
+   explica em uma linha o que o Bigode faz naquele modo; clicar escolhe o
+   modo e poe o cursor na caixa. Nada e enviado sem voce. */
+const MODOS_UI={
+  conversa:{t:'Conversa',d:'Tirar dúvidas e escrever textos. O mais rápido.',ph:'Pergunte ou peça um texto…'},
+  arquivos:{t:'Arquivos e código',d:'Ler, corrigir e criar arquivos dos seus projetos.',ph:'Ex.: liste a pasta do projeto Soul…'},
+  pesquisa:{t:'Pesquisa',d:'Buscar na internet, CEP, CNPJ, cotação.',ph:'O que você quer pesquisar?'},
+  navegador:{t:'Navegador',d:'Abrir sites, clicar e preencher no Chrome.',ph:'Ex.: abra o site X e entre na área de login…'},
+  blender:{t:'Blender 3D',d:'Criar e ajustar modelos 3D.',ph:'Ex.: crie um carrinho vermelho…'},
+  criacao:{t:'Imagem e voz',d:'Gerar imagens e áudios com voz.',ph:'Descreva a imagem ou o áudio…'},
+  auto:{t:'Automático',d:'Todas as ferramentas. Mais lento.',ph:'Mensagem…'}
+};
+function modoAtual(){const s=document.getElementById('modoTrabalho');return s?s.value:'auto';}
+function aplicarModo(m){
+  const s=document.getElementById('modoTrabalho');if(!s||!MODOS_UI[m])return;
+  s.value=m;try{localStorage.setItem('bigodeModo',m);}catch(e){}
+  const e=document.getElementById('entrada');if(e)e.placeholder=MODOS_UI[m].ph;
+  document.querySelectorAll('.modo-card').forEach(c=>c.classList.toggle('on',c.dataset.modo===m));
+}
+function cartoesDeModo(){
+  const ordem=['conversa','arquivos','pesquisa','navegador','blender','criacao'];
+  return '<div class="modos-ini" role="list">'+ordem.map(m=>
+    '<button class="modo-card" role="listitem" data-modo="'+m+'"><b>'+esc(MODOS_UI[m].t)+
+    '</b><span>'+esc(MODOS_UI[m].d)+'</span></button>').join('')+'</div>'+
+    '<div class="modos-dica">Escolha um modo: o Bigode responde mais rápido quando sabe o tipo de trabalho.</div>';
+}
+function ligarCartoesDeModo(){
+  document.querySelectorAll('.modo-card').forEach(c=>c.onclick=()=>{
+    aplicarModo(c.dataset.modo);const e=document.getElementById('entrada');if(e)e.focus();});
+  aplicarModo(modoAtual());
+}
+document.addEventListener('keydown',ev=>{
+  if(ev.ctrlKey&&ev.shiftKey&&(ev.key==='D'||ev.key==='d')){ev.preventDefault();document.body.classList.toggle('diag');}
+});
+document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='modoTrabalho')aplicarModo(ev.target.value);});
+
 /* ---------- tela inicial ---------- */
 /* 28/09: o Fred pediu para tirar as quatro sugestoes da tela inicial.
    Lista vazia = o bloco nem e desenhado. */
@@ -3236,10 +3300,11 @@ function telaInicial(){
    '<img class="gato" src="/img/bigode.png" alt="" onerror="this.remove()">'+
    '<div class="vnome">BIGODE IA</div>'+
    '<h2>Como posso ajudar você hoje?</h2>'+
+   cartoesDeModo()+
    (EXEMPLOS.length?'<div class="exemplos">'+EXEMPLOS.map((e,i)=>
      '<button class="ex" data-i="'+i+'">'+esc(e)+'</button>').join('')+'</div>':'')+
    painelHTML()+'</div>';
-  pintarPainel();
+  pintarPainel();ligarCartoesDeModo();
   document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>{
     $('entrada').value=EXEMPLOS[b.dataset.i];$('entrada').focus();
     $('entrada').dispatchEvent(new Event('input'));});
@@ -4288,7 +4353,8 @@ async function responder(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mensagens:historico,
         projeto:projetoAtivo?projetoAtivo.id:'',
-        especialista:espAtivo?espAtivo.id:''})});
+        especialista:espAtivo?espAtivo.id:'',
+        modo:(document.getElementById('modoTrabalho')||{}).value||'auto'})});
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
     while(true){
       const {done,value}=await rd.read(); if(done)break;

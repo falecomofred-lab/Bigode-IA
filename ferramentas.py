@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# Venure.com.br - Tecnologia
 """
 FERRAMENTAS - as maos do Bigode
 
@@ -424,10 +425,60 @@ def escrever_arquivo(caminho="", conteudo="", **_):
         arquivo.parent.mkdir(parents=True, exist_ok=True)
         existia = arquivo.exists()
         arquivo.write_text(conteudo, encoding="utf-8")
-        return "%s: %s (%d caracteres)" % (
+        feito = "%s: %s (%d caracteres)" % (
             "Atualizado" if existia else "Criado", caminho, len(conteudo))
+        return feito + conferir_codigo(arquivo, conteudo)
     except Exception as erro:
         return "Erro ao escrever: %s" % erro
+
+
+# ═══ CONFERIR O CODIGO DEPOIS DE ESCREVER (02/11) ═════════════════════════
+#
+#   O modelo escrevia um .py com parentese faltando, dizia "pronto" e o erro
+#   so aparecia quando voce rodava. Agora, logo depois de gravar, o proprio
+#   Bigode confere a sintaxe do ARQUIVO escrito (nao do projeto inteiro: rodar
+#   linter e testes da pasta toda a cada gravacao levava dezenas de segundos)
+#   e devolve o erro junto com o resultado da ferramenta. O modelo le isso no
+#   passo seguinte e corrige.
+#
+#     .py    compile() do proprio Python      sempre disponivel
+#     .json  json.loads                        sempre disponivel
+#     .js    node --check                      so se o Node estiver instalado
+#     .php   php -l                            so se o PHP estiver instalado
+#
+#   Ferramenta ausente = nao confere e nao reclama. Limite de 15 s.
+def conferir_codigo(arquivo, conteudo):
+    import shutil
+    import subprocess
+    ext = Path(arquivo).suffix.lower()
+    erro = ""
+    try:
+        if ext == ".py":
+            compile(conteudo, str(arquivo), "exec")
+        elif ext == ".json":
+            json.loads(conteudo or "null")
+        elif ext in (".js", ".mjs", ".cjs") and shutil.which("node"):
+            r = subprocess.run(["node", "--check", str(arquivo)], capture_output=True,
+                               text=True, timeout=15)
+            if r.returncode != 0:
+                erro = (r.stderr or r.stdout).strip()
+        elif ext == ".php" and shutil.which("php"):
+            r = subprocess.run(["php", "-l", str(arquivo)], capture_output=True,
+                               text=True, timeout=15)
+            if r.returncode != 0:
+                erro = (r.stdout or r.stderr).strip()
+        else:
+            return ""
+    except SyntaxError as e:
+        erro = "linha %s: %s\n    %s" % (e.lineno, e.msg, (e.text or "").rstrip())
+    except ValueError as e:          # json.JSONDecodeError
+        erro = str(e)
+    except Exception:
+        return ""                    # timeout ou ferramenta quebrada: nao trava
+    if not erro:
+        return "\nConferido: sintaxe OK."
+    return ("\n\nATENCAO -- O ARQUIVO FOI GRAVADO, MAS TEM ERRO DE SINTAXE:\n%s\n"
+            "Corrija agora: leia o trecho e escreva o arquivo de novo." % erro[:800])
 
 
 BINARIOS = {".gguf", ".exe", ".zip", ".rar", ".png", ".jpg", ".jpeg", ".gif",
@@ -550,9 +601,81 @@ def apagar(caminho="", **_):
         return "Erro: %s" % erro
 
 
+# COMANDOS QUE NAO PASSAM, ENCADEADOS OU NAO          (04/10/2026)
+#
+#   A auditoria pediu para trocar `shell=True` por `shlex.split` com
+#   `shell=False`. Isso fecharia o encadeamento -- e tambem quebraria a
+#   ferramenta: `dir | findstr erro`, `cd web && npm install` e qualquer
+#   redirecionamento dependem do shell. Seria trocar um risco por uma
+#   ferramenta que nao serve.
+#
+#   E o risco real aqui nao e voce digitar `&&`. E o MODELO ser levado a
+#   rodar algo destrutivo -- por um texto numa pagina que ele leu, por um
+#   README envenenado, por uma instrucao escondida num arquivo. O Bigode le
+#   muita coisa de fora.
+#
+#   Entao a barreira e por CONTEUDO, nao por sintaxe: o shell continua, e os
+#   comandos que destroem ficam de fora. Pedaco de palavra, com bordas, para
+#   `format` barrar e `formatar_texto.py` passar.
+_COMANDOS_NEGADOS = (
+    r"\bformat\s+[a-z]:",            # formatar disco
+    r"\bdel\s+/[sqf]",               # del /s /q -- apagar em massa
+    r"\brd\s+/s", r"\brmdir\s+/s",   # apagar arvore de pastas
+    r"\brm\s+-[rf]",                 # rm -rf
+    r"\bdiskpart\b", r"\bcipher\s+/w", r"\bvssadmin\b",
+    r"\bbcdedit\b", r"\breg\s+delete\b", r"\bshutdown\b",
+    r"\bnet\s+user\b.*\/(add|delete)",
+    r"\btakeown\b", r"\bicacls\b.*\/grant",
+    r":\(\)\{.*\};:",                # fork bomb
+    r"\bcurl\b.*\|\s*(sh|bash|cmd|powershell)",   # baixar e executar
+    r"\b(iwr|invoke-webrequest|wget)\b.*\|\s*(iex|invoke-expression)",
+)
+
+
+def _anotar(texto):
+    """Escreve no erros.log. Existe porque o try/except nao basta.
+
+    A primeira versao chamava um `_anotar` que NAO EXISTE neste arquivo,
+    dentro de um try/except. Resultado: nenhuma recusa seria registrada, e o
+    silencio pareceria "nunca aconteceu". E o mesmo defeito que este bloco
+    inteiro existe para evitar.
+    """
+    try:
+        import datetime
+        with open(BASE / "erros.log", "a", encoding="utf-8") as f:
+            f.write("\n%s\n%s  %s\n" % ("=" * 70,
+                    datetime.datetime.now().isoformat(timespec="seconds"),
+                    texto))
+    except Exception:
+        pass
+
+
+def _comando_proibido(comando):
+    """Devolve o padrao que barrou, ou '' se o comando pode rodar."""
+    import re as _re
+    texto = " ".join(str(comando or "").lower().split())
+    for padrao in _COMANDOS_NEGADOS:
+        if _re.search(padrao, texto):
+            return padrao
+    return ""
+
+
 def rodar_comando(comando="", pasta="", **_):
     if pasta and not _permitido(pasta):
         return "NEGADO: a pasta de trabalho esta fora das pastas liberadas."
+
+    barrado = _comando_proibido(comando)
+    if barrado:
+        try:
+            _anotar("[seguranca] recusei o comando: %s" % str(comando)[:200])
+        except Exception:
+            pass
+        return ("NEGADO: este comando apaga ou altera o sistema de forma "
+                "irreversivel, e eu nao rodo isso sozinho.\n\n"
+                "Se for mesmo o que voce quer, rode voce no terminal -- "
+                "assim a decisao e sua, com os olhos na tela.\n\n"
+                "Comando: %s" % str(comando)[:300])
+
     diretorio = pasta if pasta else str(BASE)
     try:
         resultado = subprocess.run(
@@ -1180,6 +1303,21 @@ def _blender(funcao, **argumentos):
     return getattr(blender, funcao)(**argumentos)
 
 
+def blender_preparar_impressao(voxel="", separar="sim", unir="sim",
+                               exportar="sim", nome="PECA_IMPRESSAO", **_):
+    """Deixa a cena estanque (manifold) e exporta STL.
+
+    Import dentro da funcao, como todas as outras do Blender: quem nao tem
+    Blender instalado nao pode ver o ferramentas.py cair por causa disso.
+    """
+    try:
+        import blender_impressao
+    except Exception as erro:
+        return "O modulo blender_impressao.py nao carregou (%s)." % erro
+    return blender_impressao.blender_preparar_impressao(
+        voxel=voxel, separar=separar, unir=unir, exportar=exportar, nome=nome)
+
+
 def blender_cena(**_):
     return _blender("blender_cena")
 
@@ -1201,9 +1339,45 @@ def blender_mascote(texto="", cor="", animar="sim", pose="em_pe", magro="nao", *
                     pose=pose, magro=magro)
 
 
+def _blender_mcp_disponivel(nome):
+    try:
+        import blender_cliente
+        return nome in {str(item.get("name")) for item in blender_cliente.tools_list(timeout=5)}
+    except Exception:
+        return False
+
+
+def _blender_mcp_chamar(nome, argumentos, timeout=600):
+    import blender_cliente
+    resultado = blender_cliente.call_tool(nome, argumentos, timeout=timeout)
+    if not isinstance(resultado, dict):
+        return str(resultado)
+    if not resultado.get("sucesso", True):
+        return "A ferramenta MCP %s falhou: %s" % (nome, resultado.get("erro", resultado))
+    if nome == "blender_montar":
+        return "Projeto '%s' montado no Blender: %s peças (%s). Coleção nova; nada preexistente foi apagado." % (
+            resultado.get("projeto", ""), resultado.get("total", 0),
+            ", ".join(resultado.get("objetos", [])[:30]))
+    if resultado.get("acao") == "buscar":
+        hits = resultado.get("resultados", [])
+        if not hits:
+            return "A Poly Haven não retornou modelos para essa busca. Tente outra descrição em inglês."
+        linhas = ["Modelos Poly Haven (CC0) encontrados — escolha um asset_id para importar:"]
+        linhas.extend("- %s — %s (%s)" % (x.get("asset_id"), x.get("nome"), x.get("categoria", "")) for x in hits)
+        return "\n".join(linhas) + "\nFonte: Poly Haven · Powered by Poly Haven."
+    return "Modelo '%s' importado (%s): %s. Licença CC0; Powered by Poly Haven." % (
+        resultado.get("nome", resultado.get("asset_id", "")), resultado.get("resolucao", ""),
+        ", ".join(resultado.get("objetos", [])[:30]))
+
+
 def blender_montar(pecas="", projeto="", animar="", **_):
-    return _blender("blender_montar", pecas=pecas, projeto=projeto or "Projeto Bigode",
-                    animar=animar)
+    if not str(animar or "").strip() and _blender_mcp_disponivel("blender_montar"):
+        try:
+            return _blender_mcp_chamar("blender_montar", {
+                "pecas": pecas, "projeto": projeto or "Projeto Bigode"})
+        except Exception as erro:
+            return "A montagem MCP não foi executada (%s). Nenhuma execução alternativa automática foi iniciada; verifique Blender/conexão e tente novamente." % erro
+    return _blender("blender_montar", pecas=pecas, projeto=projeto or "Projeto Bigode", animar=animar)
 
 
 def _recurso(funcao, **argumentos):
@@ -1214,8 +1388,61 @@ def _recurso(funcao, **argumentos):
     return getattr(blender_recursos, funcao)(**argumentos)
 
 
-def blender_biblioteca(busca="", tipo="modelo", objeto="", **_):
-    return _recurso("blender_biblioteca", busca=busca, tipo=tipo, objeto=objeto)
+def blender_biblioteca(busca="", tipo="modelo", objeto="", acao="", asset_id="", resolucao="1k", **_):
+    action = str(acao or ("importar" if asset_id else "buscar")).strip().lower()
+    if action not in ("buscar", "importar"):
+        return "Ação inválida: use buscar ou importar."
+    type_map = {"modelo": "models", "model": "models", "models": "models",
+                "hdri": "hdris", "ceu": "hdris", "luz": "hdris", "hdris": "hdris",
+                "textura": "textures", "material": "textures", "texturas": "textures", "textures": "textures"}
+    tipo_api = type_map.get(str(tipo or "modelo").strip().lower())
+    if not tipo_api:
+        return "Tipo inválido. Use modelo, hdri ou textura."
+    if action == "buscar" and tipo_api == "models" and _blender_mcp_disponivel("blender_biblioteca"):
+        try:
+            return _blender_mcp_chamar("blender_biblioteca", {
+                "acao": "buscar", "busca": busca, "asset_id": asset_id,
+                "resolucao": resolucao}, timeout=900)
+        except Exception as erro:
+            return "A busca MCP não foi executada (%s)." % erro
+    try:
+        import blender_recursos as recurso
+        if action == "buscar":
+            hits = recurso.polyhaven_buscar(busca, tipo_api, limite=10)
+            if not hits:
+                return "A Poly Haven não retornou resultados. Tente outro termo."
+            return "Poly Haven — resultados CC0; escolha um asset_id para importar:\n" + "\n".join(
+                "- %s — %s" % (x["id"], x["nome"]) for x in hits) + "\nFonte: Poly Haven · Powered by Poly Haven."
+        if not asset_id:
+            return "Para importar, informe o asset_id explícito devolvido por uma busca."
+        if tipo_api == "models" and _blender_mcp_disponivel("blender_biblioteca"):
+            try:
+                return _blender_mcp_chamar("blender_biblioteca", {
+                    "acao": "importar", "busca": busca, "asset_id": asset_id,
+                    "resolucao": resolucao}, timeout=900)
+            except Exception as erro:
+                return "A importação MCP não foi executada (%s). Nenhuma importação alternativa automática foi iniciada." % erro
+        # Compatibilidade com servidores Blender antigos; valida o ID contra o catálogo
+        # oficial antes de baixar e passa exatamente o ID escolhido, nunca o primeiro resultado.
+        recurso.polyhaven_buscar("", tipo_api, limite=1)
+        catalogo = recurso._CACHE.get(tipo_api, (0, {}))[1]
+        if not isinstance(catalogo, dict) or asset_id not in catalogo:
+            return "Esse asset_id não existe no catálogo Poly Haven da categoria escolhida."
+        nome_asset = str(catalogo[asset_id].get("name") or asset_id)
+        if tipo_api == "models":
+            caminho = recurso._baixar_modelo(asset_id, resolucao)
+            retorno = recurso._b().blender_importar(str(caminho), nome=nome_asset)
+        elif tipo_api == "hdris":
+            caminho = recurso._baixar_hdri(asset_id, resolucao)
+            resultado = recurso._b().executar_codigo(recurso._CODIGO_HDRI % str(caminho))
+            retorno = ("Céu/luz '%s' aplicado." % nome_asset if resultado.get("status") == "ok"
+                       else recurso._b()._texto(resultado))
+        else:
+            mapas = recurso._baixar_textura(asset_id, resolucao)
+            retorno = recurso.aplicar_mapas(mapas, objeto, nome_asset)
+        return "%s\nFonte: Poly Haven · CC0 · Powered by Poly Haven." % retorno
+    except Exception as erro:
+        return "Falha na operação Poly Haven: %s" % erro
 
 
 def blender_importar(caminho="", altura="", **_):
@@ -1267,6 +1494,71 @@ def blender_objeto(forma="", cor="", animacao="", **_):
     return _blender("blender_objeto", forma=forma, cor=cor, animacao=animacao)
 
 
+def _blender_mcp(nome, argumentos, timeout=600):
+    try:
+        import blender_cliente
+        return blender_cliente.call_tool(nome, argumentos, timeout=timeout)
+    except Exception as erro:
+        return {"sucesso": False, "erro": "MCP Blender: %s" % erro}
+
+
+def _mcp_numero(valor, padrao=0.0):
+    if valor is None or str(valor).strip() == "":
+        return padrao
+    return float(valor)
+
+
+def _mcp_vetor(valor, padrao):
+    if isinstance(valor, (list, tuple)):
+        return list(valor)
+    if valor is None or str(valor).strip() == "":
+        return list(padrao)
+    import json
+    import re
+    texto = str(valor).strip()
+    try:
+        item = json.loads(texto)
+        if isinstance(item, (list, tuple)):
+            return list(item)
+    except Exception:
+        pass
+    return [float(x) for x in re.findall(r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?", texto)]
+
+
+def blender_executar_script(codigo_python="", **_):
+    return _blender_mcp("blender_executar_script", {"codigo_python": codigo_python})
+
+
+def blender_criar_primitiva(tipo="CUBE", nome="", x=0, y=0, z=0,
+                            escala="[1,1,1]", material="", **_):
+    try:
+        args = {"tipo": tipo, "nome": nome,
+                "x": _mcp_numero(x), "y": _mcp_numero(y), "z": _mcp_numero(z),
+                "escala": _mcp_vetor(escala, [1, 1, 1]), "material": material}
+    except (TypeError, ValueError) as erro:
+        return {"sucesso": False, "erro": "parâmetro numérico inválido: %s" % erro}
+    return _blender_mcp("blender_criar_primitiva", args)
+
+
+def blender_inspecionar_cena(**_):
+    return _blender_mcp("blender_inspecionar_cena", {})
+
+
+def blender_renderizar_imagem(caminho_saida="", resolucao="[1920,1080]",
+                              engine="BLENDER_EEVEE_NEXT", **_):
+    try:
+        size = [int(v) for v in _mcp_vetor(resolucao, [1920, 1080])]
+    except (TypeError, ValueError) as erro:
+        return {"sucesso": False, "erro": "resolução inválida: %s" % erro}
+    return _blender_mcp("blender_renderizar_imagem", {
+        "caminho_saida": caminho_saida, "resolucao": size,
+        "engine": str(engine or "BLENDER_EEVEE_NEXT").upper()}, timeout=900)
+
+
+def blender_avaliar_resultado(pergunta="", **_):
+    return _blender_mcp("blender_avaliar_resultado", {"pergunta": pergunta}, timeout=300)
+
+
 def usar_habilidade(nome="", **_):
     """Carrega um manual especializado para o contexto atual."""
     import habilidades
@@ -1306,6 +1598,78 @@ def criar_projeto(nome="", descricao="", stack="", **_):
         return "Erro ao criar: %s" % erro
 
 
+
+# ===================== VOICESTUDIO (Voz e Clonagem Local, porta 3900) =====================
+
+def voicestudio_vozes(**_):
+    """Lista as vozes salvas/clonadas e o estado do VoiceStudio em 127.0.0.1:3900."""
+    try:
+        import voicestudio
+        st = voicestudio.status()
+    except Exception as erro:
+        return "Modulo voicestudio.py nao carregou: %s" % erro
+    if not st.get("online"):
+        return st.get("instrucao") or "VoiceStudio desligado em 127.0.0.1:3900."
+    vozes = st.get("vozes") or []
+    linhas = [
+        "VoiceStudio online em %s (motor TTS: %s | motor ASR: %s)" % (
+            st.get("url"), st.get("motor_tts"), st.get("motor_asr")
+        ),
+        "Vozes disponiveis (%d):" % len(vozes),
+    ]
+    if not vozes:
+        linhas.append("  (nenhuma voz salva ainda — use voicestudio_clonar_voz ou voicestudio_criar_voz)")
+    else:
+        for v in vozes:
+            linhas.append("  - %s (id: %s | idioma: %s)" % (v.get("nome"), v.get("id"), v.get("idioma")))
+    return "\n".join(linhas)
+
+
+def voicestudio_falar(texto="", voz="", idioma="pt-BR", instrucao="", velocidade="1.0", nome_arquivo="", **_):
+    """Sintetiza fala em WAV com voz clonada ou escolhida no VoiceStudio local (127.0.0.1:3900) e salva em producao_voz/."""
+    try:
+        import voicestudio
+        res = voicestudio.falar(
+            texto=texto, voz=voz, idioma=idioma or "pt-BR",
+            velocidade=velocidade, instrucao=instrucao,
+            salvar_arquivo=True, nome_arquivo=nome_arquivo or "bigode_voz"
+        )
+    except Exception as erro:
+        return "Erro ao acionar o VoiceStudio: %s" % erro
+    if not res.get("ok"):
+        return "Falha ao gerar fala no VoiceStudio: %s" % res.get("erro", "erro desconhecido")
+    return "Audio gerado com sucesso pelo VoiceStudio (voz: %s).\nArquivo WAV salvo em: %s" % (
+        res.get("voz") or "padrao", res.get("arquivo") or "(em memoria)"
+    )
+
+
+def voicestudio_clonar_voz(nome="", arquivo_audio="", idioma="pt-BR", transcricao="", **_):
+    """Clona uma voz no VoiceStudio a partir de um arquivo de audio de referencia (5 a 15s limpos)."""
+    try:
+        import voicestudio
+        res = voicestudio.clonar_voz(
+            nome=nome, arquivo_audio=arquivo_audio,
+            idioma=idioma or "pt-BR", transcricao=transcricao
+        )
+    except Exception as erro:
+        return "Erro ao clonar voz no VoiceStudio: %s" % erro
+    if not res.get("ok"):
+        return "Falha ao clonar voz: %s" % res.get("erro", "erro desconhecido")
+    return res.get("mensagem") or ("Voz clonada com sucesso: %s (profile_id: %s)" % (nome, res.get("profile_id")))
+
+
+def voicestudio_criar_voz(nome="", descricao="", idioma="pt-BR", **_):
+    """Cria uma voz sintetica inedita no VoiceStudio por descricao textual (Voice Design)."""
+    try:
+        import voicestudio
+        res = voicestudio.criar_voz(nome=nome, descricao=descricao, idioma=idioma or "pt-BR")
+    except Exception as erro:
+        return "Erro ao projetar voz no VoiceStudio: %s" % erro
+    if not res.get("ok"):
+        return "Falha ao criar voz: %s" % res.get("erro", "erro desconhecido")
+    return res.get("mensagem") or ("Voz criada com sucesso: %s (profile_id: %s)" % (nome, res.get("profile_id")))
+
+
 # ===================== NOVA FERRAMENTA: VAULT =====================
 def buscar_no_chroma(consulta: str, colecao: str = "", limite: int = 5) -> str:
     """Busca trechos semanticamente similares nas coleções ChromaDB."""
@@ -1325,6 +1689,19 @@ CATALOGO = {
     "buscar_no_chroma": {"fn": buscar_no_chroma, "escrita": False,
                          "args": "consulta, colecao, limite",
                          "desc": "Busca trechos semanticamente similares no ChromaDB por coleção."},
+
+    # voicestudio - voz local estilo ElevenLabs (porta 3900: TTS, clonagem zero-shot e Voice Design)
+    "voicestudio_vozes":      {"fn": voicestudio_vozes,      "escrita": False, "args": "",
+                               "desc": "Lista as vozes salvas/clonadas e o status do VoiceStudio local (porta 3900)."},
+    "voicestudio_falar":      {"fn": voicestudio_falar,      "escrita": True,
+                               "args": "texto, voz, idioma, instrucao, velocidade, nome_arquivo",
+                               "desc": "Gera um arquivo de audio WAV falado no VoiceStudio local (com voz clonada ou escolhida) e salva em producao_voz/."},
+    "voicestudio_clonar_voz": {"fn": voicestudio_clonar_voz, "escrita": True,
+                               "args": "nome, arquivo_audio, idioma, transcricao",
+                               "desc": "Clona uma voz no VoiceStudio a partir de um arquivo de audio limpo (5 a 15s) e devolve o profile_id."},
+    "voicestudio_criar_voz":  {"fn": voicestudio_criar_voz,  "escrita": True,
+                               "args": "nome, descricao, idioma",
+                               "desc": "Cria uma voz nova no VoiceStudio por descricao textual (Voice Design, sem precisar de audio de referencia)."},
 
     # leitura - livres
     "listar_pasta":   {"fn": listar_pasta,   "escrita": False, "args": "caminho",
@@ -1387,12 +1764,8 @@ CATALOGO = {
                                  "\"escala\":[1,1,1],\"cor\":\"branco\"}]. "
                                  "Leia antes usar_habilidade('blender-3d')."},
     "blender_biblioteca": {"fn": blender_biblioteca, "escrita": True,
-                         "args": "busca, tipo, objeto",
-                         "desc": "Busca na biblioteca GRATUITA Poly Haven e coloca no "
-                                 "Blender: tipo 'modelo' (objeto 3D real: cadeira, "
-                                 "planta, pedra...), 'hdri' (ceu/luz de ambiente) ou "
-                                 "'textura' (madeira, tijolo... aplicada no objeto). "
-                                 "Prefira isto a montar com formas simples."},
+                         "args": "busca, tipo, objeto, acao, asset_id, resolucao",
+                         "desc": "Dois passos seguros para qualquer categoria CC0: ação='buscar' só pesquisa e devolve asset_ids; ação='importar' exige o asset_id selecionado explicitamente e aplica modelo, HDRI ou textura. Para modelos, usa MCP Blender quando disponível. Exibe Powered by Poly Haven. Prefira asset real a primitivas simples."},
     "blender_importar": {"fn": blender_importar, "escrita": True, "args": "caminho, altura",
                          "desc": "Importa arquivo .glb .gltf .obj .fbx .stl .ply ou .svg "
                                  "(SVG vira placa com volume). altura em metros e opcional."},
@@ -1437,6 +1810,24 @@ CATALOGO = {
                          "desc": "Salva um PNG da vista da camera do Blender na "
                                  "pasta producao_blender e devolve o caminho."},
 
+    # ferramentas do MCP Blender dedicado; o servidor também aceita o protocolo
+    # legado do blender.py para manter os atalhos anteriores funcionando.
+    "blender_executar_script": {"fn": blender_executar_script, "escrita": True,
+                         "args": "codigo_python",
+                         "desc": "Executa um bloco Python arbitrário com acesso à API bpy dentro do Blender. Pode alterar a cena; use somente quando necessário."},
+    "blender_criar_primitiva": {"fn": blender_criar_primitiva, "escrita": True,
+                         "args": "tipo, nome, x, y, z, escala, material",
+                         "desc": "Cria uma primitiva CUBE, SPHERE, CYLINDER, PLANE ou TORUS com posição, escala e material."},
+    "blender_inspecionar_cena": {"fn": blender_inspecionar_cena, "escrita": False,
+                         "args": "",
+                         "desc": "Inspeciona a cena Blender: objetos, tipos, transformações globais, luzes e materiais."},
+    "blender_renderizar_imagem": {"fn": blender_renderizar_imagem, "escrita": True,
+                         "args": "caminho_saida, resolucao, engine",
+                         "desc": "Renderiza PNG com CYCLES, BLENDER_EEVEE_NEXT ou BLENDER_EEVEE. Salva apenas em producao_blender ou BLENDER_MCP_OUTPUT_DIR."},
+    "blender_avaliar_resultado": {"fn": blender_avaliar_resultado, "escrita": True,
+                         "args": "pergunta",
+                         "desc": "Renderiza uma prévia e envia a imagem ao VLM configurado (Moondream local por padrão) para auditar luz estourada, objetos flutuantes e colisões. A imagem é enviada ao endpoint configurado."},
+
     # navegador - executadas pela extensao do Chrome
     "navegador_ver":      {"fn": _no_navegador, "escrita": False, "args": "",
                            "desc": "Le a pagina aberta no Chrome e lista os elementos "
@@ -1453,6 +1844,11 @@ CATALOGO = {
                            "desc": "Rola a pagina: baixo, cima, topo ou fim."},
     "navegador_esperar":  {"fn": _no_navegador, "escrita": False, "args": "segundos",
                            "desc": "Espera a pagina carregar antes de continuar."},
+    # (02/11) Ver o RESULTADO de uma acao: modal, erro em vermelho, layout.
+    "navegador_foto":     {"fn": _no_navegador, "escrita": False, "args": "pergunta",
+                           "desc": "Tira uma foto da aba do Chrome e descreve o que "
+                                   "aparece na tela. Use DEPOIS de clicar ou enviar "
+                                   "um formulario, para conferir se deu certo."},
 
     # AS DUAS PECAS QUE FALTAVAM PARA CONSOLE E TERMINAL       (17/09)
     #
@@ -1506,6 +1902,13 @@ CATALOGO = {
                          "desc": "Apaga arquivo ou pasta."},
     "rodar_comando":    {"fn": rodar_comando,    "escrita": True, "args": "comando, pasta",
                          "desc": "Executa um comando no terminal."},
+    # Preparacao para impressao 3D. `escrita: True` porque ela MODIFICA a
+    # cena do Blender de forma irreversivel (remesh e boolean nao se
+    # desfazem) e grava .stl em disco.
+    "blender_preparar_impressao": {
+        "fn": blender_preparar_impressao, "escrita": True,
+        "args": "voxel, separar, unir, exportar, nome",
+        "desc": "Deixa a cena do Blender estanque (manifold) e exporta STL."},
     "github_criar_repo": {"fn": github_criar_repo, "escrita": True, "args": "nome, privado, descricao",
                           "desc": "Cria um repositorio novo."},
     "github_commit":     {"fn": github_commit,     "escrita": True, "args": "repo, caminho, conteudo, mensagem",
@@ -1525,6 +1928,20 @@ PARAMETROS = {
     "buscar_no_chroma":  {"consulta": "Pergunta ou palavras-chave para busca semântica",
                           "colecao": "Nome da coleção/domínio ou 'todas'",
                           "limite": "Quantidade máxima de trechos relevantes"},
+    "voicestudio_vozes":      {},
+    "voicestudio_falar":      {"texto": "Texto que sera falado",
+                               "voz": "Nome ou profile_id da voz clonada/salva (opcional)",
+                               "idioma": "Codigo do idioma, padrao pt-BR",
+                               "instrucao": "Direcao de tom/emocao opcional (ex: calmo, entusiasmado)",
+                               "velocidade": "Velocidade de 0.5 a 2.0 (padrao 1.0)",
+                               "nome_arquivo": "Prefixo opcional do arquivo WAV salvo em producao_voz"},
+    "voicestudio_clonar_voz": {"nome": "Nome para identificar a voz clonada (ex: Voz Fred)",
+                               "arquivo_audio": "Caminho do arquivo .wav ou .mp3 de referencia (5 a 15s limpos)",
+                               "idioma": "Idioma da voz (padrao pt-BR)",
+                               "transcricao": "Texto exato falado no audio de referencia (opcional)"},
+    "voicestudio_criar_voz":  {"nome": "Nome para salvar a voz projetada",
+                               "descricao": "Atributos da voz (ex: male, warm, middle-aged, calm narrator)",
+                               "idioma": "Idioma padrao da voz (padrao pt-BR)"},
     "listar_pasta":      {"caminho": "Caminho completo da pasta"},
     "ler_arquivo":       {"caminho": "Caminho completo do arquivo"},
     "buscar":            {"termo": "Texto a procurar", "pasta": "Pasta onde procurar"},
@@ -1555,12 +1972,15 @@ PARAMETROS = {
     "blender_montar":    {"pecas": "Lista JSON de pecas: tipo, nome, pos [x,y,z], "
                                    "escala [x,y,z], rot [graus], cor, e para membro: "
                                    "de, ate, raio; para texto: texto, tamanho",
-                          "projeto": "Nome do projeto (repetir o nome recomeca do zero)",
+                         "projeto": "Nome do projeto (cada chamada cria uma coleção nova, preservando a anterior)",
                           "animar": "flutuar, girar, pular ou vazio"},
     "blender_salvar":    {"nome": "Nome do arquivo, sem .blend (opcional)"},
     "blender_humano":    {"ficha": "Ficha JSON da pessoa"},
     "blender_instalar_humano": {},
-    "blender_biblioteca": {"busca": "O que procurar, ex: cadeira de madeira",
+    "blender_biblioteca": {"acao": "buscar ou importar",
+                           "busca": "O que procurar, ex: cadeira de madeira (na busca)",
+                           "asset_id": "ID escolhido entre os resultados, exigido para importar modelo",
+                           "resolucao": "Resolução 1k, 2k, 4k ou 8k (modelos)",
                            "tipo": "modelo, hdri ou textura",
                            "objeto": "Para textura: nome do objeto (vazio = selecionado)"},
     "blender_importar":  {"caminho": "Caminho completo do arquivo 3D ou SVG",
@@ -1576,6 +1996,17 @@ PARAMETROS = {
                           "cor": "vermelho, azul, verde, amarelo, laranja, preto, "
                                  "branco, prata, roxo ou rosa (opcional)",
                           "animacao": "girar, pular, tudo ou nenhuma"},
+    "blender_executar_script": {"codigo_python": "Script Python completo a executar no contexto bpy"},
+    "blender_criar_primitiva": {"tipo": "CUBE, SPHERE, CYLINDER, PLANE ou TORUS",
+                                "nome": "Nome do objeto (opcional)", "x": "Coordenada X",
+                                "y": "Coordenada Y", "z": "Coordenada Z",
+                                "escala": "Escala como [sx, sy, sz]",
+                                "material": "Nome ou cor hexadecimal do material (opcional)"},
+    "blender_inspecionar_cena": {},
+    "blender_renderizar_imagem": {"caminho_saida": "Caminho PNG dentro de producao_blender",
+                                  "resolucao": "Resolução como [largura, altura]",
+                                  "engine": "CYCLES, BLENDER_EEVEE_NEXT ou BLENDER_EEVEE"},
+    "blender_avaliar_resultado": {"pergunta": "O que verificar na prévia (opcional)"},
     "navegador_ver":     {},
     "navegador_ir":      {"url": "Endereco completo"},
     "navegador_clicar":  {"numero": "Numero do elemento na lista"},
@@ -1585,6 +2016,7 @@ PARAMETROS = {
     "navegador_esperar": {"segundos": "Quantos segundos esperar"},
     "navegador_texto":   {},
     "navegador_digitar": {"texto": "O que digitar onde o cursor esta"},
+    "navegador_foto":    {"pergunta": "O que conferir na tela (opcional)"},
     "calcular":          {"expressao": "Expressão aritmética, ex: (1200 * 0.15) + 80"},
     "agora":             {},
     "clima":             {"cidade": "Nome da cidade, ex: Belo Horizonte"},
@@ -1615,12 +2047,18 @@ OBRIGATORIOS = {
     "apresentar_plano": ["objetivo", "passos"],
     "criar_projeto": ["nome"],
     "buscar_no_chroma": ["consulta"],
+    "voicestudio_falar": ["texto"],
+    "voicestudio_clonar_voz": ["nome", "arquivo_audio"],
+    "voicestudio_criar_voz": ["nome", "descricao"],
     "listar_pasta": ["caminho"], "ler_arquivo": ["caminho"], "buscar": ["termo"],
     "raio_x": ["caminho"],
     "memoria": ["consulta"], "github_ler": ["repo"], "web_buscar": ["consulta"],
     "gerar_imagem": ["descricao"],
     "blender_executar": ["codigo"], "blender_objeto": ["forma"],
-    "blender_biblioteca": ["busca"], "blender_importar": ["caminho"],
+    "blender_executar_script": ["codigo_python"],
+    "blender_criar_primitiva": ["tipo"],
+    "blender_renderizar_imagem": ["caminho_saida"],
+    "blender_biblioteca": ["acao"], "blender_importar": ["caminho"],
     "blender_textura": ["caminho"],
     "blender_montar": ["pecas"],
     "navegador_ir": ["url"], "navegador_clicar": ["numero"],
@@ -1640,17 +2078,23 @@ GRUPOS = {
     "navegador":  ("navegador_ver", "navegador_texto", "navegador_ir",
                    "navegador_clicar", "navegador_escrever",
                    "navegador_digitar", "navegador_teclar",
-                   "navegador_rolar", "navegador_esperar"),
+                   "navegador_rolar", "navegador_esperar", "navegador_foto"),
     "utilidades": ("calcular", "agora", "cep", "cnpj", "feriados", "cotacao"),
     "web":        ("web_buscar", "web_ler"),
     "terminal":   ("rodar_comando",),
     "desenho":    ("gerar_imagem",),
+    "voz":        ("voicestudio_vozes", "voicestudio_falar",
+                   "voicestudio_clonar_voz", "voicestudio_criar_voz"),
     "blender":    ("blender_cena", "blender_executar", "blender_carrinho",
+                   "blender_preparar_impressao",
                    "blender_imagem", "blender_objeto", "blender_mascote",
                    "blender_montar", "blender_olhar", "blender_referencia",
                    "blender_salvar", "blender_biblioteca", "blender_importar",
                    "blender_referencias", "blender_textura", "blender_gerar_3d",
-                   "blender_humano", "blender_instalar_humano"),
+                   "blender_humano", "blender_instalar_humano",
+                   "blender_executar_script", "blender_criar_primitiva",
+                   "blender_inspecionar_cena", "blender_renderizar_imagem",
+                   "blender_avaliar_resultado"),
 }
 
 GATILHOS_GRUPO = {
@@ -1676,6 +2120,11 @@ GATILHOS_GRUPO = {
                    "site oficial"),
     "terminal":   ("comando", "terminal", "instalar", "npm", "pip", "executar o",
                    "rodar o", "build", "teste"),
+    "voz":        ("voicestudio", "elevenlabs", "clonar voz", "clone minha voz",
+                   "clonar a voz", "voz clonada", "gerar audio", "gerar áudio",
+                   "grave um audio", "grave um áudio", "narrar", "narração",
+                   "narracao", "fale com a voz", "sintetizar voz", "criar voz",
+                   "dublar", "dublagem", "omnivoice"),
     # Palavras de quem PEDE arte, nao de quem fala sobre arte. "imagem"
     # sozinho nao entra: "me mostre a imagem do arquivo" nao e pedido de
     # desenho. Por isso os gatilhos vem colados no verbo.
@@ -1693,6 +2142,40 @@ GATILHOS_GRUPO = {
                    "cena", "objeto 3d", "malha", "mesh", "bpy", "render",
                    "carrinho", "miniatura", "hot wheels", "hotwheels"),
 }
+
+
+# ═══ MODOS DE TRABALHO (24/11) ═════════════════════════════════════════
+# Em vez de mandar ~70 ferramentas em toda mensagem, a tela escolhe um modo
+# e o modelo recebe so as ferramentas daquela area. O catalogo continua FIXO
+# enquanto o modo nao muda, entao o cache do motor continua valendo (licao
+# de 25/08: o que mata o cache e o catalogo mudar a CADA pergunta).
+# "auto" = comportamento antigo, todas as ferramentas ligadas.
+MODOS = {
+    "conversa":  (),
+    "arquivos":  ("listar_pasta", "ler_arquivo", "buscar", "raio_x",
+                  "escrever_arquivo", "criar_pasta", "mover", "apagar",
+                  "rodar_comando", "github_repos", "github_ler",
+                  "github_commit", "apresentar_plano", "usar_habilidade",
+                  "criar_projeto", "agora", "calcular"),
+    "navegador": GRUPOS["navegador"] + ("web_buscar", "web_ler", "agora"),
+    "pesquisa":  ("web_buscar", "web_ler", "buscar_no_chroma", "memoria",
+                  "agora", "calcular", "clima", "cep", "cnpj", "feriados",
+                  "cotacao"),
+    "blender":   GRUPOS["blender"] + ("gerar_imagem", "usar_habilidade"),
+    "criacao":   ("gerar_imagem", "voicestudio_vozes", "voicestudio_falar",
+                  "voicestudio_clonar_voz", "voicestudio_criar_voz",
+                  "usar_habilidade", "web_buscar", "web_ler"),
+}
+
+
+def para_modo(modo):
+    """Ferramentas do modo escolhido, so as que estao ligadas nas Conexoes.
+    Devolve {} no modo conversa (nenhuma ferramenta)."""
+    nomes = MODOS.get(modo)
+    if nomes is None:
+        return ativas()
+    catalogo = ativas()
+    return {n: d for n, d in catalogo.items() if n in nomes}
 
 
 def para_pergunta(texto, garantir=()):
@@ -1900,7 +2383,8 @@ def executar(nome, argumentos):
 # Mesmo raciocinio para o carrinho e o PNG do Blender: so mexem na cena
 # aberta / gravam um arquivo novo na pasta producao_blender. O
 # blender_executar CONTINUA pedindo autorizacao: roda codigo livre.
-SEM_AUTORIZACAO = {"gerar_imagem", "blender_carrinho", "blender_imagem",
+SEM_AUTORIZACAO = {"gerar_imagem", "voicestudio_falar", "voicestudio_clonar_voz",
+                   "voicestudio_criar_voz", "blender_carrinho", "blender_imagem",
                    "blender_objeto", "blender_mascote", "blender_montar",
                    "blender_referencia", "blender_biblioteca", "blender_importar",
                    "blender_referencias", "blender_textura", "blender_gerar_3d",
@@ -1912,3 +2396,42 @@ def exige_autorizacao(nome):
         return False
     dados = ativas().get(nome)
     return bool(dados and dados["escrita"])
+
+
+# ==========================================================================
+# EXPANSÃO MULTIMÍDIA — Pipi IA (Vídeo LTX-2.5, Google Vids, Upscale 4K)
+# ==========================================================================
+
+def gerar_video(imagem="", prompt="", tipo="nuvem", duracao=5):
+    """Gera um vídeo animado a partir de uma imagem usando LTX-2.5 (nuvem) ou FFmpeg (local)."""
+    try:
+        import pipi_cliente
+        res = pipi_cliente.gerar_video(imagem, prompt=prompt, tipo=tipo, duracao=duracao)
+        if res.get("ok"):
+            return "Video gerado com sucesso: %s\nArquivo: %s" % (res.get("url", ""), res.get("arquivo", ""))
+        return "Falha ao gerar video: %s" % res.get("erro", "erro desconhecido")
+    except Exception as e:
+        return "Erro ao acionar a Pipi IA para video: %s" % e
+
+def roteiro_google_vids(conceito="", imagem=""):
+    """Cria um storyboard estruturado em 5 cenas para o Google Vids (salvo em JSON, Markdown e DOCX)."""
+    try:
+        import pipi_cliente
+        res = pipi_cliente.roteiro_vids(conceito, imagem_nome=imagem)
+        if res.get("ok"):
+            return "Roteiro Google Vids criado com sucesso para: %s\nArquivo: %s" % (
+                conceito, res.get("arquivo_docx", res.get("arquivo", "")))
+        return "Falha ao gerar roteiro: %s" % res.get("erro", "erro desconhecido")
+    except Exception as e:
+        return "Erro ao gerar roteiro: %s" % e
+
+def ampliar_imagem_4k(imagem=""):
+    """Amplia uma imagem para resolução 4K (4096x4096px) usando Real-ESRGAN."""
+    try:
+        import pipi_cliente
+        res = pipi_cliente.upscale_4k(imagem)
+        if res.get("ok"):
+            return "Imagem ampliada para 4K: %s" % res.get("arquivo", "")
+        return "Falha no upscale: %s" % res.get("erro", "erro desconhecido")
+    except Exception as e:
+        return "Erro ao ampliar imagem: %s" % e
