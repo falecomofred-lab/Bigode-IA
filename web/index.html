@@ -1706,7 +1706,7 @@ body.diag #logs-discreto{display:block}
     <button class="red" id="btMais" onclick="abrirMenu(event)" title="Anexar arquivo, projeto ou manual" aria-label="Anexar arquivo, projeto ou manual">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-    <select id="modoTrabalho" class="modo-sel" title="Modo de trabalho: o Bigode usa só as ferramentas deste modo" aria-label="Modo de trabalho"><option value="auto">Automático</option><option value="conversa">Conversa</option><option value="arquivos">Arquivos e código</option><option value="pesquisa">Pesquisa</option><option value="navegador">Navegador</option><option value="blender">Blender 3D</option><option value="criacao">Imagem e voz</option></select>
+    <select id="modoTrabalho" class="modo-sel" title="Modo de trabalho: o Bigode usa só as ferramentas deste modo" aria-label="Modo de trabalho"><option value="conversa">Conversa</option><option value="arquivos">Arquivos e código</option><option value="pesquisa">Pesquisa</option><option value="navegador">Navegador</option><option value="blender">Blender 3D</option><option value="criacao">Imagem e voz</option><option value="auto">Todas as ferramentas (lento)</option></select>
     <textarea id="entrada" rows="1" placeholder="Mensagem…" aria-label="Sua mensagem"></textarea>
     <button class="mic" id="btMic" onclick="alternarVoz()" title="Falar em vez de digitar (Ctrl+Espaço)" aria-label="Falar em vez de digitar">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1724,7 +1724,7 @@ body.diag #logs-discreto{display:block}
         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
   </div>
-  <script>(function(){var s=document.getElementById("modoTrabalho");if(!s)return;try{var v=localStorage.getItem("bigodeModo");if(v&&s.querySelector('option[value="'+v+'"]'))s.value=v;}catch(e){}s.onchange=function(){try{localStorage.setItem("bigodeModo",s.value);}catch(e){}};})();</script>
+  <script>(function(){var s=document.getElementById("modoTrabalho");if(!s)return;try{var v=localStorage.getItem("bigodeModo");if(v&&s.querySelector('option[value="'+v+'"]'))s.value=v;else s.value="conversa";}catch(e){}s.onchange=function(){try{localStorage.setItem("bigodeModo",s.value);}catch(e){}};})();</script>
   <!-- ESTA LINHA NASCE VAZIA                                  (17/09)
        Ela e o canal por onde a tela avisa que o motor esta desligado ou
        ligando -- isso fica. O que saiu foi o texto de repouso, o
@@ -1856,6 +1856,11 @@ body.diag #logs-discreto{display:block}
                  teclado e para o leitor de tela (WCAG 2.1.1 e 4.1.2). -->
             <div class="soul-catalogo" id="soulCatalogo" role="radiogroup"
                  aria-label="Temas do catalogo do Projeto Soul"></div>
+            <!-- (24/11) temas novos: o servidor tira o que ja foi publicado -->
+            <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+              <button type="button" class="bt" id="soulBtNovos" onclick="soulCarregarTemas(true)">Sugerir temas novos com IA</button>
+              <span id="soulTemasInfo" style="font-size:12px;color:var(--mudo)"></span>
+            </div>
 
             <div class="campo" style="margin-top:12px">
               <label for="soulTema">Tema selecionado para pesquisa</label>
@@ -3268,7 +3273,7 @@ const MODOS_UI={
   navegador:{t:'Navegador',d:'Abrir sites, clicar e preencher no Chrome.',ph:'Ex.: abra o site X e entre na área de login…'},
   blender:{t:'Blender 3D',d:'Criar e ajustar modelos 3D.',ph:'Ex.: crie um carrinho vermelho…'},
   criacao:{t:'Imagem e voz',d:'Gerar imagens e áudios com voz.',ph:'Descreva a imagem ou o áudio…'},
-  auto:{t:'Automático',d:'Todas as ferramentas. Mais lento.',ph:'Mensagem…'}
+  auto:{t:'Todas as ferramentas (lento)',d:'',ph:'Mensagem…'}
 };
 function modoAtual(){const s=document.getElementById('modoTrabalho');return s?s.value:'auto';}
 function aplicarModo(m){
@@ -5586,13 +5591,31 @@ let SOUL_CATALOGO = [
 ];
 
 // O rotulo e o pilar de cada tema, na ordem do SOUL_CATALOGO.
-const SOUL_PILARES = [
+let SOUL_PILARES = [
   "Medicina & Farmacologia", "Medicina & Farmacologia",
   "Medicina & Farmacologia", "Medicina & Farmacologia",
   "Cultivo & Botânica", "Cultivo & Botânica",
   "História & Sociedade", "Direito & Regulação"
 ];
 
+/* (24/11) TEMAS QUE NAO SE REPETEM
+   A lista acima e so o ponto de partida. Ao abrir, a tela pede ao servidor
+   temas de um banco de 30 (6 pilares), ja sem os que se parecem com artigos
+   publicados. O botao pede temas ineditos a IA. */
+async function soulCarregarTemas(comIA){
+  const bt=$('soulBtNovos'), info=$('soulTemasInfo');
+  if(comIA&&bt){bt.disabled=true;bt.textContent='Pensando em temas…';}
+  try{
+    const d=await(await fetch('/api/soul/sugestoes'+(comIA?'?ia=1':''))).json();
+    if(d.ok&&d.temas&&d.temas.length){
+      SOUL_CATALOGO=d.temas.map(t=>({tema:t.tema,prompt_capa:t.prompt_capa}));
+      SOUL_PILARES=d.temas.map(t=>t.pilar);
+      soulDesenharCatalogo();soulEscolherCatalogo(0);
+      if(info)info.textContent=d.ja_publicados+' artigos já publicados ficaram de fora'+(d.origem==='ia'?' · temas criados pela IA':'');
+    }
+  }catch(e){if(info)info.textContent='Não consegui buscar temas novos; mostrando a lista padrão.';}
+  if(bt){bt.disabled=false;bt.textContent='Sugerir temas novos com IA';}
+}
 function soulDesenharCatalogo(){
   const caixa = document.getElementById('soulCatalogo');
   if(!caixa) return;   // tela antiga ou secao ainda nao montada
@@ -5609,6 +5632,7 @@ function soulDesenharCatalogo(){
   ).join('');
 }
 soulDesenharCatalogo();
+soulCarregarTemas(false);
 
 let SOUL_TEMA_ATUAL = SOUL_CATALOGO[0].tema;
 let SOUL_PROMPT_CAPA = SOUL_CATALOGO[0].prompt_capa;
@@ -5670,6 +5694,25 @@ async function soulIniciarPasso1(){
   const tema = $('soulTema').value.trim();
   if(!tema) return toast('Digite o tema do artigo.', 'alerta');
   SOUL_TEMA_ATUAL = tema;
+
+  // ── TEMA ESCRITO À MÃO NÃO HERDA A CAPA DO CARD ──── (24/11/2026)
+  //
+  //   `SOUL_PROMPT_CAPA` nasce valendo o prompt visual do PRIMEIRO card
+  //   do catálogo e só muda quando se clica num card. O campo de texto
+  //   é livre -- o Fred pode escrever qualquer assunto, e a pesquisa
+  //   respeita o que ele escreveu.
+  //
+  //   Mas a capa, não. Como `SOUL_PROMPT_CAPA` nunca fica vazio, o
+  //   `||` da fase 4 jamais caía no texto de reserva: um artigo sobre
+  //   proibicionismo, escrito à mão, saía ilustrado com a imagem 3D de
+  //   receptores CB1 do card 1. A tela dizia "capa gerada com sucesso"
+  //   e a imagem era de outro assunto. Era isto que fazia os artigos
+  //   parecerem sempre o mesmo tema.
+  //
+  //   Agora: se o tema digitado não for o tema do card selecionado, a
+  //   capa volta a ser montada a partir do TÍTULO REAL do artigo.
+  const doCard = SOUL_CATALOGO.find(c => c.tema === tema);
+  SOUL_PROMPT_CAPA = doCard ? doCard.prompt_capa : '';
   const urls = $('soulFontes').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
 
   soulVoltarFase(2);
@@ -5770,13 +5813,59 @@ function soulAlternarKitSocial(tipo){
   }
 }
 
+/* ── CAPA DE TEMA LIVRE, PELO EIXO DO ASSUNTO ───────── (24/11/2026)
+
+   O texto de reserva da capa era um só, para qualquer assunto:
+   "Sophisticated scientific 3D biological visualization for: <título>".
+
+   Isso serve ao pilar de Medicina & Farmacologia e erra nos outros três.
+   Um artigo sobre o proibicionismo no Brasil ganhava uma ilustração de
+   célula; um sobre a RDC da ANVISA, idem. Capa que contradiz o texto é
+   pior que capa genérica -- ela afirma visualmente outra coisa.
+
+   As quatro bases abaixo são as mesmas dos cards do catálogo, uma por
+   pilar. O roteamento usa as palavras do próprio título, sem acento,
+   igual ao `_eixo_do_tema` do soul_wordpress.py -- marca escrita à mão
+   não bate com texto real sem normalizar antes.
+
+   Testado nos 9 títulos do catálogo: 9 de 9 no eixo certo, inclusive o
+   caso difícil "Salvo-conduto para CULTIVO medicinal", que é jurídico e
+   não de cultivo -- a expressão de duas palavras pesa mais.          */
+function soulCapaPorEixo(titulo){
+  const t = String(titulo||'')
+    .normalize('NFKD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const tem = lista => lista.some(p => t.includes(p));
+
+  if(tem(['anvisa','rdc','lei ','juridic','legisla','regulament','stj','stf',
+          'habeas','salvo-conduto','salvo conduto','jurisprud','judicial',
+          'direito','decreto','liminar','crime','descriminaliz','marco regulatorio']))
+    return 'Formal institutional editorial still life, classical brass scales of justice beside stacked leather-bound law volumes, a single fresh green botanical leaf placed on one scale pan, dark walnut desk, deep charcoal background with warm gold rim lighting, restrained and serious tone, premium legal publication cover, ultra-realistic 8k';
+
+  if(tem(['historia','historico','cultura','cultural','sociedade','antropolog',
+          'sociolog','etnobotanic','proibicion','estigma','politica de drogas',
+          'colonial','imprensa','ritual','tradicao','movimento social']))
+    return 'Archival editorial still life, aged sepia manuscripts and early twentieth century newspaper clippings layered on dark wooden desk, antique botanical illustration plate of a leafy plant, brass magnifying glass and fountain pen, warm candlelit side lighting, deep amber and faded parchment tones, museum archive photography aesthetic, photorealistic 8k';
+
+  if(tem(['cultivo','cultivar','plantio','botanic','agronom','solo','substrato',
+          'nutriente','fotoperiodo','estufa','muda','semente','colheita',
+          'secagem','fenotipo','quimiotipo','indoor','outdoor','irrigacao',
+          'horticultura','fitotecnia','ambiente controlado']))
+    return 'Editorial agricultural science photography, modern research greenhouse interior with controlled grow lighting, orderly rows of healthy green leafy plants in clean substrate pots, humidity sensors and data probes visible, soft volumetric light rays, deep green and warm neutral color grading, award-winning agronomy publication cover, photorealistic 8k';
+
+  // Padrão: Medicina & Farmacologia, que era o único antes.
+  return 'Sophisticated scientific editorial visualization for an article titled "' + titulo +
+    '", clean minimalist laboratory depth, soft luminous emerald and teal accents, ' +
+    'award-winning medical publication cover, highly detailed, photorealistic 8k';
+}
+
 async function soulAvancarParaCapa(){
   soulVoltarFase(4);
   $('soulCapaStatus').innerHTML = '<span style="color:var(--alerta)">⏳ Chamando a API da Pipi IA para gerar a imagem da capa em proporção 16:9...</span>';
   $('soulCapaWrapper').style.display = 'none';
 
   try {
-    const prompt = SOUL_PROMPT_CAPA || ("Sophisticated scientific 3D biological visualization for: " + (SOUL_ARTIGO_ATUAL?.titulo || SOUL_TEMA_ATUAL) + ", soft luminous emerald accents, minimalist depth, 8k");
+    const prompt = SOUL_PROMPT_CAPA ||
+      soulCapaPorEixo(SOUL_ARTIGO_ATUAL?.titulo || SOUL_TEMA_ATUAL);
     const res = await (await fetch('/api/soul/capa', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},

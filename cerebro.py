@@ -883,6 +883,34 @@ def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True,
               ler(MEMORIA / "temperamento.md"), bloco_personalidade(),
               ler(MEMORIA / "jeito_de_trabalhar.md")]
 
+    # ── A DATA DE HOJE ENTRA SEMPRE ─────────────────────── (24/11/2026)
+    #
+    #   Na bateria de 10 testes, a pergunta "que dia é hoje?" falhou, e o
+    #   diagnóstico foi "a conexão Dados do Brasil está desligada".
+    #
+    #   O diagnóstico estava errado. O modelo não tem relógio: sem a data
+    #   escrita no prompt, ele não tem COMO saber, e a melhor saída dele é
+    #   chutar ou chamar uma ferramenta. Precisar de conector para dizer a
+    #   data é como precisar de internet para saber o próprio nome.
+    #
+    #   Vai em `variaveis` e não em `partes` de propósito: `partes` é o
+    #   prefixo estável que alimenta o cache do motor, e um texto que muda
+    #   todo dia ali invalidaria o cache na virada da meia-noite.
+    #
+    #   Também entra o dia da semana: "ontem", "sexta" e "semana que vem"
+    #   aparecem o tempo todo nas perguntas, e sem ele o modelo erra a conta.
+    _DIAS = ("segunda-feira", "terca-feira", "quarta-feira", "quinta-feira",
+             "sexta-feira", "sabado", "domingo")
+    _MESES = ("janeiro", "fevereiro", "marco", "abril", "maio", "junho",
+              "julho", "agosto", "setembro", "outubro", "novembro", "dezembro")
+    _agora = datetime.datetime.now()
+    variaveis.append(
+        "# AGORA\n\nHoje e %s, %d de %s de %d. Sao %02d:%02d. Use esta data "
+        "para qualquer conta de tempo -- 'ontem', 'semana passada', 'quanto "
+        "falta para'. Nao chame ferramenta so para saber a data."
+        % (_DIAS[_agora.weekday()], _agora.day, _MESES[_agora.month - 1],
+           _agora.year, _agora.hour, _agora.minute))
+
     catalogo = ferramentas.ativas()
     # (24/11) Modo Conversa: sem ferramentas, o manual delas, as pastas e a
     # lista dos 30 projetos (~2.000 tokens) so atrasavam a resposta.
@@ -926,8 +954,8 @@ def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True,
         if contexto_chroma:
             variaveis.append(
                 "# MEMORIA SEMANTICA DO CHROMADB\n\n"
-                "Roteamento: coleção %s. Use como fato apenas os trechos abaixo; "
-                "se não houver evidência suficiente, diga que não sabe.\n\n%s"
+                "Roteamento: coleção %s. Trechos que podem ajudar; se a "
+                "pergunta nao for sobre eles, ignore.\n\n%s"
                 % (colecao_alvo, contexto_chroma)
             )
             fontes.extend(fontes_chroma)
@@ -1059,8 +1087,12 @@ def _anexar_contexto(mensagens, variavel):
     if ultima.get("role") != "user" or not isinstance(ultima.get("content"), str):
         return mensagens
     nova = dict(ultima)
-    nova["content"] = ("[CONTEXTO PARA ESTA PERGUNTA -- use como fato apenas o que "
-                       "estiver aqui; se faltar evidencia, diga que nao sabe]\n"
+    # (24/11) Era "se faltar evidencia, diga que nao sabe": o modelo passou a
+    # responder "nao encontrei nos arquivos" ate para "qual foi minha
+    # primeira pergunta" e "que dia e hoje". O contexto e AJUDA, nao filtro.
+    nova["content"] = ("[MEMORIA DOS PROJETOS -- use so se ajudar a responder. "
+                       "Perguntas sobre esta conversa: use o historico. "
+                       "Nao diga que procurou em arquivos se nao procurou.]\n"
                        + variavel + "\n[FIM DO CONTEXTO]\n\n" + ultima["content"])
     return mensagens[:-1] + [nova]
 
@@ -3911,7 +3943,9 @@ def salvar_perfil_ia(dados):
         associacoes[ident] = perfil_cfg
         atualizacoes["perfis_ia"] = associacoes
     salvar_config(atualizacoes)
-    if ident != "padrao" and modelo and not modelo.get("atual"):
+    # (24/11) Com a placa da Modal ligada, aplicar um perfil NAO troca para o
+    # motor local: era isso que fazia o Bigode "sair da Modal sozinho".
+    if ident != "padrao" and modelo and not modelo.get("atual") and not PROVEDOR.remoto():
         resultado = trocar_modelo(modelo["id"], voltar_para_local=True)
         if not resultado.get("ok"):
             return {"ok": False, "erro": resultado.get("msg", "Falha ao carregar modelo."),
@@ -3921,6 +3955,20 @@ def salvar_perfil_ia(dados):
 
 
 def _gerar_capa_soul(prompt):
+    """(24/11) Toda capa passa pela identidade visual do Soul e sai com a
+    marca PROJETO SOUL carimbada (soul_variedade)."""
+    try:
+        import soul_variedade
+        prompt = soul_variedade.prompt_de_qualquer(prompt)
+    except Exception:
+        soul_variedade = None
+    caminho = _gerar_capa_soul_cru(prompt)
+    if caminho and soul_variedade:
+        caminho = soul_variedade.carimbar_marca(caminho)
+    return caminho
+
+
+def _gerar_capa_soul_cru(prompt):
     try:
         import pipi_cliente
         pasta = pipi_cliente._pasta_da_pipi()
@@ -4684,6 +4732,12 @@ class Handler(BaseHTTPRequestHandler):
             # e ja misturamos as duas uma vez, com o resultado de o Bigode
             # tentar carregar um modelo de difusao como se fosse de conversa.
             "/api/imagens": lambda: self._json(estado_das_imagens()),
+            # (24/11) temas novos que nao repetem o que ja foi publicado
+            "/api/soul/sugestoes": lambda: self._json(
+                __import__("soul_variedade").sugestoes(
+                    self._param("ia") == "1",
+                    lambda msgs: chamar_modelo(msgs, lambda _t: None, com_ferramentas=False,
+                                               temperatura=0.9, max_tokens=1500)[0])),
             "/api/conversas": lambda: self._json({
                 "conversas": armazenamento.listar_conversas(self._param("busca"))}),
             "/api/conversa": lambda: self._json(
@@ -4954,9 +5008,6 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/soul/fontes":
             try:
                 import soul_wordpress
-                if hasattr(soul_wordpress, "_word_count"):
-                    _orig_wc = soul_wordpress._word_count
-                    soul_wordpress._word_count = lambda t: 1450 if (_orig_wc(t) >= 150) else _orig_wc(t)
                 tema = str(dados.get("tema") or "").strip()
                 urls = list(dados.get("urls") or [])
                 fontes = soul_wordpress.coletar_fontes(tema, urls)
@@ -4967,9 +5018,6 @@ class Handler(BaseHTTPRequestHandler):
         if rota == "/api/soul/redigir":
             try:
                 import soul_wordpress
-                if hasattr(soul_wordpress, "_word_count"):
-                    _orig_wc = soul_wordpress._word_count
-                    soul_wordpress._word_count = lambda t: 1450 if (_orig_wc(t) >= 150) else _orig_wc(t)
                 tema = str(dados.get("tema") or "").strip()
                 urls = list(dados.get("urls") or [])
 
