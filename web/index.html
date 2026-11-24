@@ -1566,22 +1566,27 @@ header{
 .modo-sel:hover,.modo-sel:focus{border-color:#31445E;color:var(--txt)}
 .modo-sel option{background:var(--sup);color:var(--txt)}
 @media (max-width:600px){.modo-sel{max-width:96px;font-size:12px;padding:5px 4px}}
-/* USABILIDADE (24/11) ------------------------------------------------ */
-/* Cartoes de modo na tela inicial: ensinam o que o Bigode faz sem manual */
-.modos-ini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;max-width:640px;
-  margin:26px auto 0;text-align:left}
-.modo-card{background:var(--sup);border:1px solid var(--linha);border-radius:12px;padding:12px 14px;
-  cursor:pointer;color:var(--txt);transition:border-color .15s,background .15s;font:inherit;text-align:left}
-.modo-card:hover{border-color:#31445E;background:var(--sup2)}
-.modo-card:focus-visible{outline:2px solid #31445E;outline-offset:2px}
-.modo-card.on{border-color:var(--ac);background:var(--sup2)}
-.modo-card b{display:block;font-size:13.5px;font-weight:600;margin-bottom:3px}
-.modo-card span{display:block;font-size:12px;color:var(--mudo);line-height:1.4}
-.modos-dica{font-size:12px;color:var(--fraco);margin-top:12px}
-@media(max-width:620px){.modos-ini{grid-template-columns:repeat(2,minmax(0,1fr))}}
-/* A tela inicial respira: gato menor, menos espaco morto */
-.inicio{padding-top:6vh}
-.gato{height:clamp(96px,16vh,150px)}
+/* TELA INICIAL ESTILO MANUS (24/11) -----------------------------------
+   Sem cartoes e sem enfeite: avatar pequeno, uma pergunta e a caixa de
+   mensagem no centro da tela. Quando a conversa comeca, a caixa desce. */
+body.vazio .rolo{display:flex;flex-direction:column;justify-content:flex-end}
+body.vazio .base{padding-bottom:26vh;background:none}
+body.vazio .compor{min-height:112px;align-items:flex-end;border-radius:20px}
+body.vazio .compor textarea{min-height:64px}
+.inicio{padding:0 0 18px;text-align:center}
+/* rosto do Bigode centrado no circulo: foto da cabeca, zoom 140%, centro entre olhos e nariz */
+.ini-av{width:56px;height:56px;border-radius:50%;background:#fff url(/img/bigode-cabeca.png) 69% 96%/140% no-repeat;
+  display:block;margin:0 auto 16px;border:1px solid var(--linha2)}
+.inicio h2{font-size:28px;font-weight:600;letter-spacing:-.6px;margin:0}
+@media(max-width:620px){body.vazio .base{padding-bottom:12vh}.inicio h2{font-size:22px}}
+/* Caixa de mensagem: texto em cima, botoes numa linha embaixo (como Manus/ChatGPT) */
+.compor{flex-wrap:wrap;row-gap:4px}
+.compor textarea{flex:1 1 100%!important;order:-1;padding-left:8px}
+#btMic{margin-left:auto}
+body.vazio .compor{align-items:center}
+body.vazio .compor textarea{min-height:60px}
+/* Seletor de modo: discreto, dentro da caixa */
+.modo-sel option:disabled{color:var(--fraco)}
 /* Faixa de estado so aparece quando ha algo a dizer (ligando, ocupado, desligado) */
 .ajuda-rapida.pronto{display:none!important}
 /* Diagnostico e ferramenta de desenvolvedor: some da tela; Ctrl+Shift+D mostra */
@@ -2596,7 +2601,7 @@ const esc=t=>{const d=document.createElement('div');d.textContent=t??'';return d
 let historico=[],ocupado=false,CX={},CFG={},PERS={},conversaId=null,projetoAtivo=null,PROJ=[];
 let CHROME_LIGADO=false;   // a extensao do Chrome deu sinal nos ultimos 15s
 let ULTIMAS=[];            // as conversas da barra lateral, para renomear
-let LIGADO=false,ESTADO='parado';
+let LIGADO=false,ESTADO='';
 
 /* ---------- logos e icones ---------- */
 const LOGO={
@@ -3272,17 +3277,16 @@ function aplicarModo(m){
   const e=document.getElementById('entrada');if(e)e.placeholder=MODOS_UI[m].ph;
   document.querySelectorAll('.modo-card').forEach(c=>c.classList.toggle('on',c.dataset.modo===m));
 }
-function cartoesDeModo(){
-  const ordem=['conversa','arquivos','pesquisa','navegador','blender','criacao'];
-  return '<div class="modos-ini" role="list">'+ordem.map(m=>
-    '<button class="modo-card" role="listitem" data-modo="'+m+'"><b>'+esc(MODOS_UI[m].t)+
-    '</b><span>'+esc(MODOS_UI[m].d)+'</span></button>').join('')+'</div>'+
-    '<div class="modos-dica">Escolha um modo: o Bigode responde mais rápido quando sabe o tipo de trabalho.</div>';
-}
-function ligarCartoesDeModo(){
-  document.querySelectorAll('.modo-card').forEach(c=>c.onclick=()=>{
-    aplicarModo(c.dataset.modo);const e=document.getElementById('entrada');if(e)e.focus();});
-  aplicarModo(modoAtual());
+/* Modo que depende de uma conexao desligada nao pode ser escolhido:
+   escolher "Pesquisa" com a internet desligada so geraria resposta inventada. */
+const MODO_PRECISA={pesquisa:['web','utilidades'],navegador:['navegador'],blender:['blender'],arquivos:['arquivos']};
+async function conferirModos(){
+  const s=document.getElementById('modoTrabalho');if(!s)return;
+  let c={};try{const d=await(await fetch('/api/conexoes')).json();c=d.conexoes||d;}catch(e){return;}
+  [...s.options].forEach(o=>{const p=MODO_PRECISA[o.value];if(!p)return;
+    const ok=p.some(k=>c[k]&&c[k].ativa);o.disabled=!ok;
+    o.textContent=MODOS_UI[o.value].t+(ok?'':' (desligado)');});
+  if(s.selectedOptions[0]&&s.selectedOptions[0].disabled)aplicarModo('conversa');
 }
 document.addEventListener('keydown',ev=>{
   if(ev.ctrlKey&&ev.shiftKey&&(ev.key==='D'||ev.key==='d')){ev.preventDefault();document.body.classList.toggle('diag');}
@@ -3293,18 +3297,20 @@ document.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='modoTrabal
 /* 28/09: o Fred pediu para tirar as quatro sugestoes da tela inicial.
    Lista vazia = o bloco nem e desenhado. */
 const EXEMPLOS=[];
+let NOME_USUARIO='';
+fetch('/api/eu').then(r=>r.json()).then(d=>{NOME_USUARIO=(d&&d.nome)||'';
+  const h=document.querySelector('.inicio h2');
+  if(h&&NOME_USUARIO)h.textContent='O que vamos fazer, '+NOME_USUARIO+'?';}).catch(()=>{});
 function telaInicial(){
   // Aqui entra o gato de verdade, não o desenho: é a tela que você vê ao
   // abrir, e é o único lugar com espaço para ele aparecer inteiro.
   $('faixa').innerHTML='<div class="inicio">'+
-   '<img class="gato" src="/img/bigode.png" alt="" onerror="this.remove()">'+
-   '<div class="vnome">BIGODE IA</div>'+
-   '<h2>Como posso ajudar você hoje?</h2>'+
-   cartoesDeModo()+
+   '<div class="ini-av" role="img" aria-label="Bigode"></div>'+
+   '<h2>O que vamos fazer'+(NOME_USUARIO?', '+esc(NOME_USUARIO):'')+'?</h2>'+
    (EXEMPLOS.length?'<div class="exemplos">'+EXEMPLOS.map((e,i)=>
      '<button class="ex" data-i="'+i+'">'+esc(e)+'</button>').join('')+'</div>':'')+
    painelHTML()+'</div>';
-  pintarPainel();ligarCartoesDeModo();
+  pintarPainel();aplicarModo(modoAtual());conferirModos();document.body.classList.add('vazio');
   document.querySelectorAll('.ex').forEach(b=>b.onclick=()=>{
     $('entrada').value=EXEMPLOS[b.dataset.i];$('entrada').focus();
     $('entrada').dispatchEvent(new Event('input'));});
@@ -3373,7 +3379,7 @@ async function status(){
     // se o motor ligou/desligou com o painel aberto, redesenha os cartoes
     if(mudou&&$('listaModelos')&&$('listaModelos').innerHTML)pintarModelos();
     $('pulso').className='pulso '+(d.pronto?'on':'off');
-    if($('ajudaEstado')){$('ajudaEstado').textContent=(d.pronto&&ocupado)?'Trabalhando na sua resposta…':d.pronto?'Pronto para conversar':(d.estado==='parado'?'Escolha um motor para começar':'O motor está ligando…');$('estadoRapido').textContent=(d.pronto&&ocupado)?'ocupado':d.pronto?'on-line':(d.estado==='parado'?'desligado':'carregando');if($('ajudaRapida'))$('ajudaRapida').className='ajuda-rapida '+((d.pronto&&ocupado)?'carregando':d.pronto?'pronto':(d.estado==='parado'?'desligado':'carregando'));}
+    if($('ajudaEstado')){$('ajudaEstado').textContent=d.pronto?'Pronto para conversar':(d.estado==='parado'?'Escolha um motor para começar':'O motor está ligando…');$('estadoRapido').textContent=d.pronto?'on-line':(d.estado==='parado'?'desligado':'carregando');if($('ajudaRapida'))$('ajudaRapida').className='ajuda-rapida '+(d.pronto?'pronto':(d.estado==='parado'?'desligado':'carregando'));}
     if(d.estado==='parado'){
       $('modNome').textContent='escolher motor';
       $('nota').textContent='Nenhum motor ligado. Clique em "escolher motor" '+
@@ -4108,6 +4114,8 @@ function painelTrabalho(f){
   return p;
 }
 function desenharPasso(f,ev){
+  // (24/11) 'Pensando'/'Decidi o que fazer' ja aparecem na linha viva: sem item repetido
+  if(/^pensar\d*$/.test(ev.id||''))return;
   const p=painelTrabalho(f),corpo=p.querySelector('.tp');
   let el=ev.id?f.querySelector('.passo[data-id="'+CSS.escape(ev.id)+'"]'):null;
   if(!el){el=document.createElement('div');el.dataset.id=ev.id||'';corpo.appendChild(el);}
@@ -4232,7 +4240,7 @@ async function enviar(){
   }
   if(ESTADO==='carregando')
     return toast('Ainda está ligando. Sua mensagem continua aqui.','alerta');
-  c.value='';c.style.height='28px';
+  c.value='';c.style.height='28px';document.body.classList.remove('vazio');
   if(window.Conversa&&Conversa.ativo())Conversa.preparar();
   const fu=novaFala('eu','Você'); bloco(fu).innerHTML=md(texto);
   historico.push({role:'user',content:texto});
@@ -4638,7 +4646,7 @@ async function carregarHistorico(){
 async function abrirConversa(id){
   const d=await(await fetch('/api/conversa?id='+id)).json();
   if(!d.mensagens||!d.mensagens.length)return false;
-  conversaId=d.id;historico=d.mensagens;
+  conversaId=d.id;historico=d.mensagens;document.body.classList.remove('vazio');
   const fx=$('faixa');
   fx.innerHTML='';
   // reinicia a animacao: sem remover a classe antes, o navegador ignora

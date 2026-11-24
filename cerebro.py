@@ -869,7 +869,8 @@ def mapa_dos_projetos():
     return _MAPA["texto"]
 
 
-def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True):
+def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True,
+                  sem_ferramentas=False):
     cfg = config()
     variaveis = []   # blocos que MUDAM a cada pergunta (ver CACHE DO MOTOR)
     roteamento = roteador_semantico.classificar_consulta(pergunta)
@@ -883,7 +884,9 @@ def montar_system(pergunta, colecao="", dividir=False, conversa_nova=True):
               ler(MEMORIA / "jeito_de_trabalhar.md")]
 
     catalogo = ferramentas.ativas()
-    if catalogo:
+    # (24/11) Modo Conversa: sem ferramentas, o manual delas, as pastas e a
+    # lista dos 30 projetos (~2.000 tokens) so atrasavam a resposta.
+    if catalogo and not sem_ferramentas:
         # Com function calling nativo o modelo ja recebe o catalogo pelo template;
         # repetir em texto so gastaria contexto.
         if not usar_nativas(cfg):
@@ -5464,7 +5467,8 @@ class Handler(BaseHTTPRequestHandler):
         conversa_nova = sum(1 for m in historico if m.get("role") == "user") <= 1
         system, contexto_variavel, fontes = montar_system(
             pergunta, roteamento.get("colecao", "todas"), dividir=True,
-            conversa_nova=conversa_nova)
+            conversa_nova=conversa_nova,
+            sem_ferramentas=str(dados.get("modo") or "").strip().lower() == "conversa")
         perfil_ativo = str(cfg.get("perfil_ia") or "padrao")
         perfil_def = PERFIS_IA.get(perfil_ativo)
         perfil_guardado = (cfg.get("perfis_ia") or {}).get(perfil_ativo, {})
@@ -5720,8 +5724,9 @@ class Handler(BaseHTTPRequestHandler):
 
         if fontes:
             evento({"tipo": "acao", "id": "prep-mem", "estado": "ok",
-                    "titulo": "Recuperei informações salvas",
-                    "resumo": "Vou aproveitar o que já construímos juntos."})
+                    "titulo": "Consultei a memória",
+                    "resumo": "%d trecho%s dos seus projetos" % (
+                        len(fontes), "" if len(fontes) == 1 else "s")})
 
         ligadas = [c.get("nome") for c in conexoes_publicas().values()
                    if isinstance(c, dict) and c.get("ativa")]
