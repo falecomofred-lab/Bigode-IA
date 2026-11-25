@@ -626,6 +626,18 @@ def _eixo_do_tema(consulta: str) -> str:
     return melhor
 
 
+_TERMOS_CANNABIS = re.compile(
+    r"cannab|canab|maconha|marijuana|marihuana|c[aâ]nhamo|hemp|\bcbd\b|\bthc\b|"
+    r"canabidiol|cannabidiol|tetra.?hidrocanabinol|endocanab|endocannab|fitocanab", re.I)
+
+
+def _fonte_relevante(f: dict[str, Any]) -> bool:
+    if f in FONTES_JURIDICAS or f.get("fonte") == "ANVISA" or f.get("manual"):
+        return True
+    texto = " ".join(str(f.get(k) or "") for k in ("titulo", "resumo"))
+    return bool(_TERMOS_CANNABIS.search(texto))
+
+
 def coletar_fontes(consulta: str, urls: list[str] | None = None) -> list[dict[str, Any]]:
     fontes = []
 
@@ -683,9 +695,19 @@ def coletar_fontes(consulta: str, urls: list[str] | None = None) -> list[dict[st
     for u in (urls or []):
         try:
             m = buscar_fontes_manuais([u])
+            for _f in m:
+                _f["manual"] = True      # fonte que o Fred escolheu: passa no filtro
             fontes.extend(m)
         except Exception:
             pass
+
+    # FONTE QUE NAO FALA DE CANNABIS NAO ENTRA                  (24/11/2026)
+    #   O artigo "Cannabis e Povos Tradicionais" saiu com fontes sobre
+    #   quilombos e sobre cultura pop coreana, achadas pela OpenAlex por
+    #   palavras soltas do tema. O escritor citou essas fontes para sustentar
+    #   frases sobre CBD. Agora so fica a fonte cujo titulo ou resumo fala de
+    #   cannabis. A base juridica conferida passa sempre.
+    fontes = [f for f in fontes if _fonte_relevante(f)]
 
     if not any(f.get("fonte") == "ANVISA" for f in fontes):
         fontes.append({
@@ -1034,6 +1056,65 @@ PROMESSAS = re.compile(
 NUMERO = re.compile(r"(?<![\[\w])(\d+(?:[.,]\d+)?)\s?(%|por cento)?")
 
 
+_VAZIAS = set("""a o as os um uma uns umas de do da dos das em no na nos nas por para pelo pela
+com sem que se e ou mas como mais menos muito muita muitos muitas seu sua seus suas ser sao foi
+sido tem ter pode podem este esta estes estas esse essa isso isto ao aos entre sobre tambem ja
+nao sim quando onde qual quais ainda apenas cada outro outra outros outras forma modo uso usos
+cannabis canabis maconha medicinal produto produtos estudo estudos pesquisa pesquisas brasil
+pacientes paciente tratamento the of and in to for with on by is are""".split())
+
+
+# Ponte portugues -> ingles: o texto sai em portugues e muitos resumos do
+# PubMed estao em ingles. Sem isto, frase verdadeira era cortada.
+_PT_EN = {
+    "sono": "sleep", "insonia": "insomnia", "dor": "pain", "dores": "pain",
+    "ansiedade": "anxiety", "epilepsia": "epilepsy", "convulsoes": "seizures",
+    "convulsao": "seizure", "crises": "seizures", "espasticidade": "spasticity",
+    "esclerose": "sclerosis", "cancer": "cancer", "nausea": "nausea",
+    "nauseas": "nausea", "vomito": "vomiting", "vomitos": "vomiting",
+    "apetite": "appetite", "inflamacao": "inflammation", "inflamatorio": "inflammatory",
+    "criancas": "children", "idosos": "elderly", "dependencia": "dependence",
+    "psicose": "psychosis", "adversos": "adverse", "seguranca": "safety",
+    "eficacia": "efficacy", "ensaio": "trial", "ensaios": "trials",
+    "revisao": "review", "melhora": "improvement", "melhorou": "improved",
+    "reducao": "reduction", "reduziu": "reduced", "baixa": "low", "qualidade": "quality",
+    "receptores": "receptors", "cerebro": "brain", "memoria": "memory",
+    "autismo": "autism", "parkinson": "parkinson", "alzheimer": "alzheimer",
+    "fibromialgia": "fibromyalgia", "enxaqueca": "migraine", "depressao": "depression",
+    "cultivo": "cultivation", "plantas": "plants", "planta": "plant",
+    "terpenos": "terpenes", "flores": "flowers", "solo": "soil", "lei": "law",
+    "legislacao": "legislation", "proibicao": "prohibition", "politica": "policy",
+    "canabidiol": "cbd", "cannabidiol": "cbd", "tetrahidrocanabinol": "thc",
+    "tetrahydrocannabinol": "thc", "canabinoides": "cannabinoid",
+    "canabinoide": "cannabinoid", "cannabinoids": "cannabinoid",
+}
+
+
+def _palavras_chave(txt):
+    import unicodedata
+    t = unicodedata.normalize("NFD", str(txt).lower())
+    t = "".join(ch for ch in t if unicodedata.category(ch) != "Mn")
+    saida = set()
+    for w in re.findall(r"[a-z]{3,}", t):
+        w = _PT_EN.get(w, w)
+        if w in _VAZIAS or (len(w) < 4 and w not in ("cbd", "thc", "dor")):
+            continue
+        saida.add(w[:5])
+    return saida
+
+
+def _fonte_apoia(frase, fonte):
+    """A frase e a fonte citada falam da mesma coisa? Exige pelo menos duas
+    palavras de conteudo em comum (comparando o comeco da palavra, para que
+    'espasticidade' e 'spasticity' nao contem, mas 'epilepsia'/'epileptic'
+    tambem nao -- por isso o resumo em ingles conta pelos termos tecnicos
+    que coincidem, como 'cannabidiol', 'receptor', 'dravet')."""
+    base = _palavras_chave(" ".join(str(fonte.get(k) or "") for k in ("titulo", "resumo")))
+    if not base:
+        return True          # fonte sem resumo: nao da para julgar
+    return len(_palavras_chave(frase) & base) >= 2
+
+
 def _conferir_secao(texto, fontes, cortes):
     base = " ".join(str(f.get("resumo") or "") + " " + str(f.get("titulo") or "") +
                     " " + str(f.get("ano") or "") for f in fontes)
@@ -1055,6 +1136,9 @@ def _conferir_secao(texto, fontes, cortes):
                 cortes.append("citou fonte que nao existe: " + fr.replace("\u27e6X\u27e7", "[?]").strip()[:160]); continue
             if PROMESSAS.search(sem_refs):
                 cortes.append("promessa/dose: " + fr.strip()[:160]); continue
+            refs = [int(x) for x in re.findall(r"\[(\d{1,3})\]", fr) if 1 <= int(x) <= len(fontes)]
+            if refs and not any(_fonte_apoia(sem_refs, fontes[n - 1]) for n in refs):
+                cortes.append("fonte citada nao fala disso: " + fr.strip()[:160]); continue
             inventado = False
             for m in NUMERO.finditer(sem_refs):
                 num = m.group(1).replace(",", ".")
@@ -1085,7 +1169,13 @@ def _escrever_secao(tema, titulo_artigo, secao, anteriores, fontes, llm):
     texto = llm([{"role": "system", "content": LINHA_EDITORIAL},
                  {"role": "user", "content": pedido}]) or ""
     texto = re.sub(r"^```(?:markdown)?\s*|\s*```$", "", texto.strip())
-    texto = re.sub(r"^#{1,2}\s*" + re.escape(titulo) + r"\s*\n", "", texto, flags=re.I)
+    # (24/11) o modelo repetia o titulo como ### e fechava cada secao com
+    # "### Conclusao" e "### Referencias" -- lista de referencias escrita
+    # pelo modelo e exatamente onde mora o estudo inventado.
+    texto = re.sub(r"^#{1,6}\s*" + re.escape(titulo) + r"\s*\n", "", texto, flags=re.I)
+    texto = re.split(r"\n#{1,6}\s*(?:Refer[eê]ncias|Fontes|Bibliografia)\b.*", texto, flags=re.I)[0]
+    texto = re.sub(r"\n#{1,6}\s*(?:Conclus[aã]o|Considera[cç][oõ]es finais)\s*\n", "\n\n", texto, flags=re.I)
+    texto = re.sub(r"\bsuplementos?(?:\s+terap[eê]uticos?)?\b", "produtos de Cannabis", texto, flags=re.I)
     return "## " + titulo + "\n\n" + texto.strip()
 
 
@@ -1108,6 +1198,17 @@ def gerar_artigo(tema: str, llm: Callable[[list[dict[str, str]]], str],
     if len(tema) < 8 or len(tema) > 300:
         raise ValueError("O tema deve ter entre 8 e 300 caracteres.")
     fontes = coletar_fontes(tema, urls_fontes or [])
+    # SEM FONTE, SEM ARTIGO                                     (25/11/2026)
+    #   "Relatos de Pacientes com Fibromialgia" saiu com UMA fonte (a ANVISA,
+    #   que entra em todo artigo) e o modelo inventou a lista de referencias.
+    #   Com menos de 3 estudos de verdade sobre o tema, o certo e parar e
+    #   pedir outro tema ou links -- nao escrever.
+    reais = [f for f in fontes if f.get("fonte") != "ANVISA" and f not in FONTES_JURIDICAS]
+    if len(reais) < 3:
+        raise ValueError("Achei so %d estudo(s) sobre este tema nas bases (PubMed/OpenAlex). "
+                         "Sem pelo menos 3 fontes eu nao escrevo, para nao inventar. "
+                         "Tente o tema com outras palavras (de preferencia em ingles) "
+                         "ou cole os links dos estudos." % len(reais))
     try:
         try:
             import soul_variedade
@@ -1223,6 +1324,21 @@ def _wp_media(path: Path, cfg: dict[str, Any]) -> int:
     return int(value["id"])
 
 
+def _tag_ids(nomes, cfg):
+    ids = []
+    for nome in [str(n).strip() for n in nomes if str(n).strip()][:10]:
+        achadas = _wp_request("GET", "/tags?per_page=20&search=" + urllib.parse.quote(nome),
+                              cfg=cfg, timeout=20) or []
+        igual = [t for t in achadas if str(t.get("name", "")).strip().lower() == nome.lower()]
+        if igual:
+            ids.append(int(igual[0]["id"]))
+        else:
+            nova = _wp_request("POST", "/tags", {"name": nome}, cfg=cfg, timeout=20)
+            if isinstance(nova, dict) and nova.get("id"):
+                ids.append(int(nova["id"]))
+    return ids
+
+
 def criar_rascunho(artigo: dict[str, Any], *, capa: Path | None = None,
                    cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = cfg or _ler_config()
@@ -1237,6 +1353,17 @@ def criar_rascunho(artigo: dict[str, Any], *, capa: Path | None = None,
                                "status": "draft", "comment_status": "closed"}
     if media_id:
         payload["featured_media"] = media_id
+        try:   # (24/11) capa sem texto alternativo: ruim para acessibilidade e Google
+            _wp_request("POST", "/media/%d" % media_id,
+                        {"alt_text": str(artigo["titulo"])[:200]}, cfg=cfg, timeout=30)
+        except Exception:
+            pass
+    try:       # (24/11) as tags eram geradas e nunca enviadas
+        tag_ids = _tag_ids(artigo.get("tags") or [], cfg)
+        if tag_ids:
+            payload["tags"] = tag_ids
+    except Exception:
+        pass
     categoria_ids = cfg.get("categorias") or []
     if categoria_ids:
         payload["categories"] = [int(x) for x in categoria_ids if int(x) > 0][:50]
